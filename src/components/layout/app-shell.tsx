@@ -7,6 +7,7 @@ import {
   Settings,
   ShieldCheck,
   UsersRound,
+  Trophy,
 } from "lucide-react";
 import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ export function AppShell({
   children,
   user,
 }: Readonly<{
-  active: "dashboard" | "settings" | "verification" | "users" | "reports";
+  active: "dashboard" | "settings" | "verification" | "users" | "reports" | "scoring";
   children: React.ReactNode;
   user: SessionUser;
 }>) {
@@ -39,6 +40,12 @@ export function AppShell({
       icon: FileBarChart,
       id: "reports",
       label: "Reports",
+    },
+    {
+      href: "/scoring",
+      icon: Trophy,
+      id: "scoring",
+      label: "Scoring & Leaderboard",
     },
     ...(user.isAdmin
       ? [

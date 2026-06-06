@@ -2,22 +2,29 @@
 
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
+import type { EventRoleAssignment } from "@/features/access-control/types";
+import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   formatEventDate,
-  formatEventRole,
   formatEventStatus,
   getEventStatusBadgeClassName,
   getEventStatusBadgeTone,
 } from "@/features/events/lib/event-ui";
-import type { Event, EventCommittee } from "@/features/events/types";
+import type { Event } from "@/features/events/types";
 
 type UserEvent = {
   event: Event;
-  role: EventCommittee;
+  role: EventRoleAssignment;
 };
+
+function formatRoleLabel(role: EventRoleAssignment) {
+  return getEventRoleDisplayName(role.role, {
+    chairCount: role.eventChairCount ?? 0,
+  });
+}
 
 export function MyEvents({
   events,
@@ -51,9 +58,7 @@ export function MyEvents({
                       <h3 className="font-semibold text-text-primary">{event.title}</h3>
                       <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
                     </div>
-                    <Badge tone="primary">
-                      {formatEventRole(role.role, role.display_role)}
-                    </Badge>
+                    <Badge tone="primary">{formatRoleLabel(role)}</Badge>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -63,7 +68,7 @@ export function MyEvents({
                     >
                       {formatEventStatus(event.status)}
                     </Badge>
-                    {role.committee_name ? <Badge>{role.committee_name}</Badge> : null}
+                    {role.committeeName ? <Badge>{role.committeeName}</Badge> : null}
                   </div>
 
                   <dl className="grid gap-2 text-sm">

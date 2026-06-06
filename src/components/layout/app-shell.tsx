@@ -1,7 +1,9 @@
 import Link from "next/link";
 import {
   FileBarChart,
-  Flag, LayoutDashboard,
+  Flag, 
+  CalendarDays,
+  LayoutDashboard,
   LogOut,
   MailCheck,
   Settings,
@@ -18,7 +20,7 @@ export function AppShell({
   children,
   user,
 }: Readonly<{
-  active: "dashboard" | "settings" | "moderation" | "verification" | "users" | "reports" | "scoring" | "volunteers";
+  active: "dashboard" | "settings" | "moderation" | "events" | "my-events" | "verification" | "users" | "reports" | "scoring" | "volunteers";
   children: React.ReactNode;
   user: SessionUser;
 }>) {
@@ -29,6 +31,22 @@ export function AppShell({
       id: "dashboard",
       label: "Overview",
     },
+    {
+      href: "/events",
+      icon: CalendarDays,
+      id: "events",
+      label: "Events",
+    },
+    ...(user.profile.uomVerified || user.isAdmin
+      ? [
+          {
+            href: "/my-events",
+            icon: CalendarDays,
+            id: "my-events",
+            label: "My Events",
+          },
+        ]
+      : []),
     {
       href: "/verify-uom",
       icon: MailCheck,

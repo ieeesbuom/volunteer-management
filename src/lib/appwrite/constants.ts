@@ -9,6 +9,8 @@ export const APPWRITE_TABLES = {
   systemSettings: "system_settings",
   topBoardExclusions: "top_board_exclusions",
   auditLogs: "audit_logs",
+  conclusionReports: "conclusion_reports",
+  reportApprovals: "report_approvals",
 } as const;
 
 export const UOM_VERIFICATION_CODE_TTL_MINUTES = 15;

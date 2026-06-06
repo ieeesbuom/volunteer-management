@@ -8,6 +8,9 @@ export const APPWRITE_TABLES = {
   uomVerificationRequests: "uom_verification_requests",
   sbRoleAssignments: "sb_role_assignments",
   eventRoleAssignments: "event_role_assignments",
+  ieeeTerms: "ieee_terms",
+  systemSettings: "system_settings",
+  topBoardExclusions: "top_board_exclusions",
   auditLogs: "audit_logs",
   conclusionReports: "conclusion_reports",
   reportApprovals: "report_approvals",
@@ -18,6 +21,7 @@ export const APPWRITE_TABLES = {
   termScoringConfig: "term_scoring_config",
   events: "events",
   eventCommittees: "event_committees",
+  eventCommitteeMembers: "event_committee_members",
 } as const;
 
 export const UOM_VERIFICATION_CODE_TTL_MINUTES = 15;

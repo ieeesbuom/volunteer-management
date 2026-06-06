@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  FileBarChart,
   LayoutDashboard,
   LogOut,
   MailCheck,
@@ -16,7 +17,7 @@ export function AppShell({
   children,
   user,
 }: Readonly<{
-  active: "dashboard" | "settings" | "users" | "verification";
+  active: "dashboard" | "settings" | "verification" | "users" | "reports";
   children: React.ReactNode;
   user: SessionUser;
 }>) {
@@ -33,21 +34,27 @@ export function AppShell({
       id: "verification",
       label: "UoM Verification",
     },
+    {
+      href: "/reports",
+      icon: FileBarChart,
+      id: "reports",
+      label: "Reports",
+    },
     ...(user.isAdmin
       ? [
-          {
-            href: "/admin/users",
-            icon: UsersRound,
-            id: "users",
-            label: "Access Control",
-          },
-          {
-            href: "/admin/settings",
-            icon: Settings,
-            id: "settings",
-            label: "System Settings",
-          },
-        ]
+        {
+          href: "/admin/users",
+          icon: UsersRound,
+          id: "users",
+          label: "Access Control",
+        },
+        {
+          href: "/admin/settings",
+          icon: Settings,
+          id: "settings",
+          label: "System Settings",
+        },
+      ]
       : []),
   ] as const;
 

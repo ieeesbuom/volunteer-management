@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BellPlus,
   CalendarDays,
   FileBarChart,
   Flag,
@@ -15,14 +16,18 @@ import {
 import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/features/access-control/types";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
+import { getNotificationSummaryForUser } from "@/features/notifications/server/notification-service";
+import type { NotificationListResult } from "@/features/notifications/types";
 
-export function AppShell({
+export async function AppShell({
   active,
   children,
   user,
 }: Readonly<{
   active:
     | "dashboard"
+    | "notifications"
     | "settings"
     | "moderation"
     | "events"
@@ -102,9 +107,30 @@ export function AppShell({
             id: "moderation",
             label: "Moderation",
           },
-      ]
+          {
+            href: "/admin/notifications",
+            icon: BellPlus,
+            id: "notifications",
+            label: "Send Notification",
+          },
+        ]
       : []),
   ] as const;
+  let notificationSummary: NotificationListResult = {
+    notifications: [],
+    unreadCount: 0,
+  };
+
+  try {
+    notificationSummary = await getNotificationSummaryForUser(user.authUser.id, {
+      limit: 15,
+    });
+  } catch {
+    notificationSummary = {
+      notifications: [],
+      unreadCount: 0,
+    };
+  }
 
   return (
     <main className="min-h-screen bg-background text-text-primary">
@@ -126,6 +152,10 @@ export function AppShell({
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <NotificationBell
+                initialNotifications={notificationSummary.notifications}
+                initialUnreadCount={notificationSummary.unreadCount}
+              />
               <div className="min-w-0 text-sm">
                 <p className="truncate font-medium text-text-primary">
                   {user.authUser.name || user.authUser.email}

@@ -22,6 +22,9 @@ export const APPWRITE_TABLES = {
   events: "events",
   eventCommittees: "event_committees",
   eventCommitteeMembers: "event_committee_members",
+  notifications: "notifications",
+  notificationPreferences: "notification_preferences",
+  formConnections: "form_connections",
 } as const;
 
 export const UOM_VERIFICATION_CODE_TTL_MINUTES = 15;

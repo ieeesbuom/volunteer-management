@@ -9,12 +9,13 @@ import {
 } from "@/features/events/server/event-route-helpers";
 import {
   deleteEvent,
+  filterUpdateInputForRole,
   getEventById,
-  getEventWithCommittees,
+  getEventWithRoleAssignments,
   updateEvent,
 } from "@/features/events/server/event-service";
 import { UpdateEventInputSchema } from "@/features/events/types";
-import { jsonError } from "@/server/errors";
+import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ eventId: string }>;
@@ -34,15 +35,15 @@ export async function GET(_request: Request, context: RouteContext) {
   const { eventId } = await context.params;
 
   try {
-    const event = await getEventWithCommittees(eventId);
+    const event = await getEventWithRoleAssignments(eventId);
 
     if (!event) {
       return jsonError("Event was not found.", 404);
     }
 
-    const { userCommitteeRole } = await getEventUserContext(eventId, user);
+    const { userEventRole } = await getEventUserContext(eventId, user);
 
-    if (!isEventVisible(user, event, userCommitteeRole)) {
+    if (!isEventVisible(user, event, userEventRole)) {
       return jsonError("Event was not found.", 404);
     }
 
@@ -50,7 +51,7 @@ export async function GET(_request: Request, context: RouteContext) {
   } catch (error) {
     return jsonError(
       error instanceof Error ? error.message : "Failed to fetch event.",
-      400,
+      routeErrorStatus(error),
     );
   }
 }
@@ -80,9 +81,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       return jsonError("Event was not found.", 404);
     }
 
-    const { userCommitteeRole } = await getEventUserContext(eventId, user);
+    const { userEventRole } = await getEventUserContext(eventId, user);
 
-    if (!isEventVisible(user, existingEvent, userCommitteeRole)) {
+    if (!isEventVisible(user, existingEvent, userEventRole)) {
       return jsonError("Event was not found.", 404);
     }
 
@@ -94,24 +95,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       return jsonError("You do not have permission to edit this event.", 403);
     }
 
-    if (status) {
-      if (
-        !canChangeEventStatus({
-          event: existingEvent,
-          newStatus: status,
-          user,
-          userCommitteeRole,
-        })
-      ) {
-        return jsonError("You do not have permission to change this event status.", 403);
-      }
-
-      await updateEventStatus(eventId, status, { allowAdminBackward: user.isAdmin });
-    }
-
     const event =
       hasFieldUpdates && permissions.canEdit
-        ? await updateEvent(eventId, filteredInput)
+        ? await updateEvent(eventId, filteredInput, user.authUser.id)
         : existingEvent;
 
     return NextResponse.json({ event });
@@ -122,7 +108,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return jsonError(message, 400);
     }
 
-    return jsonError(message, 400);
+    return jsonError(message, routeErrorStatus(error));
   }
 }
 
@@ -146,12 +132,16 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return jsonError("Event was not found.", 404);
     }
 
-    await deleteEvent(eventId);
+    await deleteEvent(eventId, user.authUser.id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return jsonError(error.message, 403);
+    }
+
     return jsonError(
       error instanceof Error ? error.message : "Failed to delete event.",
-      400,
+      routeErrorStatus(error),
     );
   }
 }

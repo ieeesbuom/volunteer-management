@@ -19,6 +19,8 @@ export const APPWRITE_TABLES = {
   gradeReviews: "grade_reviews",
   pointLedger: "point_ledger",
   termScoringConfig: "term_scoring_config",
+  events: "events",
+  eventCommittees: "event_committees",
 } as const;
 
 export const UOM_VERIFICATION_CODE_TTL_MINUTES = 15;

@@ -311,6 +311,7 @@ const tableDefinitions = [
       ["string", "eventId", 128, true],
       ["integer", "points", true],
       ["datetime", "conclusionApprovalDate", true],
+      ["string", "term", 32, true],
       ["enum", "source", ["grade", "role", "manual"], true],
       ["string", "createdBy", 64, true],
       ["datetime", "createdAt", true],

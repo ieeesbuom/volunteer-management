@@ -67,6 +67,23 @@ const legacyEventRoleElements = ["Lead", "OC Member"];
 function recommendationRequestKey(requesterId, respondentId) {
   return `rk_${createHash("sha1").update(`${requesterId}:${respondentId}`).digest("hex")}`;
 }
+const notificationTypeElements = [
+  "verification",
+  "role_assignment",
+  "event_update",
+  "grading_request",
+  "report_approval",
+  "system",
+];
+const formProviderElements = ["google_forms", "external_form_builder", "other"];
+const formPurposeElements = [
+  "registration",
+  "feedback",
+  "attendance",
+  "grading",
+  "other",
+];
+const formStatusElements = ["active", "disabled", "archived"];
 
 const tableDefinitions = [
   {
@@ -468,6 +485,66 @@ const tableDefinitions = [
       ["event_committee_members_committee_idx", ["committee_id"]],
       ["event_committee_members_user_idx", ["user_id"]],
       ["event_committee_members_committee_user_idx", ["committee_id", "user_id"], "unique"],
+    ],
+  },
+  {
+    id: "notifications",
+    name: "Notifications",
+    columns: [
+      ["string", "recipientUserId", 64, true],
+      ["enum", "type", notificationTypeElements, true],
+      ["string", "title", 160, true],
+      ["string", "message", 1000, true],
+      ["string", "linkHref", 512, false],
+      ["string", "actorUserId", 64, false],
+      ["string", "entityType", 64, false],
+      ["string", "entityId", 128, false],
+      ["datetime", "readAt", false],
+      ["datetime", "createdAt", true],
+      ["string", "metadata", 4000, false],
+    ],
+    indexes: [
+      ["notifications_recipient_idx", ["recipientUserId"]],
+      ["notifications_recipient_read_idx", ["recipientUserId", "readAt"]],
+      ["notifications_created_at_idx", ["createdAt"]],
+      ["notifications_type_idx", ["type"]],
+    ],
+  },
+  {
+    id: "notification_preferences",
+    name: "Notification Preferences",
+    columns: [
+      ["string", "userId", 64, true],
+      ["boolean", "emailEnabled", false, false],
+      ["boolean", "inAppEnabled", false, true],
+      ["string", "typePreferences", 4000, false],
+      ["datetime", "createdAt", true],
+      ["datetime", "updatedAt", true],
+    ],
+    indexes: [
+      ["notification_preferences_user_idx", ["userId"]],
+    ],
+  },
+  {
+    id: "form_connections",
+    name: "Form Connections",
+    columns: [
+      ["string", "eventId", 128, true],
+      ["enum", "provider", formProviderElements, true],
+      ["string", "title", 160, true],
+      ["string", "externalFormId", 256, false],
+      ["string", "formUrl", 1024, false],
+      ["enum", "purpose", formPurposeElements, true],
+      ["enum", "status", formStatusElements, true, "active"],
+      ["string", "createdBy", 64, true],
+      ["datetime", "createdAt", true],
+      ["datetime", "updatedAt", true],
+      ["string", "metadata", 4000, false],
+    ],
+    indexes: [
+      ["form_connections_event_idx", ["eventId"]],
+      ["form_connections_provider_status_idx", ["provider", "status"]],
+      ["form_connections_status_idx", ["status"]],
     ],
   },
 ];

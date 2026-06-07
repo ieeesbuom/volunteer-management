@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   FileBarChart,
-  LayoutDashboard,
+  Flag, LayoutDashboard,
   LogOut,
   MailCheck,
   Settings,
@@ -18,7 +18,7 @@ export function AppShell({
   children,
   user,
 }: Readonly<{
-  active: "dashboard" | "settings" | "verification" | "users" | "reports" | "scoring" | "volunteers";
+  active: "dashboard" | "settings" | "moderation" | "verification" | "users" | "reports" | "scoring" | "volunteers";
   children: React.ReactNode;
   user: SessionUser;
 }>) {
@@ -67,6 +67,12 @@ export function AppShell({
           id: "settings",
           label: "System Settings",
         },
+          {
+            href: "/admin/recommendations",
+            icon: Flag,
+            id: "moderation",
+            label: "Moderation",
+          },
       ]
       : []),
   ] as const;

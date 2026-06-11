@@ -14,8 +14,7 @@
     "test": "cross-env NODE_OPTIONS=--disable-warning=DEP0205 vitest run",
     "check": "npm run lint && npm run typecheck",
     "setup:appwrite": "cross-env FORCE_NODE_FETCH=1 node scripts/setup-appwrite.mjs",
-    "setup:appwrite:oauth": "cross-env FORCE_NODE_FETCH=1 node scripts/setup-appwrite-google-oauth.mjs",
-    "seed:test-notifications": "cross-env NODE_OPTIONS=--disable-warning=DEP0205 FORCE_NODE_FETCH=1 node scripts/seed-test-notification-data.mjs"
+    "setup:appwrite:oauth": "cross-env FORCE_NODE_FETCH=1 node scripts/setup-appwrite-google-oauth.mjs"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

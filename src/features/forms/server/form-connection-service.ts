@@ -1,7 +1,10 @@
 import "server-only";
 
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { canListFormConnections, canManageFormConnections } from "@/features/forms/server/permissions";
+import {
+  canListFormConnectionsForEvent,
+  canManageFormConnectionsForEvent,
+} from "@/features/forms/server/permissions";
 import {
   createAppwriteFormConnectionRepository,
   type FormConnectionRepository,
@@ -29,7 +32,7 @@ export function createFormConnectionService({
     }) {
       const body = createFormConnectionSchema.parse(input);
 
-      if (!canManageFormConnections(user, body.eventId)) {
+      if (!(await canManageFormConnectionsForEvent(user, body.eventId))) {
         throw new Error("Event form connection permission is required.");
       }
 
@@ -50,7 +53,7 @@ export function createFormConnectionService({
       eventId?: string;
       user: SessionUser;
     }) {
-      if (!canListFormConnections(user, eventId)) {
+      if (!(await canListFormConnectionsForEvent(user, eventId))) {
         throw new Error("Event form connection access is required.");
       }
 
@@ -65,12 +68,15 @@ export function createAppwriteFormConnectionService() {
   });
 }
 
-export async function createFormConnectionForCurrentUser(input: CreateFormConnectionInput) {
-  const user = await requireAuth();
+export async function createFormConnectionForCurrentUser(
+  input: CreateFormConnectionInput,
+  user?: SessionUser,
+) {
+  const currentUser = user ?? (await requireAuth());
 
   return createAppwriteFormConnectionService().createFormConnection({
     input,
-    user,
+    user: currentUser,
   });
 }
 

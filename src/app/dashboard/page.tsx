@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
+import { NotificationPreferencesForm } from "@/features/notifications/components/notification-preferences-form";
+import { getNotificationPreferencesForUser } from "@/features/notifications/server/notification-service";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,10 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const notificationPreference = await getNotificationPreferencesForUser(
+    user.authUser.id,
+  );
 
   return (
     <AppShell active="dashboard" user={user}>
@@ -172,6 +178,19 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MailCheck className="size-4 text-primary" aria-hidden="true" />
+              Notification Preferences
+            </CardTitle>
+            <CardDescription>In-app and email delivery choices.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NotificationPreferencesForm initialPreference={notificationPreference} />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

@@ -1,4 +1,5 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { PassThrough } from "node:stream";
+import { renderToPipeableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSessionUser } from "./fixtures";
 import type { SessionUser } from "../src/features/access-control/types";
@@ -142,7 +143,42 @@ function reportedRecommendation(
 }
 
 async function htmlFrom(element: React.ReactElement | Promise<React.ReactElement>) {
-  return renderToStaticMarkup(await element);
+  const resolvedElement = await element;
+
+  return new Promise<string>((resolve, reject) => {
+    let html = "";
+    let settled = false;
+    const output = new PassThrough();
+
+    output.setEncoding("utf8");
+    output.on("data", (chunk) => {
+      html += chunk;
+    });
+    output.on("end", () => {
+      if (!settled) {
+        settled = true;
+        resolve(html);
+      }
+    });
+    output.on("error", (error) => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    });
+
+    const { pipe } = renderToPipeableStream(resolvedElement, {
+      onAllReady() {
+        pipe(output);
+      },
+      onError(error) {
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      },
+    });
+  });
 }
 
 function routeParams(userId: string) {

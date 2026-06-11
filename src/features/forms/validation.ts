@@ -8,6 +8,7 @@ import {
   hasSecretLikeSearchParam,
   safeJsonObjectSchema,
 } from "@/lib/validation/safe-json";
+import { isProviderApprovedFormUrl } from "@/lib/validation/safe-links";
 
 const optionalTrimmedString = (max: number) =>
   z
@@ -24,7 +25,13 @@ export const formConnectionStatusSchema = z.enum(FORM_CONNECTION_STATUSES);
 export const createFormConnectionSchema = z
   .object({
     eventId: z.string().trim().min(1).max(128),
-    externalFormId: optionalTrimmedString(256),
+    externalFormId: optionalTrimmedString(256).refine(
+      (value) => !value || /^[A-Za-z0-9_-]+$/.test(value),
+      {
+        message:
+          "External form IDs must be stable references, not URLs, secrets, or embedded form data.",
+      },
+    ),
     formUrl: z
       .string()
       .trim()
@@ -45,6 +52,20 @@ export const createFormConnectionSchema = z
   .refine((value) => value.externalFormId || value.formUrl, {
     message: "Provide an external form ID or form URL.",
     path: ["formUrl"],
+  })
+  .superRefine((value, ctx) => {
+    if (!value.formUrl) {
+      return;
+    }
+
+    if (!isProviderApprovedFormUrl(value.formUrl, value.provider)) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Form URLs must be HTTPS URLs approved for the selected provider.",
+        path: ["formUrl"],
+      });
+    }
   });
 
 export const listFormConnectionsQuerySchema = z

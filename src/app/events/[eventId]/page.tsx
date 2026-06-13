@@ -3,12 +3,13 @@ import { AppShell } from "@/components/layout/app-shell";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { EventDetail } from "@/features/events/components/EventDetail";
-import { getCommitteesForEvent } from "@/features/events/server/committee-service";
 import {
   getEventUserContext,
   getPermissionsForUser,
   isEventVisible,
 } from "@/features/events/server/event-route-helpers";
+import { listCommitteesForEvent, listCommitteeMembers } from "@/features/events/server/committees.server";
+import { getRoleAssignmentsForEvent } from "@/features/events/server/event-roles.server";
 import { getEventById } from "@/features/events/server/event-service";
 
 export const dynamic = "force-dynamic";
@@ -35,26 +36,35 @@ export default async function EventDetailPage({ params }: PageProps) {
     redirect("/events");
   }
 
-  const { userCommitteeRole } = await getEventUserContext(eventId, user);
+  const { userEventRole } = await getEventUserContext(eventId, user);
 
-  if (!isEventVisible(user, event, userCommitteeRole)) {
+  if (!isEventVisible(user, event, userEventRole)) {
     redirect("/events");
   }
 
-  const [committees, permissions] = await Promise.all([
-    getCommitteesForEvent(eventId),
-    Promise.resolve(getPermissionsForUser(user, event, userCommitteeRole)),
+  const [assignments, committees, permissions] = await Promise.all([
+    getRoleAssignmentsForEvent(eventId),
+    listCommitteesForEvent(eventId).then(async (items) =>
+      Promise.all(
+        items.map(async (committee) => ({
+          ...committee,
+          members: await listCommitteeMembers(committee.$id),
+        })),
+      ),
+    ),
+    Promise.resolve(getPermissionsForUser(user, event, userEventRole)),
   ]);
 
   return (
     <AppShell active="events" user={user}>
       <EventDetail
         currentUserId={user.authUser.id}
+        initialAssignments={assignments}
         initialCommittees={committees}
         initialEvent={event}
         initialPermissions={permissions}
         isAdmin={user.isAdmin}
-        userCommitteeRole={userCommitteeRole}
+        userEventRole={userEventRole}
       />
     </AppShell>
   );

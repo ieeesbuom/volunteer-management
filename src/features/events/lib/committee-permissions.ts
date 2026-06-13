@@ -1,42 +1,44 @@
-import type { SessionUser } from "@/features/access-control/types";
-import type { Event, EventCommittee, EventRole, EventStatus } from "@/features/events/types";
-
-const RESTRICTED_COMMITTEE_VIEW_STATUSES: EventStatus[] = ["draft", "planning"];
+import type { EventRole, EventRoleAssignment } from "@/features/access-control/types";
+import { isEventVisibleToUser } from "@/features/events/lib/event-permissions";
+import type { Event } from "@/features/events/types";
 
 const CHAIR_ASSIGNABLE_ROLES: EventRole[] = [
-  "vice_chair",
-  "committee_lead",
-  "committee_member",
+  "Vice Chair",
+  "Committee Lead",
+  "Committee Member",
 ];
 
 const CHAIR_REMOVABLE_ROLES: EventRole[] = [
-  "vice_chair",
-  "committee_lead",
-  "committee_member",
+  "Vice Chair",
+  "Committee Lead",
+  "Committee Member",
 ];
 
 export function canViewEventCommittees(
-  user: SessionUser,
+  userId: string,
+  isAdmin: boolean,
   event: Event,
-  userCommitteeRole: EventRole | null,
+  userEventRole: EventRole | null,
 ) {
-  if (!RESTRICTED_COMMITTEE_VIEW_STATUSES.includes(event.status)) {
-    return true;
-  }
+  return isEventVisibleToUser(userId, isAdmin, event, userEventRole);
+}
 
-  if (user.isAdmin) {
-    return true;
-  }
-
-  return userCommitteeRole != null;
+export function canManageStructuralCommittees({
+  isAdmin,
+  userEventRole,
+}: {
+  isAdmin: boolean;
+  userEventRole: EventRole | null;
+}) {
+  return isAdmin || userEventRole === "Chair";
 }
 
 export function canAssignCommitteeRole({
-  actorCommitteeRole,
+  actorEventRole,
   isAdmin,
   targetRole,
 }: {
-  actorCommitteeRole: EventRole | null;
+  actorEventRole: EventRole | null;
   isAdmin: boolean;
   targetRole: EventRole;
 }) {
@@ -44,7 +46,7 @@ export function canAssignCommitteeRole({
     return true;
   }
 
-  if (actorCommitteeRole !== "chair") {
+  if (actorEventRole !== "Chair") {
     return false;
   }
 
@@ -52,31 +54,31 @@ export function canAssignCommitteeRole({
 }
 
 export function canRemoveCommitteeRole({
-  actorCommitteeRole,
+  actorEventRole,
   actorUserId,
   isAdmin,
-  targetCommittee,
+  targetAssignment,
 }: {
-  actorCommitteeRole: EventRole | null;
+  actorEventRole: EventRole | null;
   actorUserId: string;
   isAdmin: boolean;
-  targetCommittee: EventCommittee;
+  targetAssignment: EventRoleAssignment;
 }) {
   if (isAdmin) {
     return true;
   }
 
-  if (actorCommitteeRole !== "chair") {
+  if (actorEventRole !== "Chair") {
     return false;
   }
 
-  if (targetCommittee.user_id === actorUserId) {
+  if (targetAssignment.userId === actorUserId) {
     return false;
   }
 
-  if (targetCommittee.role === "chair") {
+  if (targetAssignment.role === "Chair") {
     return false;
   }
 
-  return CHAIR_REMOVABLE_ROLES.includes(targetCommittee.role);
+  return CHAIR_REMOVABLE_ROLES.includes(targetAssignment.role);
 }

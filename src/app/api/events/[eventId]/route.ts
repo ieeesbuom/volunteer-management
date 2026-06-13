@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import {
-  canChangeEventStatus,
   getEventUserContext,
   getPermissionsForUser,
   isEventVisible,
@@ -13,7 +12,6 @@ import {
   getEventById,
   getEventWithCommittees,
   updateEvent,
-  updateEventStatus,
 } from "@/features/events/server/event-service";
 import { UpdateEventInputSchema } from "@/features/events/types";
 import { jsonError } from "@/server/errors";
@@ -88,9 +86,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       return jsonError("Event was not found.", 404);
     }
 
-    const permissions = getPermissionsForUser(user, existingEvent, userCommitteeRole);
-    const { status, ...fieldUpdates } = parsed.data;
-    const hasFieldUpdates = Object.keys(fieldUpdates).length > 0;
+    const permissions = getPermissionsForUser(user, existingEvent, userEventRole);
+    const filteredInput = filterUpdateInputForRole(parsed.data, { isAdmin: user.isAdmin });
+    const hasFieldUpdates = Object.keys(filteredInput).length > 0;
 
     if (hasFieldUpdates && !permissions.canEdit) {
       return jsonError("You do not have permission to edit this event.", 403);
@@ -113,12 +111,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const event =
       hasFieldUpdates && permissions.canEdit
-        ? await updateEvent(eventId, fieldUpdates)
-        : await getEventById(eventId);
-
-    if (!event) {
-      return jsonError("Event was not found.", 404);
-    }
+        ? await updateEvent(eventId, filteredInput)
+        : existingEvent;
 
     return NextResponse.json({ event });
   } catch (error) {

@@ -17,7 +17,6 @@ import {
   adminOverrideGrade,
   submitGradeReview,
   listVolunteers,
-  listParticipationRecords,
   listDetailedReviews,
   deleteGradeRequest,
 } from "../../src/features/scoring/server/actions";
@@ -25,7 +24,7 @@ import { getAppwriteAdminServices } from "@/server/appwrite";
 import { requireAuth, requireAdmin } from "@/features/access-control/server/current-user";
 import { listProfiles, getProfile } from "@/features/access-control/server/profiles";
 import { assignEventRole } from "@/features/access-control/server/roles";
-import type { Profile } from "@/features/access-control/types";
+import type { Profile, AuditAction } from "@/features/access-control/types";
 import { hasEventRole } from "@/features/access-control/lib/rules";
 import { writeAuditLog } from "@/server/audit";
 import type { TablesDB } from "node-appwrite";
@@ -223,7 +222,8 @@ describe("Scoring Server Actions & Access Control", () => {
     } as unknown as ReturnType<typeof getAppwriteAdminServices>);
   });
 
-  it("Chair self-event grading is blocked server-side", async () => {
+  it("Chair own-event grading of members is allowed, but grading themselves is blocked", async () => {
+    // 1. Grading member under chaired event succeeds
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
@@ -245,9 +245,13 @@ describe("Scoring Server Actions & Access Control", () => {
 
     vi.mocked(hasEventRole).mockReturnValue(true);
 
+    const result = await createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 });
+    expect(result).toBeDefined();
+
+    // 2. Grading themselves is blocked
     await expect(
-      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 18 })
-    ).rejects.toThrow("Chairs cannot grade participants under their own event.");
+      createGradeRequest({ eventId: "event-1", targetUserId: "chair-1", gradeValue: 8 })
+    ).rejects.toThrow("You cannot grade yourself.");
   });
 
   it("Admin can grade any participant without event restrictions", async () => {
@@ -262,7 +266,7 @@ describe("Scoring Server Actions & Access Control", () => {
     const result = await createGradeRequest({
       eventId: "event-1",
       targetUserId: "volunteer-1",
-      gradeValue: 18,
+      gradeValue: 8,
     });
 
     expect(result).toBeDefined();
@@ -301,22 +305,8 @@ describe("Scoring Server Actions & Access Control", () => {
         return Promise.resolve({
           total: 2,
           rows: [
-            { gradeRequestId: "request-1", reviewerId: "reviewer-1", gradeValue: 18 },
-            { gradeRequestId: "request-1", reviewerId: "reviewer-2", gradeValue: 19 },
-          ],
-        });
-      }
-      if (table === "audit_logs") {
-        return Promise.resolve({
-          total: 1,
-          rows: [
-            {
-              $id: "log-1",
-              action: "CONCLUSION_REPORT_APPROVED",
-              targetType: "event",
-              targetId: "event-1",
-              createdAt: "2026-06-15T00:00:00.000Z",
-            },
+            { gradeRequestId: "request-1", reviewerId: "reviewer-1", gradeValue: 8 },
+            { gradeRequestId: "request-1", reviewerId: "reviewer-2", gradeValue: 9 },
           ],
         });
       }
@@ -326,6 +316,7 @@ describe("Scoring Server Actions & Access Control", () => {
           rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
         });
       }
+
       return Promise.resolve({ total: 0, rows: [] });
     });
 
@@ -339,7 +330,7 @@ describe("Scoring Server Actions & Access Control", () => {
       "point_ledger",
       expect.any(String),
       expect.objectContaining({
-        conclusionApprovalDate: "2026-06-15T00:00:00.000Z",
+        conclusionApprovalDate: expect.any(String),
         points: 9, // average of 8 and 9 (rounded)
         source: "grade",
       })
@@ -361,7 +352,7 @@ describe("Scoring Server Actions & Access Control", () => {
           $id: id,
           gradeRequestId: "request-1",
           reviewerId: "reviewer-1",
-          gradeValue: 17,
+          gradeValue: 7,
           audit_metadata: null,
         });
       }
@@ -375,16 +366,16 @@ describe("Scoring Server Actions & Access Control", () => {
       }
     });
 
-    const result = await adminOverrideGrade("review-1", 18, "Incorrect scoring input");
+    const result = await adminOverrideGrade("review-1", 8, "Incorrect scoring input");
 
-    expect(result.gradeValue).toBe(18);
+    expect(result.gradeValue).toBe(8);
     expect(mockTables.updateRow).toHaveBeenCalledWith(
       "database-1",
       "grade_reviews",
       "review-1",
       expect.objectContaining({
-        gradeValue: 18,
-        audit_metadata: expect.stringContaining('"originalValue":17,"newValue":18'),
+        gradeValue: 8,
+        audit_metadata: expect.stringContaining('"originalValue":7,"newValue":8'),
       })
     );
 
@@ -394,53 +385,11 @@ describe("Scoring Server Actions & Access Control", () => {
         actorUserId: "admin-1",
         metadata: {
           gradeReviewId: "review-1",
-          originalValue: 17,
-          newValue: 18,
+          originalValue: 7,
+          newValue: 8,
           reason: "Incorrect scoring input",
         },
       })
-    );
-  });
-
-  it("Fails finalization if no approved conclusion report log exists", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
-      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: false,
-      sbRoles: [],
-      eventRoles: [
-        {
-          $id: "r2",
-          userId: "reviewer-1",
-          eventId: "event-1",
-          eventTitle: "Event One",
-          role: "Committee Lead",
-          assignedBy: "admin",
-          assignedAt: "2026-01-01T00:00:00.000Z",
-          active: true,
-        },
-      ],
-    });
-
-    mockTables.getRow.mockResolvedValue({
-      $id: "request-1",
-      eventId: "event-1",
-      targetUserId: "volunteer-1",
-      status: "reviewed",
-    });
-
-    // Mock audit logs to return empty (not approved yet)
-    mockTables.listRows.mockImplementation((db, table) => {
-      if (table === "audit_logs") {
-        return Promise.resolve({ total: 0, rows: [] });
-      }
-      return Promise.resolve({ total: 0, rows: [] });
-    });
-
-    vi.mocked(hasEventRole).mockReturnValue(true);
-
-    await expect(finalizeGrade("request-1")).rejects.toThrow(
-      "Conclusion report for this event is not approved by Admin."
     );
   });
 
@@ -473,7 +422,7 @@ describe("Scoring Server Actions & Access Control", () => {
 
     vi.mocked(hasEventRole).mockReturnValue(false);
 
-    await expect(submitGradeReview("request-1", 17)).rejects.toThrow(
+    await expect(submitGradeReview("request-1", 7)).rejects.toThrow(
       "Only authorized event reviewers or admins can submit reviews."
     );
   });
@@ -497,7 +446,7 @@ describe("Scoring Server Actions & Access Control", () => {
     });
 
     // Submitting review on finalized request
-    await expect(submitGradeReview("request-1", 17)).rejects.toThrow(
+    await expect(submitGradeReview("request-1", 7)).rejects.toThrow(
       "Cannot submit review for a finalized grade request."
     );
   });
@@ -545,13 +494,7 @@ describe("Scoring Server Actions & Access Control", () => {
       if (table === "grade_reviews") {
         return Promise.resolve({
           total: 1,
-          rows: [{ gradeRequestId: "request-1", reviewerId: "reviewer-1", gradeValue: 18 }], // new average grade target is 18
-        });
-      }
-      if (table === "audit_logs") {
-        return Promise.resolve({
-          total: 1,
-          rows: [{ $id: "log-1", action: "CONCLUSION_REPORT_APPROVED", targetType: "event", targetId: "event-1", createdAt: "2026-06-15T00:00:00.000Z" }],
+          rows: [{ gradeRequestId: "request-1", reviewerId: "reviewer-1", gradeValue: 8 }], // new average grade target is 8
         });
       }
       if (table === "event_role_assignments") {
@@ -560,6 +503,7 @@ describe("Scoring Server Actions & Access Control", () => {
           rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }], // role points = 10
         });
       }
+
       return Promise.resolve({ total: 0, rows: [] });
     });
 
@@ -613,7 +557,7 @@ describe("Scoring Server Actions & Access Control", () => {
     });
 
     await expect(
-      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 18 })
+      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 })
     ).rejects.toThrow("You cannot grade yourself.");
   });
 
@@ -644,7 +588,7 @@ describe("Scoring Server Actions & Access Control", () => {
       status: "pending",
     });
 
-    await expect(submitGradeReview("request-1", 17)).rejects.toThrow(
+    await expect(submitGradeReview("request-1", 7)).rejects.toThrow(
       "You cannot review your own grade request."
     );
   });
@@ -657,7 +601,7 @@ describe("Scoring Server Actions & Access Control", () => {
       uomVerified: true,
       status: "ACTIVE",
       name: "Volunteer One",
-    } as any);
+    } as unknown as Profile);
 
     // Mock existing active role
     mockTables.listRows.mockResolvedValue({
@@ -732,64 +676,6 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
     ]);
   });
 
-  it("listParticipationRecords scopes records by role: Admin sees all", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
-      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: true,
-      sbRoles: ["ExCom"],
-      eventRoles: [],
-    });
-
-    mockTables.listRows.mockResolvedValue({
-      total: 3,
-      rows: [
-        { $id: "pr-1", userId: "vol-1", eventId: "event-1", role: "Chair", status: "attended" },
-        { $id: "pr-2", userId: "vol-2", eventId: "event-2", role: "Committee Member", status: "attended" },
-        { $id: "pr-3", userId: "vol-3", eventId: "event-3", role: "Committee Lead", status: "absent" },
-      ],
-    });
-
-    const result = await listParticipationRecords();
-    expect(result.length).toBe(3);
-  });
-
-  it("listParticipationRecords scopes records by role: Chairperson sees chaired events and own records", async () => {
-    vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
-      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: false,
-      sbRoles: [],
-      eventRoles: [
-        {
-          $id: "r-1",
-          userId: "chair-1",
-          eventId: "event-1",
-          eventTitle: "Event One",
-          role: "Chair",
-          assignedBy: "admin",
-          assignedAt: "2026-01-01T00:00:00.000Z",
-          active: true,
-        },
-      ],
-    });
-
-    mockTables.listRows.mockResolvedValue({
-      total: 3,
-      rows: [
-        { $id: "pr-1", userId: "vol-1", eventId: "event-1", role: "Committee Member", status: "attended" }, // chaired event record
-        { $id: "pr-2", userId: "vol-2", eventId: "event-2", role: "Committee Member", status: "attended" }, // different event record
-        { $id: "pr-3", userId: "chair-1", eventId: "event-2", role: "Committee Lead", status: "attended" }, // own record in different event
-      ],
-    });
-
-    const result = await listParticipationRecords();
-    expect(result.length).toBe(2);
-    expect(result.map(r => r.$id)).toContain("pr-1");
-    expect(result.map(r => r.$id)).toContain("pr-3");
-    expect(result.map(r => r.$id)).not.toContain("pr-2");
-  });
-
   it("listDetailedReviews returns combined reviews data for Admin", async () => {
     vi.mocked(requireAdmin).mockResolvedValue({
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
@@ -859,5 +745,66 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
     expect(mockTables.deleteRow).toHaveBeenCalledWith("database-1", "grade_reviews", "rev-1");
     expect(mockTables.deleteRow).toHaveBeenCalledWith("database-1", "grade_reviews", "rev-2");
     expect(mockTables.deleteRow).toHaveBeenCalledWith("database-1", "grade_requests", "req-1");
+  });
+});
+
+describe("Scoring Extra Requirements Tests", () => {
+  type MockTables = {
+    listRows: ReturnType<typeof vi.fn>;
+    getRow: ReturnType<typeof vi.fn>;
+    createRow: ReturnType<typeof vi.fn>;
+    updateRow: ReturnType<typeof vi.fn>;
+    deleteRow: ReturnType<typeof vi.fn>;
+  };
+  let mockTables: MockTables;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+
+    mockTables = {
+      listRows: vi.fn(),
+      getRow: vi.fn(),
+      createRow: vi.fn().mockImplementation((db, table, id, data) => Promise.resolve({ $id: id, ...data })),
+      updateRow: vi.fn().mockImplementation((db, table, id, data) => Promise.resolve({ $id: id, ...data })),
+      deleteRow: vi.fn().mockResolvedValue({}),
+    };
+
+    vi.mocked(getAppwriteAdminServices).mockReturnValue({
+      tables: mockTables as unknown as TablesDB,
+    } as unknown as ReturnType<typeof getAppwriteAdminServices>);
+  });
+
+
+
+  it("Chair cannot finalize their own grade request", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r1",
+          userId: "chair-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Chair",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+
+    mockTables.getRow.mockResolvedValue({
+      $id: "request-1",
+      eventId: "event-1",
+      targetUserId: "chair-1",
+      status: "reviewed",
+    });
+
+    await expect(finalizeGrade("request-1")).rejects.toThrow(
+      "You cannot finalize your own grade request."
+    );
   });
 });

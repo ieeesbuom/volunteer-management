@@ -19,12 +19,10 @@ import {
   filterLedgerByMonth,
   filterLedgerByTerm,
   isEligibleForTopBoard,
-  isSelfEventGrade,
   sumPointsFromLedger,
   deriveTermFromDate,
 } from "../lib/helpers";
 import {
-  ParticipationRecordSchema,
   GradeRequestSchema,
   AdminGradeOverrideSchema,
   TermSchema,
@@ -32,8 +30,6 @@ import {
   MonthSchema,
 } from "../lib/schemas";
 import type {
-  ParticipationRecord,
-  ParticipationStatus,
   GradeRequest,
   GradeReview,
   PointLedgerEntry,
@@ -41,76 +37,6 @@ import type {
   GradeAuditEntry,
 } from "../types";
 
-const ROLE_POINT_RANGES: Record<
-  string,
-  { min: number; max: number; base: number }
-> = {
-  Chair: { min: 60, max: 70, base: 60 },
-  "Vice Chair": { min: 40, max: 50, base: 40 },
-  "Committee Lead": { min: 25, max: 35, base: 25 },
-  "Committee Member": { min: 10, max: 20, base: 10 },
-};
-
-/**
- * Upserts a volunteer's participation record for an event.
- * Scoped to Admin, or Chair of the event only.
- */
-export async function upsertParticipationRecord(data: {
-  userId: string;
-  eventId: string;
-  role: string;
-  status: ParticipationStatus;
-}) {
-  const env = getServerEnv();
-  const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
-
-  const validated = ParticipationRecordSchema.parse(data);
-
-  if (!user.isAdmin) {
-    const isChair = hasEventRole(user, validated.eventId, "Chair");
-    if (!isChair) {
-      throw new Error("Only event chairs and admins can manage participation records.");
-    }
-  }
-
-  const rowId = `pr_${createHash("sha1").update(`${validated.userId}:${validated.eventId}`).digest("hex").slice(0, 30)}`;
-  const now = new Date().toISOString();
-
-  try {
-    await tables.getRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.participationRecords,
-      rowId
-    );
-    const row = await tables.updateRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.participationRecords,
-      rowId,
-      {
-        role: validated.role,
-        status: validated.status,
-        updatedAt: now,
-      }
-    );
-    return JSON.parse(JSON.stringify(row)) as ParticipationRecord;
-  } catch {
-    const row = await tables.createRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.participationRecords,
-      rowId,
-      {
-        userId: validated.userId,
-        eventId: validated.eventId,
-        role: validated.role,
-        status: validated.status,
-        createdAt: now,
-        updatedAt: now,
-      }
-    );
-    return JSON.parse(JSON.stringify(row)) as ParticipationRecord;
-  }
-}
 
 /**
  * Submits/Creates a grade request for a participant.
@@ -138,13 +64,7 @@ export async function createGradeRequest(data: {
       throw new Error("Only event leads and chairs can submit grading requests.");
     }
 
-    const chairEventIds = user.eventRoles
-      .filter((assignment) => assignment.active && assignment.role === "Chair")
-      .map((assignment) => assignment.eventId);
 
-    if (isSelfEventGrade(graderId, validated.eventId, chairEventIds)) {
-      throw new Error("Chairs cannot grade participants under their own event.");
-    }
   }
 
   // Verify target has an active role in this event
@@ -163,14 +83,9 @@ export async function createGradeRequest(data: {
     throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
   }
 
-  const role = eventRoleResult.rows[0].role;
-  const range = ROLE_POINT_RANGES[role];
-  if (!range) {
-    throw new Error(`Invalid event role: ${role}`);
-  }
 
-  if (validated.gradeValue < range.min || validated.gradeValue > range.max) {
-    throw new Error(`Grade value for role '${role}' must be between ${range.min} and ${range.max}.`);
+  if (validated.gradeValue < 0 || validated.gradeValue > 10) {
+    throw new Error("Grade value must be between 0 and 10.");
   }
 
 
@@ -295,7 +210,7 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
   const graderId = user.authUser.id;
 
   z.string().min(1).parse(gradeRequestId);
-  z.number().int().min(10).max(70).parse(gradeValue);
+  z.number().int().min(0).max(10).parse(gradeValue);
 
   const gradeRequest = (await tables.getRow(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
@@ -312,7 +227,7 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
   }
 
   if (!user.isAdmin) {
-    const hasRole = hasEventRole(user, gradeRequest.eventId, ["Vice Chair", "Committee Lead"]);
+    const hasRole = hasEventRole(user, gradeRequest.eventId, ["Chair", "Vice Chair", "Committee Lead"]);
     if (!hasRole) {
       throw new Error("Only authorized event reviewers or admins can submit reviews.");
     }
@@ -334,10 +249,8 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
     throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
   }
 
-  const role = eventRoleResult.rows[0].role;
-  const range = ROLE_POINT_RANGES[role];
-  if (!range || gradeValue < range.min || gradeValue > range.max) {
-    throw new Error(`Grade value for role '${role}' must be between ${range.min} and ${range.max}.`);
+  if (gradeValue < 0 || gradeValue > 10) {
+    throw new Error("Grade value must be between 0 and 10.");
   }
 
   const reviewId = `rev_${createHash("sha1").update(`${gradeRequestId}:${graderId}`).digest("hex").slice(0, 28)}`;
@@ -434,7 +347,7 @@ async function recalculateLedgerEntries(
   const rolePoints = role ? (ROLE_BASE_POINTS[role as keyof typeof ROLE_BASE_POINTS] ?? 0) : 0;
   const targetRolePoints = rolePoints;
 
-  const targetGradePoints = averageGrade - rolePoints;
+  const targetGradePoints = averageGrade;
 
   // Append grade adjustment if there is a difference
   const gradeDiff = targetGradePoints - currentGradePoints;
@@ -485,33 +398,23 @@ export async function finalizeGrade(gradeRequestId: string) {
     gradeRequestId
   )) as unknown as GradeRequest;
 
+  if (graderId === gradeRequest.targetUserId) {
+    throw new Error("You cannot finalize your own grade request.");
+  }
+
   if (gradeRequest.status === "finalized") {
     throw new Error("Grade request is already finalized.");
   }
 
   if (!user.isAdmin) {
-    const hasRole = hasEventRole(user, gradeRequest.eventId, ["Vice Chair", "Committee Lead"]);
+    const hasRole = hasEventRole(user, gradeRequest.eventId, ["Chair", "Vice Chair", "Committee Lead"]);
     if (!hasRole) {
       throw new Error("Only authorized event reviewers or admins can finalize grades.");
     }
   }
 
-  // Find Admin approved conclusion report for this event
-  const approvalLogs = await tables.listRows(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.auditLogs,
-    [
-      Query.equal("action", "CONCLUSION_REPORT_APPROVED"),
-      Query.equal("targetId", gradeRequest.eventId),
-      Query.limit(1),
-    ]
-  );
 
-  if (approvalLogs.total === 0) {
-    throw new Error("Conclusion report for this event is not approved by Admin.");
-  }
-
-  const approvalDate = approvalLogs.rows[0].createdAt;
+  const approvalDate = new Date().toISOString();
 
   // Fetch all reviews
   const reviewsResult = await tables.listRows(
@@ -599,10 +502,8 @@ export async function adminOverrideGrade(
     throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
   }
 
-  const role = eventRoleResult.rows[0].role;
-  const range = ROLE_POINT_RANGES[role];
-  if (!range || validated.newGradeValue < range.min || validated.newGradeValue > range.max) {
-    throw new Error(`Grade value for role '${role}' must be between ${range.min} and ${range.max}.`);
+  if (validated.newGradeValue < 0 || validated.newGradeValue > 10) {
+    throw new Error("Grade value must be between 0 and 10.");
   }
 
   const originalValue = review.gradeValue;
@@ -827,6 +728,26 @@ export async function getLeaderboard(params: {
   const configs = configResult.rows as unknown as TermScoringConfig[];
   const profileMap = new Map(profilesResult.rows.map((p) => [p.$id, p]));
 
+  let targetTerm = validated.term || "";
+  let targetYear = validated.year || 0;
+
+  if (validated.month !== undefined && validated.year !== undefined) {
+    targetTerm = deriveTermFromDate(new Date(Date.UTC(validated.year, validated.month - 1, 1)).toISOString());
+    targetYear = Number(targetTerm.split("/")[0]);
+  } else if (validated.term !== undefined) {
+    if (!validated.term.includes("/")) {
+      const y = Number(validated.term);
+      targetTerm = `${y}/${y + 1}`;
+      targetYear = y;
+    } else {
+      targetTerm = validated.term;
+      targetYear = Number(validated.term.split("/")[0]);
+    }
+  } else if (validated.year !== undefined) {
+    targetTerm = `${validated.year}/${validated.year + 1}`;
+    targetYear = validated.year;
+  }
+
   // Filter ledger
   if (validated.month !== undefined && validated.year !== undefined) {
     entries = filterLedgerByMonth(entries, validated.month, validated.year);
@@ -848,8 +769,8 @@ export async function getLeaderboard(params: {
   for (const [userId, userEntries] of userMap.entries()) {
     const isEligible = isEligibleForTopBoard(
       userId,
-      validated.term || "",
-      validated.year || 0,
+      targetTerm,
+      targetYear,
       configs
     );
 
@@ -917,37 +838,6 @@ export async function getVolunteerActiveEventRole(userId: string, eventId: strin
   );
 
   return result.total > 0 ? result.rows[0].role : null;
-}
-
-/**
- * Retrieves and scopes participation records based on caller's role.
- */
-export async function listParticipationRecords() {
-  const env = getServerEnv();
-  const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
-
-  const result = await tables.listRows(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.participationRecords,
-    [Query.limit(500), Query.orderDesc("updatedAt")]
-  );
-
-  const rows = JSON.parse(JSON.stringify(result.rows)) as ParticipationRecord[];
-
-  if (user.isAdmin) {
-    return rows;
-  }
-
-  const chairEventIds = user.eventRoles
-    .filter((r) => r.active && r.role === "Chair")
-    .map((r) => r.eventId);
-
-  return rows.filter((row) => {
-    const isOwn = row.userId === user.authUser.id;
-    const isChairedEvent = chairEventIds.includes(row.eventId);
-    return isOwn || isChairedEvent;
-  });
 }
 
 /**

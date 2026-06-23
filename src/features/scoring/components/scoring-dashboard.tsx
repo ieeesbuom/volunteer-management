@@ -7,7 +7,6 @@ import {
   Trophy,
   Award,
   BookOpen,
-  CalendarCheck2,
   Sliders,
   AlertCircle,
   Plus,
@@ -30,12 +29,6 @@ import type {
   GradeAuditEntry,
 } from "../types";
 
-const ROLE_POINT_RANGES: Record<string, { min: number; max: number; base: number }> = {
-  Chair: { min: 60, max: 70, base: 60 },
-  "Vice Chair": { min: 40, max: 50, base: 40 },
-  "Committee Lead": { min: 25, max: 35, base: 25 },
-  "Committee Member": { min: 10, max: 20, base: 10 },
-};
 
 interface VolunteerOption {
   id: string;
@@ -291,14 +284,14 @@ export function ScoringDashboard({
 
   const [reqEventId, setReqEventId] = useState(qEventId || "");
   const [reqTargetUserId, setReqTargetUserId] = useState("");
-  const [reqGradeValue, setReqGradeValue] = useState(10);
+  const [reqGradeValue, setReqGradeValue] = useState(5);
   const [gradingRole, setGradingRole] = useState("Committee Member");
 
-  useEffect(() => {
-    if (qEventId) {
-      setReqEventId(qEventId);
-    }
-  }, [qEventId]);
+  const [prevQEventId, setPrevQEventId] = useState(qEventId);
+  if (qEventId !== prevQEventId) {
+    setPrevQEventId(qEventId);
+    setReqEventId(qEventId || "");
+  }
 
   useEffect(() => {
     async function autoFetchRole() {
@@ -314,14 +307,7 @@ export function ScoringDashboard({
     autoFetchRole();
   }, [reqTargetUserId, reqEventId]);
 
-  useEffect(() => {
-    const range = ROLE_POINT_RANGES[gradingRole];
-    if (range) {
-      if (reqGradeValue < range.min || reqGradeValue > range.max) {
-        setReqGradeValue(range.min);
-      }
-    }
-  }, [gradingRole]);
+
 
   const [revRequestId, setRevRequestId] = useState("");
   const [revGradeValue, setRevGradeValue] = useState(5);
@@ -955,19 +941,19 @@ export function ScoringDashboard({
                   <div className="flex gap-2 items-center">
                     <div className="flex-1">
                       <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                        Points ({gradingRole})
+                        Bonus Grade (0-10) - {gradingRole}
                       </label>
                       <input
                         type="number"
-                        min={ROLE_POINT_RANGES[gradingRole]?.min ?? 10}
-                        max={ROLE_POINT_RANGES[gradingRole]?.max ?? 70}
+                        min={0}
+                        max={10}
                         required
                         value={reqGradeValue}
                         onChange={(e) => setReqGradeValue(Number(e.target.value))}
                         className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
                       />
                       <span className="text-[10px] text-text-muted mt-1 block">
-                        Allowed range: {ROLE_POINT_RANGES[gradingRole]?.min ?? 10} - {ROLE_POINT_RANGES[gradingRole]?.max ?? 70} points
+                        Allowed range: 0 - 10 (default 5)
                       </span>
                     </div>
                     <Button type="submit" className="shrink-0 flex items-center gap-1 mt-5">
@@ -1078,23 +1064,59 @@ export function ScoringDashboard({
                               )}
                             </div>
 
-                            {/* Warning & disabled inputs if Chairperson of event */}
-                            {derivedRole === "Chairperson" && isChairedByMe && (
-                              <div className="space-y-3">
-                                <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
-                                  You are the chair of this event and cannot submit a grade review for it.
-                                </div>
-                                <div className="flex flex-wrap gap-2 items-center opacity-50 pointer-events-none">
-                                  <input
-                                    type="number"
-                                    placeholder="Grade"
-                                    disabled
-                                    className="w-16 px-2 py-1 border border-border rounded text-sm bg-surface"
-                                  />
-                                  <Button variant="secondary" disabled>
-                                    Submit Review
-                                  </Button>
-                                </div>
+                            {/* Review input for Chairperson */}
+                            {derivedRole === "Chairperson" && (
+                              <div className="space-y-3 mt-2 pt-2 border-t border-border/50">
+                                {req.targetUserId === user.authUser.id ? (
+                                  <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
+                                    You cannot grade yourself.
+                                  </div>
+                                ) : !isChairedByMe ? (
+                                  <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
+                                    You are not the chair of this event and cannot submit a grade review for it.
+                                  </div>
+                                ) : (
+                                  <form
+                                    onSubmit={async (e) => {
+                                      e.preventDefault();
+                                      setError(null);
+                                      setSuccess(null);
+                                      const formData = new FormData(e.currentTarget);
+                                      const val = Number(formData.get("gradeValue"));
+                                      try {
+                                        const res = await fetch(`/api/scoring/grade-requests/${req.$id}`, {
+                                          method: "PATCH",
+                                          body: JSON.stringify({ gradeValue: val }),
+                                        });
+                                        const data = await res.json();
+                                        if (data.error) throw new Error(data.error);
+                                        setSuccess("Grade review submitted successfully!");
+                                        fetchGradeRequests();
+                                      } catch (err) {
+                                        setError(err instanceof Error ? err.message : "Failed to submit review.");
+                                      }
+                                    }}
+                                    className="flex items-center gap-3"
+                                  >
+                                    <div className="flex-1 max-w-[150px]">
+                                      <label className="block text-[10px] font-semibold uppercase text-text-secondary mb-0.5">
+                                        Grade (0-10)
+                                      </label>
+                                      <input
+                                        type="number"
+                                        name="gradeValue"
+                                        min={0}
+                                        max={10}
+                                        defaultValue={5}
+                                        required
+                                        className="w-full px-2 py-1 border border-border rounded text-sm bg-surface"
+                                      />
+                                    </div>
+                                    <Button type="submit" variant="secondary" className="mt-4">
+                                      Submit Review
+                                    </Button>
+                                  </form>
+                                )}
                               </div>
                             )}
                           </div>

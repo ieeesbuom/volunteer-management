@@ -1,15 +1,3 @@
-export type ParticipationStatus = "attended" | "absent" | "excused";
-
-export interface ParticipationRecord {
-  $id: string;
-  userId: string;
-  eventId: string;
-  role: string;
-  status: ParticipationStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export type GradingStatus = "pending" | "submitted" | "reviewed" | "finalized";
 
 export interface GradeRequest {

@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import type { EventRoleAssignment } from "@/features/access-control/types";
+import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -51,11 +52,9 @@ const LIFECYCLE_LABELS: Record<EventStatus, string> = {
 };
 
 function formatAssignmentRole(assignment: EventRoleAssignment) {
-  if (assignment.role === "Chair" && (assignment.eventChairCount ?? 0) > 1) {
-    return "Co-chair";
-  }
-
-  return assignment.role;
+  return getEventRoleDisplayName(assignment.role, {
+    chairCount: assignment.eventChairCount ?? 0,
+  });
 }
 
 export function EventDetail({

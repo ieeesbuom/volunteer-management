@@ -252,7 +252,118 @@ describe("committee permissions", () => {
   });
 });
 
+describe("role display enrichment", () => {
+  it("enriches role assignments with eventChairCount for multiple chairs", async () => {
+    mockTables.listRows.mockResolvedValueOnce({
+      rows: [
+        {
+          $id: "assignment-chair-1",
+          active: true,
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          assignedBy: "admin-user",
+          eventId: "event-1",
+          eventTitle: "Test Event",
+          role: "Chair",
+          userId: "user-1",
+        },
+        {
+          $id: "assignment-chair-2",
+          active: true,
+          assignedAt: "2026-01-02T00:00:00.000Z",
+          assignedBy: "admin-user",
+          eventId: "event-1",
+          eventTitle: "Test Event",
+          role: "Chair",
+          userId: "user-2",
+        },
+        {
+          $id: "assignment-vice",
+          active: true,
+          assignedAt: "2026-01-03T00:00:00.000Z",
+          assignedBy: "admin-user",
+          eventId: "event-1",
+          eventTitle: "Test Event",
+          role: "Vice Chair",
+          userId: "user-3",
+        },
+      ],
+    });
+
+    const { getRoleAssignmentsForEvent, formatRoleAssignmentDisplay } = await import(
+      "@/features/events/server/event-roles.server"
+    );
+
+    const assignments = await getRoleAssignmentsForEvent("event-1");
+
+    expect(assignments).toHaveLength(3);
+    expect(assignments.every((assignment) => assignment.eventChairCount === 2)).toBe(
+      true,
+    );
+    expect(formatRoleAssignmentDisplay(assignments[0]!)).toBe("Co-chair");
+    expect(formatRoleAssignmentDisplay(assignments[1]!)).toBe("Co-chair");
+    expect(formatRoleAssignmentDisplay(assignments[2]!)).toBe("Vice Chair");
+  });
+
+  it("keeps a single chair labeled as Chair", async () => {
+    mockTables.listRows.mockResolvedValueOnce({
+      rows: [
+        {
+          $id: "assignment-chair-1",
+          active: true,
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          assignedBy: "admin-user",
+          eventId: "event-1",
+          eventTitle: "Test Event",
+          role: "Chair",
+          userId: "user-1",
+        },
+      ],
+    });
+
+    const { getRoleAssignmentsForEvent, formatRoleAssignmentDisplay } = await import(
+      "@/features/events/server/event-roles.server"
+    );
+
+    const assignments = await getRoleAssignmentsForEvent("event-1");
+
+    expect(assignments[0]?.eventChairCount).toBe(1);
+    expect(formatRoleAssignmentDisplay(assignments[0]!)).toBe("Chair");
+  });
+});
+
 describe("admin verification bypass", () => {
+  it("returns 401 when requireVerifiedVolunteer is called without a session", async () => {
+    const { requireVerifiedVolunteer } = await import(
+      "@/features/events/server/event-route-helpers"
+    );
+
+    const result = requireVerifiedVolunteer(null);
+
+    expect(result?.status).toBe(401);
+  });
+
+  it("returns 403 when requireVerifiedVolunteer is called for unverified volunteers", async () => {
+    const { requireVerifiedVolunteer } = await import(
+      "@/features/events/server/event-route-helpers"
+    );
+
+    const result = requireVerifiedVolunteer({
+      authUser: { email: "user@uom.lk", id: "user-1", name: "Volunteer" },
+      eventRoles: [],
+      isAdmin: false,
+      profile: {
+        $id: "profile-1",
+        authUserId: "user-1",
+        googleEmail: "user@uom.lk",
+        status: "ACTIVE",
+        uomVerified: false,
+      },
+      sbRoles: [],
+    });
+
+    expect(result?.status).toBe(403);
+  });
+
   it("admin without verification passes requireVerifiedVolunteer", async () => {
     const { requireVerifiedVolunteer } = await import(
       "@/features/events/server/event-route-helpers"

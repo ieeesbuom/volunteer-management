@@ -4,6 +4,8 @@ import { isEventVisibleToUser } from "@/features/events/lib/event-permissions";
 import {
   canChangeEventStatus,
   canCreateEvent,
+  requireEventCreator,
+  requireVerifiedVolunteer,
 } from "@/features/events/server/event-route-helpers";
 import type { Event } from "@/features/events/types";
 
@@ -50,6 +52,66 @@ describe("event route helpers and permissions", () => {
 
     expect(isEventVisibleToUser("user-1", false, closedEvent)).toBe(false);
     expect(canViewEventCommittees("user-1", false, closedEvent, null)).toBe(false);
+  });
+
+  it("returns 401 when requireVerifiedVolunteer is called without a session", async () => {
+    const response = requireVerifiedVolunteer(null);
+
+    expect(response?.status).toBe(401);
+  });
+
+  it("returns 403 when requireVerifiedVolunteer is called for unverified volunteers", async () => {
+    const response = requireVerifiedVolunteer({
+      authUser: { email: "user@uom.lk", id: "user-1", name: "Volunteer" },
+      eventRoles: [],
+      isAdmin: false,
+      profile: {
+        $id: "profile-1",
+        authUserId: "user-1",
+        googleEmail: "user@uom.lk",
+        status: "ACTIVE",
+        uomVerified: false,
+      },
+      sbRoles: [],
+    });
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("returns 403 when requireEventCreator is called without SB Lead or ExCom", async () => {
+    const response = requireEventCreator({
+      authUser: { email: "user@uom.lk", id: "user-1", name: "Volunteer" },
+      eventRoles: [],
+      isAdmin: false,
+      profile: {
+        $id: "profile-1",
+        authUserId: "user-1",
+        googleEmail: "user@uom.lk",
+        status: "ACTIVE",
+        uomVerified: true,
+      },
+      sbRoles: [],
+    });
+
+    expect(response?.status).toBe(403);
+  });
+
+  it("allows admins to bypass requireEventCreator without SB roles", async () => {
+    const response = requireEventCreator({
+      authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+      eventRoles: [],
+      isAdmin: true,
+      profile: {
+        $id: "profile-admin",
+        authUserId: "admin-1",
+        googleEmail: "admin@example.com",
+        status: "ACTIVE",
+        uomVerified: false,
+      },
+      sbRoles: [],
+    });
+
+    expect(response).toBeNull();
   });
 
   it("allows admins to bypass conclusion-managed status changes only through helpers", () => {

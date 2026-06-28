@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getVolunteerProfileDetails } from "@/features/volunteers/server/profiles";
 import { ProfileDetailsForm } from "@/features/volunteers/components/profile-details-form";
 import { RecommendationRequestsPanel } from "@/features/recommendations/components/recommendation-requests-panel";
@@ -27,10 +28,11 @@ export default async function MyVolunteerProfilePage() {
     redirect("/login");
   }
 
-  const details = user.profile.uomVerified
+  const canManageVolunteerProfile = canVolunteer(user.profile);
+  const details = canManageVolunteerProfile
     ? await getVolunteerProfileDetails(user.authUser.id)
     : null;
-  const recommendationRequests = user.profile.uomVerified
+  const recommendationRequests = canManageVolunteerProfile
     ? await listRecommendationRequestsForVolunteer(user.authUser.id)
     : { incoming: [], outgoing: [] };
 
@@ -62,7 +64,7 @@ export default async function MyVolunteerProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {user.profile.uomVerified ? (
+            {canManageVolunteerProfile ? (
               <ProfileDetailsForm initialDetails={details} />
             ) : (
               <div className="space-y-3">
@@ -83,7 +85,7 @@ export default async function MyVolunteerProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {user.profile.uomVerified ? (
+            {canManageVolunteerProfile ? (
               <RecommendationRequestsPanel initialRequests={recommendationRequests} />
             ) : (
               <p className="text-sm text-text-secondary">

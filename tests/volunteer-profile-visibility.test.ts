@@ -93,6 +93,7 @@ describe("volunteer profile visibility", () => {
     });
 
     expect(result).toMatchObject({
+      $id: "",
       batchYear: "",
       bio: "Volunteer bio",
       department: "",
@@ -102,6 +103,7 @@ describe("volunteer profile visibility", () => {
       linkedinUrl: "https://www.linkedin.com/in/test",
       skills: "Leadership",
       universityIndex: "",
+      userId: "",
     });
   });
 });

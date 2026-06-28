@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { ConclusionReportForm } from "@/features/reports/components/conclusion-report-form";
 import { reportStatusTone } from "@/features/reports/lib/approval-rules";
-import type { ConclusionReport, MockEvent } from "@/features/reports/types";
+import type { ConclusionReport, ReportEvent } from "@/features/reports/types";
 import { ClipboardList } from "lucide-react";
 
 export function ConclusionsPageContent({
@@ -19,7 +19,7 @@ export function ConclusionsPageContent({
   initialReport,
   initialReports,
 }: {
-  events: MockEvent[];
+  events: ReportEvent[];
   initialReport: ConclusionReport | null;
   initialReports: ConclusionReport[];
 }) {

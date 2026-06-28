@@ -12,11 +12,11 @@ import {
   listEventSummaries,
 } from "@/features/reports/server/recognition";
 import { listVolunteerProfiles } from "@/features/reports/server/volunteer-profile";
-import type { MockEvent } from "@/features/reports/types";
+import type { ReportEvent } from "@/features/reports/types";
 
 const EVENT_LEAD_ROLES = ["Chair", "Vice Chair"] as const;
 
-async function listPendingConclusionEvents(user: SessionUser): Promise<MockEvent[]> {
+async function listPendingConclusionEvents(user: SessionUser): Promise<ReportEvent[]> {
   const summaries = await listEventSummaries();
 
   return summaries
@@ -39,7 +39,7 @@ export async function getReportsPageData(user: SessionUser) {
     listPendingConclusionEvents(user),
     user.isAdmin ? listConclusionReports() : listConclusionReportsForUser(user),
     listEventSummaries(),
-    listVolunteerProfiles(),
+    user.isAdmin ? listVolunteerProfiles() : Promise.resolve([]),
   ]);
 
   return {

@@ -24,7 +24,7 @@ export function toPublicVolunteerProfileDetails(
   }
 
   return {
-    $id: details.$id,
+    $id: "",
     batchYear: "",
     bio: details.bio,
     createdAt: details.createdAt,
@@ -36,6 +36,6 @@ export function toPublicVolunteerProfileDetails(
     skills: details.skills,
     updatedAt: details.updatedAt,
     universityIndex: "",
-    userId: details.userId,
+    userId: "",
   };
 }

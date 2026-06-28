@@ -44,6 +44,10 @@ export function routeErrorStatus(error: unknown, fallback = 400) {
     return 403;
   }
 
+  if (message === "Verified UoM email is required before responding to recommendations.") {
+    return 403;
+  }
+
   if (
     message === "A pending recommendation request already exists for this volunteer." ||
     message === "A recommendation request already exists for this volunteer."

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getVolunteerProfileSummary } from "@/features/volunteers/server/profiles";
 import { listVisibleRecommendationsForVolunteer } from "@/features/recommendations/server/recommendations";
 import { RecommendationList } from "@/features/recommendations/components/recommendation-list";
@@ -48,9 +49,10 @@ export default async function VolunteerProfilePage({
       </AppShell>
     );
   }
+  const viewerCanVolunteer = user ? canVolunteer(user.profile) : false;
   const canRequestRecommendation =
-    Boolean(user?.profile.uomVerified) && user?.authUser.id !== profile.userId;
-  const canReportRecommendations = Boolean(user?.profile.uomVerified);
+    viewerCanVolunteer && user?.authUser.id !== profile.userId;
+  const canReportRecommendations = viewerCanVolunteer;
   const profileDisplayName = profile.name || "Verified volunteer";
   const recommendations = profile.isPrivateView
     ? await listVisibleRecommendationsForVolunteer(userId)
@@ -62,7 +64,7 @@ export default async function VolunteerProfilePage({
       profile={profile}
       profileDisplayName={profileDisplayName}
       recommendations={recommendations}
-      userIsUnverified={Boolean(user && !user.profile.uomVerified)}
+      userIsUnverified={Boolean(user && !viewerCanVolunteer)}
     />
   );
 

@@ -19,6 +19,7 @@ import {
   listVolunteers,
   listDetailedReviews,
   deleteGradeRequest,
+  getLeaderboard,
 } from "../../src/features/scoring/server/actions";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { requireAuth, requireAdmin } from "@/features/access-control/server/current-user";
@@ -209,6 +210,12 @@ describe("Scoring Server Actions & Access Control", () => {
             rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
           });
         }
+        if (table === "participation_records") {
+          return Promise.resolve({
+            total: 1,
+            rows: [{ $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" }],
+          });
+        }
         return Promise.resolve({ total: 0, rows: [] });
       }),
       getRow: vi.fn(),
@@ -310,10 +317,28 @@ describe("Scoring Server Actions & Access Control", () => {
           ],
         });
       }
+      if (table === "conclusion_reports") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "report-1", eventId: "event-1", status: "APPROVED" }],
+        });
+      }
+      if (table === "report_approvals") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "approval-1", reportId: "report-1", status: "APPROVED", reviewedAt: "2026-06-15T10:00:00.000Z" }],
+        });
+      }
       if (table === "event_role_assignments") {
         return Promise.resolve({
           total: 1,
           rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" }],
         });
       }
 
@@ -331,6 +356,7 @@ describe("Scoring Server Actions & Access Control", () => {
       expect.any(String),
       expect.objectContaining({
         conclusionApprovalDate: expect.any(String),
+        createdAt: "2026-06-15T10:00:00.000Z",
         points: 9, // average of 8 and 9 (rounded)
         source: "grade",
       })
@@ -364,6 +390,34 @@ describe("Scoring Server Actions & Access Control", () => {
           status: "finalized",
         });
       }
+    });
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" }],
+        });
+      }
+      if (table === "grade_reviews") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ gradeRequestId: "request-1", reviewerId: "reviewer-1", gradeValue: 8 }],
+        });
+      }
+      if (table === "point_ledger") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "ledger-1", userId: "volunteer-1", eventId: "event-1", points: 7, source: "grade", conclusionApprovalDate: "2026-06-15T10:00:00.000Z", term: "2026/2027" }],
+        });
+      }
+
+      return Promise.resolve({ total: 0, rows: [] });
     });
 
     const result = await adminOverrideGrade("review-1", 8, "Incorrect scoring input");
@@ -491,6 +545,18 @@ describe("Scoring Server Actions & Access Control", () => {
           ],
         });
       }
+      if (table === "conclusion_reports") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "report-1", eventId: "event-1", status: "APPROVED" }],
+        });
+      }
+      if (table === "report_approvals") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "approval-1", reportId: "report-1", status: "APPROVED", reviewedAt: "2026-06-15T00:00:00.000Z" }],
+        });
+      }
       if (table === "grade_reviews") {
         return Promise.resolve({
           total: 1,
@@ -501,6 +567,12 @@ describe("Scoring Server Actions & Access Control", () => {
         return Promise.resolve({
           total: 1,
           rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }], // role points = 10
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" }],
         });
       }
 
@@ -772,6 +844,193 @@ describe("Scoring Extra Requirements Tests", () => {
     vi.mocked(getAppwriteAdminServices).mockReturnValue({
       tables: mockTables as unknown as TablesDB,
     } as unknown as ReturnType<typeof getAppwriteAdminServices>);
+  });
+
+  it("blocks finalization until the event has an approved conclusion report", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
+      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r2",
+          userId: "reviewer-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Committee Lead",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.getRow.mockResolvedValue({
+      $id: "request-1",
+      eventId: "event-1",
+      targetUserId: "volunteer-1",
+      status: "reviewed",
+    });
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" }],
+        });
+      }
+      if (table === "conclusion_reports") {
+        return Promise.resolve({ total: 0, rows: [] });
+      }
+      if (table === "grade_reviews") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ gradeRequestId: "request-1", reviewerId: "reviewer-1", gradeValue: 8 }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    await expect(finalizeGrade("request-1")).rejects.toThrow(
+      "Cannot finalize points until the event has an approved conclusion report."
+    );
+    expect(mockTables.createRow).not.toHaveBeenCalledWith(
+      "database-1",
+      "point_ledger",
+      expect.any(String),
+      expect.any(Object)
+    );
+  });
+
+  it("requires attended participation before creating or finalizing a grade", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
+      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r2",
+          userId: "reviewer-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Committee Lead",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({ total: 0, rows: [] });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    await expect(
+      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 })
+    ).rejects.toThrow("attended participation record");
+
+    mockTables.getRow.mockResolvedValue({
+      $id: "request-1",
+      eventId: "event-1",
+      targetUserId: "volunteer-1",
+      status: "reviewed",
+    });
+
+    await expect(finalizeGrade("request-1")).rejects.toThrow("attended participation record");
+  });
+
+  it("enforces grade values as integers from 0 through 10", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
+      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [],
+    });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
+      sbRoles: ["ExCom"],
+      eventRoles: [],
+    });
+
+    await expect(
+      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 11 })
+    ).rejects.toThrow();
+    await expect(submitGradeReview("request-1", -1)).rejects.toThrow();
+    await expect(adminOverrideGrade("review-1", 11, "Out of range")).rejects.toThrow();
+  });
+
+  it("applies system Top Board exclusions to monthly and yearly leaderboards", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
+      sbRoles: ["ExCom"],
+      eventRoles: [],
+    });
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "point_ledger") {
+        return Promise.resolve({
+          total: 4,
+          rows: [
+            { $id: "l1", userId: "volunteer-1", eventId: "event-1", points: 15, conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "2026/2027", source: "role", createdBy: "admin", createdAt: "2026-06-15T00:00:00.000Z" },
+            { $id: "l2", userId: "volunteer-2", eventId: "event-2", points: 12, conclusionApprovalDate: "2026-06-20T00:00:00.000Z", term: "2026/2027", source: "role", createdBy: "admin", createdAt: "2026-06-20T00:00:00.000Z" },
+            { $id: "l3", userId: "volunteer-1", eventId: "event-3", points: 8, conclusionApprovalDate: "2026-07-01T00:00:00.000Z", term: "2026/2027", source: "grade", createdBy: "admin", createdAt: "2026-07-01T00:00:00.000Z" },
+            { $id: "l4", userId: "volunteer-2", eventId: "event-4", points: 5, conclusionApprovalDate: "2026-07-02T00:00:00.000Z", term: "2026/2027", source: "grade", createdBy: "admin", createdAt: "2026-07-02T00:00:00.000Z" },
+          ],
+        });
+      }
+      if (table === "term_scoring_config") {
+        return Promise.resolve({ total: 0, rows: [] });
+      }
+      if (table === "profiles") {
+        return Promise.resolve({
+          total: 2,
+          rows: [
+            { $id: "volunteer-1", name: "Excluded Volunteer" },
+            { $id: "volunteer-2", name: "Eligible Volunteer" },
+          ],
+        });
+      }
+      if (table === "top_board_exclusions") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "tbe-1", userId: "volunteer-1", termId: "term-2026", active: true, revokedAt: null }],
+        });
+      }
+      if (table === "ieee_terms") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "term-2026", label: "2026/27" }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    await expect(getLeaderboard({ month: 6, year: 2026 })).resolves.toEqual([
+      { userId: "volunteer-2", name: "Eligible Volunteer", points: 12 },
+    ]);
+    await expect(getLeaderboard({ term: "2026/2027" })).resolves.toEqual([
+      { userId: "volunteer-2", name: "Eligible Volunteer", points: 17 },
+    ]);
   });
 
 

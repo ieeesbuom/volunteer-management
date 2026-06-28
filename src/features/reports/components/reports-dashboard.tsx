@@ -22,7 +22,7 @@ import type {
   ConclusionReport,
   EventSummary,
   HallOfFameEntry,
-  MockEvent,
+  ReportEvent,
   VolunteerOfTheMonth,
   VolunteerProfileExport,
 } from "@/features/reports/types";
@@ -33,7 +33,7 @@ import { ExportActions } from "@/features/reports/components/export-actions";
 type DashboardMode = "summaries" | "conclusions" | "approval" | "recognition" | "volunteers";
 
 type ReportsDashboardProps = {
-  events: MockEvent[];
+  events: ReportEvent[];
   hallOfFame: HallOfFameEntry[];
   initialReports: ConclusionReport[];
   isAdmin: boolean;
@@ -67,7 +67,9 @@ export function ReportsDashboard({
       ? [{ icon: FileText, id: "approval" as const, label: "Admin approval" }]
       : []),
     { icon: Award, id: "recognition", label: "Recognition" },
-    { icon: UsersRound, id: "volunteers", label: "Volunteer exports" },
+    ...(isAdmin
+      ? [{ icon: UsersRound, id: "volunteers" as const, label: "Volunteer exports" }]
+      : []),
   ];
 
   return (
@@ -132,7 +134,7 @@ export function ReportsDashboard({
           <CardHeader>
             <CardTitle>Structured conclusion report</CardTitle>
             <CardDescription>
-              Text-only event conclusions connected to mock event records.
+              Text-only event conclusions connected to event role records.
             </CardDescription>
           </CardHeader>
           <CardContent>

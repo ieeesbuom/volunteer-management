@@ -36,7 +36,7 @@ export type ReportApproval = {
   reviewedAt: string;
 };
 
-export type MockEvent = {
+export type ReportEvent = {
   eventId: string;
   eventTitle: string;
   status: EventStatus;
@@ -44,7 +44,7 @@ export type MockEvent = {
   summary: string;
 };
 
-export type EventSummary = MockEvent & {
+export type EventSummary = ReportEvent & {
   reportId?: string;
   reportStatus?: ReportStatus;
   volunteerCount: number;

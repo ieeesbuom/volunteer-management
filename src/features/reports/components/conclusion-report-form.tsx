@@ -14,7 +14,7 @@ import {
   createConclusionReportRequest,
   updateConclusionReportRequest,
 } from "@/features/reports/lib/api-client";
-import type { ConclusionReport, MockEvent } from "@/features/reports/types";
+import type { ConclusionReport, ReportEvent } from "@/features/reports/types";
 import { ExportActions } from "@/features/reports/components/export-actions";
 
 const inputClasses =
@@ -23,7 +23,7 @@ const inputClasses =
 const textareaClasses = `${inputClasses} min-h-[96px] resize-y`;
 
 type ConclusionReportFormProps = {
-  events: MockEvent[];
+  events: ReportEvent[];
   initialReport?: ConclusionReport | null;
   onChange: (report: ConclusionReport) => void;
 };

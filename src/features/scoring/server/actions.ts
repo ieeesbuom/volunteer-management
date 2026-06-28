@@ -37,6 +37,187 @@ import type {
   GradeAuditEntry,
 } from "../types";
 
+type ParticipationRecord = {
+  $id: string;
+  eventId: string;
+  role: string;
+  status: string;
+  userId: string;
+};
+
+type ConclusionReportRow = {
+  $id: string;
+  eventId: string;
+  status: string;
+};
+
+type ReportApprovalRow = {
+  $id: string;
+  reportId: string;
+  reviewedAt: string;
+  status: string;
+};
+
+type SystemTopBoardExclusion = {
+  active: boolean;
+  revokedAt?: string | null;
+  termId: string;
+  userId: string;
+};
+
+type IeeeTermRow = {
+  $id: string;
+  label: string;
+};
+
+async function requireActiveEventRoleAssignment(
+  tables: TablesDB,
+  databaseId: string,
+  userId: string,
+  eventId: string
+) {
+  const result = await tables.listRows(
+    databaseId,
+    APPWRITE_TABLES.eventRoleAssignments,
+    [
+      Query.equal("userId", userId),
+      Query.equal("eventId", eventId),
+      Query.equal("active", true),
+      Query.limit(1),
+    ]
+  );
+
+  if (result.total === 0) {
+    throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
+  }
+
+  return result.rows[0] as unknown as { role?: string };
+}
+
+async function requireAttendedParticipationRecord(
+  tables: TablesDB,
+  databaseId: string,
+  userId: string,
+  eventId: string
+) {
+  const result = await tables.listRows(
+    databaseId,
+    APPWRITE_TABLES.participationRecords,
+    [
+      Query.equal("userId", userId),
+      Query.equal("eventId", eventId),
+      Query.equal("status", "attended"),
+      Query.limit(1),
+    ]
+  );
+
+  if (result.total === 0) {
+    throw new Error("Target volunteer must have an attended participation record for this event before grading.");
+  }
+
+  return result.rows[0] as unknown as ParticipationRecord;
+}
+
+async function getApprovedConclusionApprovalDate(
+  tables: TablesDB,
+  databaseId: string,
+  eventId: string
+) {
+  const reportsResult = await tables.listRows(
+    databaseId,
+    APPWRITE_TABLES.conclusionReports,
+    [
+      Query.equal("eventId", eventId),
+      Query.equal("status", "APPROVED"),
+      Query.limit(1),
+    ]
+  );
+
+  if (reportsResult.total === 0) {
+    throw new Error("Cannot finalize points until the event has an approved conclusion report.");
+  }
+
+  const report = reportsResult.rows[0] as unknown as ConclusionReportRow;
+  const approvalsResult = await tables.listRows(
+    databaseId,
+    APPWRITE_TABLES.reportApprovals,
+    [
+      Query.equal("reportId", report.$id),
+      Query.equal("status", "APPROVED"),
+      Query.orderDesc("reviewedAt"),
+      Query.limit(1),
+    ]
+  );
+
+  if (approvalsResult.total === 0) {
+    throw new Error("Cannot finalize points until the event has an approved conclusion report.");
+  }
+
+  const approval = approvalsResult.rows[0] as unknown as ReportApprovalRow;
+  if (!approval.reviewedAt) {
+    throw new Error("Approved conclusion report is missing its approval date.");
+  }
+
+  return approval.reviewedAt;
+}
+
+function termVariants(term: string) {
+  const variants = new Set<string>();
+
+  if (term) {
+    variants.add(term);
+  }
+
+  const fullMatch = term.match(/^(\d{4})\/(\d{4})$/);
+  if (fullMatch) {
+    variants.add(`${fullMatch[1]}/${fullMatch[2].slice(-2)}`);
+  }
+
+  const shortMatch = term.match(/^(\d{4})\/(\d{2})$/);
+  if (shortMatch) {
+    variants.add(`${shortMatch[1]}/20${shortMatch[2]}`);
+  }
+
+  const yearMatch = term.match(/^(\d{4})$/);
+  if (yearMatch) {
+    const year = Number(yearMatch[1]);
+    variants.add(`${year}/${year + 1}`);
+    variants.add(`${year}/${String(year + 1).slice(-2)}`);
+  }
+
+  return variants;
+}
+
+function matchingSystemTermIds(targetTerm: string, terms: IeeeTermRow[]) {
+  const variants = termVariants(targetTerm);
+  return new Set(
+    terms
+      .filter((term) => variants.has(term.label) || variants.has(term.$id))
+      .map((term) => term.$id)
+  );
+}
+
+function isExcludedBySystemTopBoardSettings(
+  userId: string,
+  targetTerm: string,
+  terms: IeeeTermRow[],
+  exclusions: SystemTopBoardExclusion[]
+) {
+  const termIds = matchingSystemTermIds(targetTerm, terms);
+
+  if (termIds.size === 0) {
+    return false;
+  }
+
+  return exclusions.some(
+    (exclusion) =>
+      exclusion.userId === userId &&
+      exclusion.active &&
+      !exclusion.revokedAt &&
+      termIds.has(exclusion.termId)
+  );
+}
+
 
 /**
  * Submits/Creates a grade request for a participant.
@@ -63,25 +244,20 @@ export async function createGradeRequest(data: {
     if (!isLead) {
       throw new Error("Only event leads and chairs can submit grading requests.");
     }
-
-
   }
 
-  // Verify target has an active role in this event
-  const eventRoleResult = await tables.listRows(
+  await requireActiveEventRoleAssignment(
+    tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.eventRoleAssignments,
-    [
-      Query.equal("userId", validated.targetUserId),
-      Query.equal("eventId", validated.eventId),
-      Query.equal("active", true),
-      Query.limit(1),
-    ]
+    validated.targetUserId,
+    validated.eventId
   );
-
-  if (eventRoleResult.total === 0) {
-    throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
-  }
+  await requireAttendedParticipationRecord(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    validated.targetUserId,
+    validated.eventId
+  );
 
 
   if (validated.gradeValue < 0 || validated.gradeValue > 10) {
@@ -233,21 +409,18 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
     }
   }
 
-  // Verify target role in event
-  const eventRoleResult = await tables.listRows(
+  await requireActiveEventRoleAssignment(
+    tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.eventRoleAssignments,
-    [
-      Query.equal("userId", gradeRequest.targetUserId),
-      Query.equal("eventId", gradeRequest.eventId),
-      Query.equal("active", true),
-      Query.limit(1),
-    ]
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
   );
-
-  if (eventRoleResult.total === 0) {
-    throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
-  }
+  await requireAttendedParticipationRecord(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
 
   if (gradeValue < 0 || gradeValue > 10) {
     throw new Error("Grade value must be between 0 and 10.");
@@ -310,8 +483,14 @@ async function recalculateLedgerEntries(
   conclusionApprovalDate: string,
   createdBy: string
 ) {
-  const now = new Date().toISOString();
+  const ledgerDate = conclusionApprovalDate;
   const term = deriveTermFromDate(conclusionApprovalDate);
+  const participation = await requireAttendedParticipationRecord(
+    tables,
+    databaseId,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
 
   // Read all existing ledger entries for this event and target user
   const existingEntries = await tables.listRows(databaseId, APPWRITE_TABLES.pointLedger, [
@@ -331,19 +510,15 @@ async function recalculateLedgerEntries(
     .filter((r) => r.source === "role")
     .reduce((acc, r) => acc + Number(r.points), 0);
 
-  // Create role point entry (lookup active event role assignment)
-  const eventRoleResult = await tables.listRows(
+  const activeAssignment = await requireActiveEventRoleAssignment(
+    tables,
     databaseId,
-    APPWRITE_TABLES.eventRoleAssignments,
-    [
-      Query.equal("userId", gradeRequest.targetUserId),
-      Query.equal("eventId", gradeRequest.eventId),
-      Query.equal("active", true),
-      Query.limit(1),
-    ]
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
   );
-
-  const role = eventRoleResult.total > 0 ? eventRoleResult.rows[0].role : null;
+  const role = participation.role in ROLE_BASE_POINTS
+    ? participation.role
+    : activeAssignment.role ?? null;
   const rolePoints = role ? (ROLE_BASE_POINTS[role as keyof typeof ROLE_BASE_POINTS] ?? 0) : 0;
   const targetRolePoints = rolePoints;
 
@@ -360,7 +535,7 @@ async function recalculateLedgerEntries(
       term,
       source: "grade",
       createdBy,
-      createdAt: now,
+      createdAt: ledgerDate,
     });
   }
 
@@ -375,7 +550,7 @@ async function recalculateLedgerEntries(
       term,
       source: "role",
       createdBy,
-      createdAt: now,
+      createdAt: ledgerDate,
     });
   }
 }
@@ -414,7 +589,24 @@ export async function finalizeGrade(gradeRequestId: string) {
   }
 
 
-  const approvalDate = new Date().toISOString();
+  await requireActiveEventRoleAssignment(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
+  await requireAttendedParticipationRecord(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
+
+  const approvalDate = await getApprovedConclusionApprovalDate(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.eventId
+  );
 
   // Fetch all reviews
   const reviewsResult = await tables.listRows(
@@ -486,21 +678,18 @@ export async function adminOverrideGrade(
     review.gradeRequestId
   )) as unknown as GradeRequest;
 
-  // Verify target role in event
-  const eventRoleResult = await tables.listRows(
+  await requireActiveEventRoleAssignment(
+    tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.eventRoleAssignments,
-    [
-      Query.equal("userId", gradeRequest.targetUserId),
-      Query.equal("eventId", gradeRequest.eventId),
-      Query.equal("active", true),
-      Query.limit(1),
-    ]
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
   );
-
-  if (eventRoleResult.total === 0) {
-    throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
-  }
+  await requireAttendedParticipationRecord(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
 
   if (validated.newGradeValue < 0 || validated.newGradeValue > 10) {
     throw new Error("Grade value must be between 0 and 10.");
@@ -580,7 +769,11 @@ export async function adminOverrideGrade(
 
     const approvalDate = existingLedger.total > 0
       ? existingLedger.rows[0].conclusionApprovalDate
-      : now;
+      : await getApprovedConclusionApprovalDate(
+          tables,
+          env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+          gradeRequest.eventId
+        );
 
     await recalculateLedgerEntries(
       tables,
@@ -706,7 +899,7 @@ export async function getLeaderboard(params: {
     year: YearSchema.optional(),
   }).parse(params);
 
-  const [ledgerResult, configResult, profilesResult] = await Promise.all([
+  const [ledgerResult, configResult, profilesResult, exclusionResult, termsResult] = await Promise.all([
     tables.listRows(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.pointLedger,
@@ -722,10 +915,22 @@ export async function getLeaderboard(params: {
       APPWRITE_TABLES.profiles,
       [Query.limit(500)]
     ),
+    tables.listRows(
+      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+      APPWRITE_TABLES.topBoardExclusions,
+      [Query.equal("active", true), Query.limit(1000)]
+    ),
+    tables.listRows(
+      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+      APPWRITE_TABLES.ieeeTerms,
+      [Query.limit(100)]
+    ),
   ]);
 
   let entries = ledgerResult.rows as unknown as PointLedgerEntry[];
   const configs = configResult.rows as unknown as TermScoringConfig[];
+  const exclusions = exclusionResult.rows as unknown as SystemTopBoardExclusion[];
+  const terms = termsResult.rows as unknown as IeeeTermRow[];
   const profileMap = new Map(profilesResult.rows.map((p) => [p.$id, p]));
 
   let targetTerm = validated.term || "";
@@ -751,8 +956,8 @@ export async function getLeaderboard(params: {
   // Filter ledger
   if (validated.month !== undefined && validated.year !== undefined) {
     entries = filterLedgerByMonth(entries, validated.month, validated.year);
-  } else if (validated.term !== undefined) {
-    entries = filterLedgerByTerm(entries, validated.term);
+  } else if (targetTerm) {
+    entries = filterLedgerByTerm(entries, targetTerm);
   }
 
   // Aggregate user points
@@ -772,7 +977,7 @@ export async function getLeaderboard(params: {
       targetTerm,
       targetYear,
       configs
-    );
+    ) && !isExcludedBySystemTopBoardSettings(userId, targetTerm, terms, exclusions);
 
     if (isEligible) {
       const totalPoints = sumPointsFromLedger(userEntries);

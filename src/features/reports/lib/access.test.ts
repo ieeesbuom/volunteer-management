@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canAccessConclusionsTab, hasAnyEventLeadRole } from "@/features/reports/lib/access";
+import {
+  canAccessConclusionsTab,
+  canExportVolunteerProfilePdf,
+  hasAnyEventLeadRole,
+} from "@/features/reports/lib/access";
 import type { SessionUser } from "@/features/access-control/types";
 
 function createUser(overrides: Partial<SessionUser> = {}): SessionUser {
@@ -89,5 +93,10 @@ describe("reports access", () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  it("limits volunteer profile PDF exports to admins", () => {
+    expect(canExportVolunteerProfilePdf(createUser({ isAdmin: true }))).toBe(true);
+    expect(canExportVolunteerProfilePdf(createUser())).toBe(false);
   });
 });

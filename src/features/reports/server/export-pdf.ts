@@ -2,6 +2,7 @@
 
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { requireAuth } from "@/features/access-control/server/current-user";
+import { canExportVolunteerProfilePdf } from "@/features/reports/lib/access";
 import {
   assertConclusionReportExportable,
   canExportConclusionReportPdf,
@@ -26,13 +27,6 @@ async function assertVolunteerProfileExportable(userId: string) {
   }
 
   return profile;
-}
-
-function canExportVolunteerProfilePdf(
-  user: Awaited<ReturnType<typeof requireAuth>>,
-  targetUserId: string,
-) {
-  return user.isAdmin || user.authUser.id === targetUserId;
 }
 
 export async function exportConclusionReportPdfAction(reportId: string) {
@@ -62,7 +56,7 @@ export async function exportVolunteerProfilePdfAction(userId: string) {
   const user = await requireAuth();
   const profile = await assertVolunteerProfileExportable(userId);
 
-  if (!canExportVolunteerProfilePdf(user, userId)) {
+  if (!canExportVolunteerProfilePdf(user)) {
     throw new Error("You do not have access to export this volunteer profile.");
   }
 

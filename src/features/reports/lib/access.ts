@@ -13,3 +13,7 @@ export function hasAnyEventLeadRole(user: Pick<SessionUser, "eventRoles">) {
 export function canAccessConclusionsTab(user: SessionUser) {
   return user.isAdmin || hasAnyEventLeadRole(user);
 }
+
+export function canExportVolunteerProfilePdf(user: Pick<SessionUser, "isAdmin">) {
+  return user.isAdmin;
+}

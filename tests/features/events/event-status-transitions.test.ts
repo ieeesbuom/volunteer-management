@@ -18,6 +18,15 @@ describe("operational status transitions", () => {
     );
   });
 
+  it("blocks skipped operational lifecycle transitions", () => {
+    expect(() => assertOperationalStatusTransition("draft", "published")).toThrow(
+      'Illegal event status transition from "draft" to "published".',
+    );
+    expect(() => assertOperationalStatusTransition("planning", "ongoing")).toThrow(
+      'Illegal event status transition from "planning" to "ongoing".',
+    );
+  });
+
   it("excludes conclusion-managed statuses from available transitions", () => {
     const transitions = getOperationalStatusTransitions("ongoing", { isAdmin: true });
 

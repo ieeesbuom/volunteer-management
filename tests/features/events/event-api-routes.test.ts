@@ -367,6 +367,36 @@ describe("event API routes", () => {
       expect(response.status).toBe(403);
       expect(mockUpdateEventStatus).not.toHaveBeenCalled();
     });
+
+    it("returns 403 when admins try to skip required lifecycle states", async () => {
+      const draftEvent = createEventFixture({ status: "draft" });
+      mockGetCurrentUser.mockResolvedValueOnce(
+        createSessionUser({
+          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+          isAdmin: true,
+          profile: {
+            $id: "profile-admin",
+            authUserId: "admin-1",
+            googleEmail: "admin@example.com",
+            status: "ACTIVE",
+            uomVerified: false,
+          },
+        }),
+      );
+      mockGetEventById.mockResolvedValueOnce(draftEvent);
+      const { PATCH } = await import("@/app/api/events/[eventId]/status/route");
+
+      const response = await PATCH(
+        new Request("http://localhost/api/events/event-1/status", {
+          body: JSON.stringify({ status: "published" }),
+          method: "PATCH",
+        }),
+        { params: Promise.resolve({ eventId: "event-1" }) },
+      );
+
+      expect(response.status).toBe(403);
+      expect(mockUpdateEventStatus).not.toHaveBeenCalled();
+    });
   });
 
   describe("PATCH /api/events/[eventId]/conclude", () => {
@@ -415,9 +445,132 @@ describe("event API routes", () => {
       expect(response.status).toBe(200);
       expect(mockSubmitConclusion).toHaveBeenCalledWith("event-1", "user-1");
     });
+
+    it("returns 200 when an admin approves a submitted conclusion", async () => {
+      const pendingEvent = createEventFixture({
+        conclusion_status: "submitted",
+        status: "pending_conclusion",
+      });
+      const closedEvent = createEventFixture({
+        conclusion_status: "approved",
+        status: "closed",
+      });
+      mockGetCurrentUser.mockResolvedValueOnce(
+        createSessionUser({
+          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+          isAdmin: true,
+          profile: {
+            $id: "profile-admin",
+            authUserId: "admin-1",
+            googleEmail: "admin@example.com",
+            status: "ACTIVE",
+            uomVerified: false,
+          },
+        }),
+      );
+      mockGetEventById.mockResolvedValueOnce(pendingEvent);
+      mockApproveConclusion.mockResolvedValueOnce(closedEvent);
+      const { PATCH } = await import("@/app/api/events/[eventId]/conclude/route");
+
+      const response = await PATCH(
+        new Request("http://localhost/api/events/event-1/conclude", {
+          body: JSON.stringify({ action: "approve" }),
+          method: "PATCH",
+        }),
+        { params: Promise.resolve({ eventId: "event-1" }) },
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockApproveConclusion).toHaveBeenCalledWith("event-1", "admin-1");
+    });
   });
 
   describe("POST /api/events/[eventId]/roles", () => {
+    it("returns 400 for invalid event role values", async () => {
+      mockGetCurrentUser.mockResolvedValueOnce(
+        createSessionUser({
+          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+          isAdmin: true,
+          profile: {
+            $id: "profile-admin",
+            authUserId: "admin-1",
+            googleEmail: "admin@example.com",
+            status: "ACTIVE",
+            uomVerified: false,
+          },
+        }),
+      );
+      const { POST } = await import("@/app/api/events/[eventId]/roles/route");
+
+      const response = await POST(
+        new Request("http://localhost/api/events/event-1/roles", {
+          body: JSON.stringify({
+            event_id: "event-1",
+            role: "Treasurer",
+            user_id: "user-2",
+          }),
+          method: "POST",
+        }),
+        { params: Promise.resolve({ eventId: "event-1" }) },
+      );
+
+      expect(response.status).toBe(400);
+      expect(mockAssignEventRole).not.toHaveBeenCalled();
+      expect(mockGetEventById).not.toHaveBeenCalled();
+    });
+
+    it("allows admins to assign another Chair for co-chair events", async () => {
+      const draftEvent = createEventFixture({ status: "draft" });
+      mockGetCurrentUser.mockResolvedValueOnce(
+        createSessionUser({
+          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+          isAdmin: true,
+          profile: {
+            $id: "profile-admin",
+            authUserId: "admin-1",
+            googleEmail: "admin@example.com",
+            status: "ACTIVE",
+            uomVerified: false,
+          },
+        }),
+      );
+      mockGetEventById.mockResolvedValueOnce(draftEvent);
+      mockAssignEventRole.mockResolvedValueOnce({
+        $id: "assignment-chair-2",
+        active: true,
+        assignedAt: "2026-01-02T00:00:00.000Z",
+        assignedBy: "admin-1",
+        eventChairCount: 2,
+        eventId: "event-1",
+        eventTitle: "MoraForesight 4.0",
+        role: "Chair",
+        userId: "user-2",
+      });
+      const { POST } = await import("@/app/api/events/[eventId]/roles/route");
+
+      const response = await POST(
+        new Request("http://localhost/api/events/event-1/roles", {
+          body: JSON.stringify({
+            event_id: "event-1",
+            role: "Chair",
+            user_id: "user-2",
+          }),
+          method: "POST",
+        }),
+        { params: Promise.resolve({ eventId: "event-1" }) },
+      );
+
+      expect(response.status).toBe(201);
+      expect(mockAssignEventRole).toHaveBeenCalledWith(
+        {
+          event_id: "event-1",
+          role: "Chair",
+          user_id: "user-2",
+        },
+        "admin-1",
+      );
+    });
+
     it("returns 403 when a chair tries to assign another chair", async () => {
       const draftEvent = createEventFixture({ status: "draft" });
       mockGetCurrentUser.mockResolvedValueOnce(createSessionUser());

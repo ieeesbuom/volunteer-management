@@ -1,14 +1,15 @@
 import Link from "next/link";
 import {
-  FileBarChart,
-  Flag, 
   CalendarDays,
+  FileBarChart,
+  Flag,
   LayoutDashboard,
   LogOut,
   MailCheck,
   Settings,
   ShieldCheck,
-  UserRound, UsersRound,
+  UserRound,
+  UsersRound,
   Trophy,
 } from "lucide-react";
 import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
@@ -20,7 +21,17 @@ export function AppShell({
   children,
   user,
 }: Readonly<{
-  active: "dashboard" | "settings" | "moderation" | "events" | "my-events" | "verification" | "users" | "reports" | "scoring" | "volunteers";
+  active:
+    | "dashboard"
+    | "settings"
+    | "moderation"
+    | "events"
+    | "my-events"
+    | "verification"
+    | "users"
+    | "reports"
+    | "scoring"
+    | "volunteers";
   children: React.ReactNode;
   user: SessionUser;
 }>) {
@@ -73,18 +84,18 @@ export function AppShell({
     },
     ...(user.isAdmin
       ? [
-        {
-          href: "/admin/users",
-          icon: UsersRound,
-          id: "users",
-          label: "Access Control",
-        },
-        {
-          href: "/admin/settings",
-          icon: Settings,
-          id: "settings",
-          label: "System Settings",
-        },
+          {
+            href: "/admin/users",
+            icon: UsersRound,
+            id: "users",
+            label: "Access Control",
+          },
+          {
+            href: "/admin/settings",
+            icon: Settings,
+            id: "settings",
+            label: "System Settings",
+          },
           {
             href: "/admin/recommendations",
             icon: Flag,

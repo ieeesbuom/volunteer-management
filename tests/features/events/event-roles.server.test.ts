@@ -292,6 +292,9 @@ describe("role display enrichment", () => {
     const { getRoleAssignmentsForEvent, formatRoleAssignmentDisplay } = await import(
       "@/features/events/server/event-roles.server"
     );
+    const { getEventPermissions } = await import(
+      "@/features/events/lib/event-permissions"
+    );
 
     const assignments = await getRoleAssignmentsForEvent("event-1");
 
@@ -302,6 +305,33 @@ describe("role display enrichment", () => {
     expect(formatRoleAssignmentDisplay(assignments[0]!)).toBe("Co-chair");
     expect(formatRoleAssignmentDisplay(assignments[1]!)).toBe("Co-chair");
     expect(formatRoleAssignmentDisplay(assignments[2]!)).toBe("Vice Chair");
+    expect(assignments[0]?.role).toBe("Chair");
+    expect(
+      getEventPermissions(
+        "user-1",
+        false,
+        {
+          $createdAt: "2026-01-01T00:00:00.000Z",
+          $id: "event-1",
+          $updatedAt: "2026-01-01T00:00:00.000Z",
+          conclusion_status: "not_submitted",
+          created_at: "2026-01-01T00:00:00.000Z",
+          created_by: "admin-user",
+          reference: "MF-4",
+          start_date: "2026-06-01T00:00:00.000Z",
+          status: "ongoing",
+          term: "2025/2026",
+          title: "Event",
+          updated_at: "2026-01-01T00:00:00.000Z",
+          year: 2026,
+        },
+        assignments[0]?.role,
+      ),
+    ).toMatchObject({
+      canAssignRoles: true,
+      canManageCommittee: true,
+      canSubmitConclusion: true,
+    });
   });
 
   it("keeps a single chair labeled as Chair", async () => {

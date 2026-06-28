@@ -4,7 +4,7 @@ import { deleteGradeRequest, submitGradeReview } from "@/features/scoring/server
 import { jsonError, routeErrorStatus } from "@/server/errors";
 
 const patchSchema = z.object({
-  gradeValue: z.number().min(0).max(100),
+  gradeValue: z.number().int().min(0).max(10),
 });
 
 export async function PATCH(

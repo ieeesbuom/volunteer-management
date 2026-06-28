@@ -268,6 +268,11 @@ export async function respondToRecommendationRequest({
     requestId,
   );
   const recommendationRequest = toRecommendationRequest(requestRow as AppRow);
+  const respondentCanVolunteer = canVolunteer(user.profile);
+
+  if (!respondentCanVolunteer) {
+    throw new Error("Verified UoM email is required before responding to recommendations.");
+  }
 
   if (
     recommendationRequest.status === "ACCEPTED" &&
@@ -320,6 +325,7 @@ export async function respondToRecommendationRequest({
   }
 
   assertCanRespondToRecommendation({
+    respondentCanVolunteer,
     requestRespondentId: recommendationRequest.respondentId,
     requestStatus: recommendationRequest.status,
     userId: user.authUser.id,

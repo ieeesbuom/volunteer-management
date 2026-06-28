@@ -71,6 +71,15 @@ describe("recommendation rules", () => {
 
     expect(() =>
       assertCanRespondToRecommendation({
+        respondentCanVolunteer: false,
+        requestRespondentId: "user-2",
+        requestStatus: "PENDING",
+        userId: "user-2",
+      }),
+    ).toThrow("Verified UoM email");
+
+    expect(() =>
+      assertCanRespondToRecommendation({
         requestRespondentId: "user-2",
         requestStatus: "PENDING",
         userId: "user-3",

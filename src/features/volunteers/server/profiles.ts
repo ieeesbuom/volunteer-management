@@ -5,6 +5,7 @@ import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { isAppwriteNotFound } from "@/server/errors";
 import { writeAuditLog } from "@/server/audit";
+import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getActiveEventRoleAssignments, getActiveSbRoles } from "@/features/access-control/server/roles";
 import { getProfile } from "@/features/access-control/server/profiles";
 import {
@@ -76,6 +77,10 @@ export async function upsertMyVolunteerProfileDetails({
   details: VolunteerProfileDetailsInput;
   user: SessionUser;
 }) {
+  if (!canVolunteer(user.profile)) {
+    throw new Error("Verified UoM email is required before volunteering.");
+  }
+
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
   const now = new Date().toISOString();
@@ -142,8 +147,8 @@ export async function getVolunteerProfileSummary(
   });
   const [details, sbRoles, eventRoles] = await Promise.all([
     getVolunteerProfileDetails(userId),
-    getActiveSbRoles(userId),
-    getActiveEventRoleAssignments(userId),
+    getVolunteerSummarySbRoles(userId),
+    getVolunteerSummaryEventRoles(userId),
   ]);
 
   return {
@@ -163,4 +168,28 @@ export async function getVolunteerProfileSummary(
     uomEmail: isPrivateView ? profile.uomEmail : undefined,
     userId,
   };
+}
+
+async function getVolunteerSummarySbRoles(userId: string) {
+  try {
+    return await getActiveSbRoles(userId);
+  } catch (error) {
+    if (isAppwriteNotFound(error)) {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function getVolunteerSummaryEventRoles(userId: string) {
+  try {
+    return await getActiveEventRoleAssignments(userId);
+  } catch (error) {
+    if (isAppwriteNotFound(error)) {
+      return [];
+    }
+
+    throw error;
+  }
 }

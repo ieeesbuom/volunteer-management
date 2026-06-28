@@ -29,14 +29,20 @@ export function assertCanRequestRecommendation({
 }
 
 export function assertCanRespondToRecommendation({
+  respondentCanVolunteer = true,
   requestStatus,
   requestRespondentId,
   userId,
 }: {
+  respondentCanVolunteer?: boolean;
   requestStatus: string;
   requestRespondentId: string;
   userId: string;
 }) {
+  if (!respondentCanVolunteer) {
+    throw new Error("Verified UoM email is required before responding to recommendations.");
+  }
+
   if (requestRespondentId !== userId) {
     throw new Error("Only the requested volunteer can respond.");
   }

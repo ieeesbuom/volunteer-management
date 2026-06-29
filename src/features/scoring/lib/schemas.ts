@@ -19,6 +19,20 @@ export const GradeRequestSchema = z.object({
   gradeValue: z.number().int().min(0).max(10).default(5),
 });
 
+export const ParticipationStatusSchema = z.enum(["attended", "absent", "excused"]);
+
+export const UpsertParticipationRecordSchema = z.object({
+  userId: z.string().trim().min(1).max(64),
+  status: ParticipationStatusSchema,
+});
+
+export const UpsertParticipationRecordsSchema = z.object({
+  records: z
+    .array(UpsertParticipationRecordSchema)
+    .min(1, "At least one participation record is required.")
+    .max(500),
+});
+
 // Admin override schema
 export const AdminGradeOverrideSchema = z.object({
   gradeReviewId: z.string().min(1),

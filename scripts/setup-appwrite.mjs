@@ -482,9 +482,9 @@ const tableDefinitions = [
       ["datetime", "added_at", true],
     ],
     indexes: [
-      ["event_committee_members_committee_idx", ["committee_id"]],
-      ["event_committee_members_user_idx", ["user_id"]],
-      ["event_committee_members_committee_user_idx", ["committee_id", "user_id"], "unique"],
+      ["event_members_committee_idx", ["committee_id"]],
+      ["event_members_user_idx", ["user_id"]],
+      ["event_members_committee_user_idx", ["committee_id", "user_id"], "unique"],
     ],
   },
   {
@@ -535,7 +535,7 @@ const tableDefinitions = [
       ["string", "externalFormId", 256, false],
       ["string", "formUrl", 1024, false],
       ["enum", "purpose", formPurposeElements, true],
-      ["enum", "status", formStatusElements, true, "active"],
+      ["enum", "status", formStatusElements, false, "active"],
       ["string", "createdBy", 64, true],
       ["datetime", "createdAt", true],
       ["datetime", "updatedAt", true],
@@ -617,6 +617,8 @@ async function migrateConclusionReportSchema(tableId) {
 async function createColumn(tableId, column) {
   const [kind, key, ...rest] = column;
   const label = `${tableId}.${key}`;
+  const table = await tables.getTable(databaseId, tableId);
+  const existingColumn = table.columns.find((existing) => existing.key === key);
 
   if (kind === "enum") {
     const [elements, required, defaultValue] = rest;
@@ -651,6 +653,11 @@ async function createColumn(tableId, column) {
       console.log(`updated column ${label}`);
     }
 
+    return;
+  }
+
+  if (existingColumn) {
+    console.log(`exists column ${label}`);
     return;
   }
 

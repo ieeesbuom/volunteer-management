@@ -14,6 +14,8 @@ import {
   getEventWithRoleAssignments,
   updateEvent,
 } from "@/features/events/server/event-service";
+import { notifyEventUpdateWorkflow } from "@/features/notifications/server/workflow-notifications";
+import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { UpdateEventInputSchema } from "@/features/events/types";
 import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
 
@@ -99,8 +101,23 @@ export async function PATCH(request: Request, context: RouteContext) {
       hasFieldUpdates && permissions.canEdit
         ? await updateEvent(eventId, filteredInput, user.authUser.id)
         : existingEvent;
+    const notificationContext = hasFieldUpdates
+      ? await getEventNotificationContext(eventId, {
+          excludeUserIds: [user.authUser.id],
+        })
+      : null;
+    const notifications = notificationContext
+      ? await notifyEventUpdateWorkflow({
+          actorUserId: user.authUser.id,
+          eventId,
+          eventTitle: notificationContext.eventTitle,
+          linkHref: `/events/${eventId}`,
+          message: `${notificationContext.eventTitle} details were updated.`,
+          recipientUserIds: notificationContext.recipientUserIds,
+        })
+      : [];
 
-    return NextResponse.json({ event });
+    return NextResponse.json({ event, notifications });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update event.";
 

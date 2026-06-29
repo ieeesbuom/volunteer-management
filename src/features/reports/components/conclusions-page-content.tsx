@@ -24,7 +24,7 @@ export function ConclusionsPageContent({
   initialReports: ConclusionReport[];
 }) {
   const [reports, setReports] = useState(initialReports);
-  const draftEvent = events.find((event) => event.status === "PENDING_CONCLUSION");
+  const draftEvent = events[0];
 
   function handleReportChange(report: ConclusionReport) {
     setReports((current) => {
@@ -45,8 +45,8 @@ export function ConclusionsPageContent({
           </CardTitle>
           <CardDescription>
             {draftEvent
-              ? `${draftEvent.eventTitle} is pending conclusion.`
-              : "No event is currently pending conclusion."}
+              ? `${draftEvent.eventTitle} is ready for conclusion reporting.`
+              : "No event is currently ready for conclusion reporting."}
           </CardDescription>
         </CardHeader>
         <CardContent>

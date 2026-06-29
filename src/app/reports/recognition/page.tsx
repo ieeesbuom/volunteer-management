@@ -29,7 +29,7 @@ export default async function RecognitionPage() {
       <PageHeader
         eyebrow="Reporting"
         title="Recognition"
-        description="Volunteer of the Month and Hall of Fame views will appear once points data is connected."
+        description="Volunteer of the Month and Hall of Fame rankings from approved point ledger data."
       />
 
       <ReportsNav
@@ -44,7 +44,7 @@ export default async function RecognitionPage() {
               <Award className="size-4 text-primary" aria-hidden="true" />
               Volunteer of the Month
             </CardTitle>
-            <CardDescription>Recognition data unavailable</CardDescription>
+            <CardDescription>Current month based on approved conclusion dates</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {data.volunteerOfTheMonth ? (
@@ -57,7 +57,7 @@ export default async function RecognitionPage() {
               </>
             ) : (
               <p className="text-text-secondary">
-                Volunteer of the Month will appear here once the points ledger is connected.
+                No eligible points have been awarded for the current month.
               </p>
             )}
           </CardContent>
@@ -69,7 +69,7 @@ export default async function RecognitionPage() {
               <Trophy className="size-4 text-primary" aria-hidden="true" />
               Yearly Hall of Fame
             </CardTitle>
-            <CardDescription>Recognition data unavailable</CardDescription>
+            <CardDescription>Current IEEE term ranking with Top Board exclusions</CardDescription>
           </CardHeader>
           <CardContent>
             {data.hallOfFame.length > 0 ? (
@@ -101,7 +101,7 @@ export default async function RecognitionPage() {
               </div>
             ) : (
               <p className="text-sm text-text-secondary">
-                Hall of Fame rankings will appear here once the points ledger is connected.
+                No eligible points have been awarded for the current IEEE term.
               </p>
             )}
           </CardContent>

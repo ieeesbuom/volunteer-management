@@ -117,7 +117,6 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
               <tr key={report.$id}>
                 <td className="px-4 py-3">
                   <p className="font-medium text-text-primary">{report.eventTitle}</p>
-                  <p className="mt-1 text-xs text-text-muted">{report.eventId}</p>
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{report.submittedByName}</td>
                 <td className="px-4 py-3">

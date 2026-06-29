@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Loader2,
@@ -24,15 +24,21 @@ type NotificationPreferenceDraft = Pick<
 export function NotificationPreferencesForm({
   initialPreference,
 }: {
-  initialPreference: NotificationPreference;
+  initialPreference?: NotificationPreference;
 }) {
+  const defaultDraft: NotificationPreferenceDraft = {
+    emailEnabled: false,
+    inAppEnabled: true,
+    typePreferences: {},
+  };
   const [draft, setDraft] = useState<NotificationPreferenceDraft>({
-    emailEnabled: initialPreference.emailEnabled,
-    inAppEnabled: initialPreference.inAppEnabled,
-    typePreferences: initialPreference.typePreferences,
+    emailEnabled: initialPreference?.emailEnabled ?? defaultDraft.emailEnabled,
+    inAppEnabled: initialPreference?.inAppEnabled ?? defaultDraft.inAppEnabled,
+    typePreferences: initialPreference?.typePreferences ?? defaultDraft.typePreferences,
   });
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"error" | "idle" | "success">("idle");
+  const [isLoading, setIsLoading] = useState(!initialPreference);
   const [isSaving, setIsSaving] = useState(false);
   const rows = useMemo(
     () =>
@@ -44,6 +50,52 @@ export function NotificationPreferencesForm({
       })),
     [draft],
   );
+
+  useEffect(() => {
+    if (initialPreference) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPreferences() {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch("/api/notifications/preferences");
+        const payload = (await response.json()) as {
+          error?: string;
+          preference?: NotificationPreference;
+        };
+
+        if (!response.ok || !payload.preference) {
+          if (!cancelled) {
+            setMessage(payload.error ?? "Could not load saved preferences.");
+            setStatus("error");
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setDraft({
+            emailEnabled: payload.preference.emailEnabled,
+            inAppEnabled: payload.preference.inAppEnabled,
+            typePreferences: payload.preference.typePreferences,
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadPreferences();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialPreference]);
 
   async function savePreferences() {
     setIsSaving(true);
@@ -176,11 +228,15 @@ export function NotificationPreferencesForm({
           </p>
         ) : (
           <span className="text-sm text-text-muted">
-            <Bell className="mr-1 inline size-4 align-[-3px]" aria-hidden="true" />
-            Current account only
+            {isLoading ? (
+              <Loader2 className="mr-1 inline size-4 animate-spin align-[-3px]" aria-hidden="true" />
+            ) : (
+              <Bell className="mr-1 inline size-4 align-[-3px]" aria-hidden="true" />
+            )}
+            {isLoading ? "Loading saved preferences" : "Current account only"}
           </span>
         )}
-        <Button disabled={isSaving} onClick={() => void savePreferences()} type="button">
+        <Button disabled={isSaving || isLoading} onClick={() => void savePreferences()} type="button">
           {isSaving ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (

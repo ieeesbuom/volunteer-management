@@ -24,7 +24,6 @@ export const volunteerProfileDetailsSchema = z.object({
   department: z.string().trim().min(1, "Department is required.").max(120),
   faculty: z.string().trim().min(1, "Faculty is required.").max(120),
   headline: z.string().trim().max(160).optional().default(""),
-  ieeeMembership: z.string().trim().min(1, "IEEE membership is required.").max(120),
   linkedinUrl: z
     .string()
     .trim()

@@ -69,7 +69,6 @@ function profileDetails(overrides: Partial<VolunteerProfileDetails> = {}): Volun
     department: "Computer Science",
     faculty: "Engineering",
     headline: "Logistics lead",
-    ieeeMembership: "Student Member",
     linkedinUrl: "https://www.linkedin.com/in/test",
     skills: "Planning, mentoring",
     universityIndex: "220000A",
@@ -248,7 +247,7 @@ describe("volunteer profile page smoke tests", () => {
     const html = await htmlFrom(VolunteerProfilePage(routeParams("missing-user")));
 
     expect(html).toContain("Volunteer Not Found");
-    expect(html).toContain("No active verified volunteer profile exists for this user ID.");
+    expect(html).toContain("No active verified volunteer profile exists for this account.");
   });
 });
 

@@ -8,7 +8,6 @@ describe("volunteer profile details", () => {
       department: "  Computer Science  ",
       faculty: "  Engineering  ",
       headline: "  Event volunteer  ",
-      ieeeMembership: "  Student Member  ",
       universityIndex: "  220000A  ",
     });
 
@@ -18,7 +17,6 @@ describe("volunteer profile details", () => {
       department: "Computer Science",
       faculty: "Engineering",
       headline: "Event volunteer",
-      ieeeMembership: "Student Member",
       linkedinUrl: "",
       skills: "",
       universityIndex: "220000A",
@@ -31,7 +29,6 @@ describe("volunteer profile details", () => {
         batchYear: "2024",
         department: "Computer Science",
         faculty: "Engineering",
-        ieeeMembership: "Student Member",
         linkedinUrl: "http://linkedin.com/in/test",
         universityIndex: "220000A",
       }),
@@ -42,7 +39,6 @@ describe("volunteer profile details", () => {
         batchYear: "2024",
         department: "Computer Science",
         faculty: "Engineering",
-        ieeeMembership: "Student Member",
         linkedinUrl: "https://example.com/in/test",
         universityIndex: "220000A",
       }),
@@ -53,7 +49,6 @@ describe("volunteer profile details", () => {
         batchYear: "2024",
         department: "Computer Science",
         faculty: "Engineering",
-        ieeeMembership: "Student Member",
         linkedinUrl: "https://www.linkedin.com/in/test",
         universityIndex: "220000A",
       }).linkedinUrl,
@@ -66,7 +61,6 @@ describe("volunteer profile details", () => {
         batchYear: "",
         department: "Computer Science",
         faculty: "Engineering",
-        ieeeMembership: "Student Member",
         universityIndex: "220000A",
       }),
     ).toThrow("Batch/year");

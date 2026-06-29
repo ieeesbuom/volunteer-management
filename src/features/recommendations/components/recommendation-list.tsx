@@ -90,8 +90,8 @@ function displayRespondent(recommendation: RecommendationWithRespondent) {
   const respondent = recommendation.respondent;
 
   if (!respondent) {
-    return `user ${recommendation.respondentId}`;
+    return "Unknown volunteer";
   }
 
-  return respondent.name || respondent.uomEmail || respondent.googleEmail || respondent.userId;
+  return respondent.name || respondent.uomEmail || respondent.googleEmail || "Unknown volunteer";
 }

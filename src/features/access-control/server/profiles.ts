@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import type { Models } from "node-appwrite";
 import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { buildInitialProfilePayload } from "@/features/access-control/lib/profile-payload";
@@ -90,6 +91,26 @@ export async function bootstrapProfile(user: AppwriteUser) {
   return toProfile(row);
 }
 
+export async function getOrCreateProfile(user: AppwriteUser) {
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const authUser = toAuthUser(user);
+  const existingProfile = await getProfile(authUser.id);
+
+  if (existingProfile) {
+    return existingProfile;
+  }
+
+  const row = await tables.createRow<AppRow>(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.profiles,
+    authUser.id,
+    buildInitialProfilePayload(authUser, new Date().toISOString()),
+  );
+
+  return toProfile(row);
+}
+
 export async function markProfileUomVerified({
   uomEmail,
   userId,
@@ -114,7 +135,7 @@ export async function markProfileUomVerified({
   return toProfile(row);
 }
 
-export async function listProfiles() {
+export const listProfiles = cache(async function listProfiles() {
   const env = getServerEnv();
   const { Query } = await import("node-appwrite");
   const { tables } = getAppwriteAdminServices();
@@ -127,4 +148,4 @@ export async function listProfiles() {
   );
 
   return result.rows.map((row) => toProfile(row as AppRow));
-}
+});

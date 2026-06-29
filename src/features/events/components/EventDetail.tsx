@@ -362,6 +362,7 @@ export function EventDetail({
         canManage={permissions.canManageCommittee}
         eventId={event.$id}
         initialCommittees={initialCommittees}
+        volunteerOptions={initialVolunteers}
       />
 
       <EventFormConnections
@@ -422,10 +423,10 @@ export function EventDetail({
                       <tr key={assignment.$id}>
                         <td className="py-3 pr-4">
                           <p className="font-medium text-text-primary">
-                            {volunteer?.name || assignment.userId}
+                            {volunteer?.name || volunteer?.googleEmail || "Volunteer"}
                           </p>
                           <p className="mt-1 text-xs text-text-muted">
-                            {volunteer?.uomEmail || volunteer?.googleEmail || assignment.userId}
+                            {volunteer?.uomEmail || volunteer?.googleEmail || "Profile unavailable"}
                           </p>
                         </td>
                         <td className="px-4 py-3">

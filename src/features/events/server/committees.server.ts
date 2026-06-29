@@ -158,6 +158,26 @@ export async function listCommitteeMembers(committeeId: string): Promise<Committ
   return result.rows.map((row) => toCommitteeMember(row as AppRow));
 }
 
+export async function listCommitteeMembersForCommittees(
+  committeeIds: string[],
+): Promise<CommitteeMember[]> {
+  if (committeeIds.length === 0) {
+    return [];
+  }
+
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const result = await tables.listRows(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.eventCommitteeMembers,
+    [Query.equal("committee_id", committeeIds), Query.limit(500)],
+    undefined,
+    false,
+  );
+
+  return result.rows.map((row) => toCommitteeMember(row as AppRow));
+}
+
 export async function addCommitteeMember({
   actorUserId,
   committeeId,

@@ -60,7 +60,6 @@ export function AssignRoleModal({
         volunteer.name,
         volunteer.googleEmail,
         volunteer.uomEmail,
-        volunteer.userId,
       ]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(query));

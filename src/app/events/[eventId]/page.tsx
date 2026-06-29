@@ -9,7 +9,10 @@ import {
   getPermissionsForUser,
   isEventVisible,
 } from "@/features/events/server/event-route-helpers";
-import { listCommitteesForEvent, listCommitteeMembers } from "@/features/events/server/committees.server";
+import {
+  listCommitteeMembersForCommittees,
+  listCommitteesForEvent,
+} from "@/features/events/server/committees.server";
 import { getRoleAssignmentsForEvent } from "@/features/events/server/event-roles.server";
 import { getEventById } from "@/features/events/server/event-service";
 import { listFormConnectionsForCurrentUser } from "@/features/forms/server/form-connection-service";
@@ -48,14 +51,22 @@ export default async function EventDetailPage({ params }: PageProps) {
   const permissions = getPermissionsForUser(user, event, userEventRole);
   const [assignments, committees, formConnections, participationRoster, profiles] = await Promise.all([
     getRoleAssignmentsForEvent(eventId),
-    listCommitteesForEvent(eventId).then(async (items) =>
-      Promise.all(
-        items.map(async (committee) => ({
-          ...committee,
-          members: await listCommitteeMembers(committee.$id),
-        })),
-      ),
-    ),
+    listCommitteesForEvent(eventId).then(async (items) => {
+      const members = await listCommitteeMembersForCommittees(
+        items.map((committee) => committee.$id),
+      );
+      const membersByCommittee = new Map<string, typeof members>();
+
+      for (const member of members) {
+        const current = membersByCommittee.get(member.committee_id) ?? [];
+        membersByCommittee.set(member.committee_id, [...current, member]);
+      }
+
+      return items.map((committee) => ({
+        ...committee,
+        members: membersByCommittee.get(committee.$id) ?? [],
+      }));
+    }),
     listFormConnectionsForCurrentUser(eventId).catch(() => []),
     listEventParticipationRoster({ eventId, user }).catch(() => ({
       canManage: false,

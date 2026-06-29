@@ -64,6 +64,7 @@ export function toEvent(row: AppRow): Event {
 }
 
 export type GetEventsOptions = {
+  assignedEventIds?: Iterable<string>;
   limit?: number;
   offset?: number;
   status?: EventStatus;
@@ -134,9 +135,12 @@ export async function getEvents(options: GetEventsOptions = {}): Promise<GetEven
   );
 
   const allEvents = result.rows.map((row) => toEvent(row as AppRow));
-  const userAssignedEventIds = options.userId
-    ? await getUserAssignedEventIds(options.userId)
-    : new Set<string>();
+  const userAssignedEventIds =
+    options.assignedEventIds
+      ? new Set(options.assignedEventIds)
+      : options.userId && !options.isAdmin
+        ? await getUserAssignedEventIds(options.userId)
+        : new Set<string>();
 
   const visibleEvents = allEvents.filter((event) =>
     isEventVisibleToQuery({
@@ -168,6 +172,26 @@ export async function listEvents(filters?: {
   });
 
   return result.events;
+}
+
+export async function listEventsByIds(eventIds: string[]): Promise<Event[]> {
+  const uniqueEventIds = [...new Set(eventIds.filter(Boolean))];
+
+  if (uniqueEventIds.length === 0) {
+    return [];
+  }
+
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const result = await tables.listRows(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.events,
+    [Query.equal("$id", uniqueEventIds), Query.limit(Math.min(uniqueEventIds.length, 500))],
+    undefined,
+    false,
+  );
+
+  return result.rows.map((row) => toEvent(row as AppRow));
 }
 
 export async function assertEventVisibleToUser({

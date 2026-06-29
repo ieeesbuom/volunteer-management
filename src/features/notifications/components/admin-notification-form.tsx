@@ -83,7 +83,7 @@ export function AdminNotificationForm({
                 <option value="">Select recipient</option>
                 {activeProfiles.map((profile) => (
                   <option key={profile.authUserId} value={profile.authUserId}>
-                    {profile.name || profile.googleEmail} - {profile.authUserId}
+                    {profile.name || profile.googleEmail}
                   </option>
                 ))}
               </select>
@@ -199,7 +199,7 @@ function MessageFields() {
           className={`${inputClasses} mt-1`}
           maxLength={160}
           name="title"
-          placeholder="Test notification"
+          placeholder="Notification title"
           required
         />
       </label>

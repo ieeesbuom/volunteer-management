@@ -10,6 +10,7 @@ import { requireAuth, requireAdmin } from "@/features/access-control/server/curr
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
 import { hasEventRole } from "@/features/access-control/lib/rules";
+import { listEvents } from "@/features/events/server/event-service";
 import { ROLE_BASE_POINTS } from "@/lib/config";
 import { getServerEnv } from "@/lib/env";
 import type { AuditAction, Profile } from "@/features/access-control/types";
@@ -70,6 +71,23 @@ type IeeeTermRow = {
   label: string;
 };
 
+type ScoringRole = keyof typeof ROLE_BASE_POINTS;
+
+function profileDisplayName(profile?: Profile) {
+  return profile?.name || profile?.uomEmail || profile?.googleEmail || "Unknown Volunteer";
+}
+
+function resolveScoringRole(role?: string | null): ScoringRole | null {
+  return role && role in ROLE_BASE_POINTS ? (role as ScoringRole) : null;
+}
+
+function resolveTargetScoringRole(
+  participation: ParticipationRecord,
+  assignment: { role?: string } | null,
+) {
+  return resolveScoringRole(participation.role) ?? resolveScoringRole(assignment?.role);
+}
+
 async function requireActiveEventRoleAssignment(
   tables: TablesDB,
   databaseId: string,
@@ -92,6 +110,26 @@ async function requireActiveEventRoleAssignment(
   }
 
   return result.rows[0] as unknown as { role?: string };
+}
+
+async function getActiveEventRoleAssignment(
+  tables: TablesDB,
+  databaseId: string,
+  userId: string,
+  eventId: string
+) {
+  const result = await tables.listRows(
+    databaseId,
+    APPWRITE_TABLES.eventRoleAssignments,
+    [
+      Query.equal("userId", userId),
+      Query.equal("eventId", eventId),
+      Query.equal("active", true),
+      Query.limit(1),
+    ]
+  );
+
+  return result.total > 0 ? (result.rows[0] as unknown as { role?: string }) : null;
 }
 
 async function requireAttendedParticipationRecord(
@@ -218,10 +256,68 @@ function isExcludedBySystemTopBoardSettings(
   );
 }
 
+function assertCanSubmitExtraScore({
+  eventId,
+  targetRole,
+  user,
+}: {
+  eventId: string;
+  targetRole: ScoringRole | null;
+  user: Awaited<ReturnType<typeof requireAuth>>;
+}) {
+  if (user.isAdmin) {
+    return;
+  }
+
+  if (targetRole === "Committee Member" && hasEventRole(user, eventId, ["Committee Lead"])) {
+    return;
+  }
+
+  if (targetRole === "Committee Lead" && hasEventRole(user, eventId, ["Chair"])) {
+    return;
+  }
+
+  if (targetRole === "Chair" || targetRole === "Vice Chair") {
+    throw new Error("Only admins can submit extra scores for chairs and vice chairs.");
+  }
+
+  throw new Error(
+    "Only committee leads can score committee members, chairs can score committee leads, and admins can score any role."
+  );
+}
+
+function assertCanFinalizeExtraScore({
+  eventId,
+  targetRole,
+  user,
+}: {
+  eventId: string;
+  targetRole: ScoringRole | null;
+  user: Awaited<ReturnType<typeof requireAuth>>;
+}) {
+  if (user.isAdmin) {
+    return;
+  }
+
+  const chairCanFinalize =
+    (targetRole === "Committee Member" || targetRole === "Committee Lead") &&
+    hasEventRole(user, eventId, ["Chair"]);
+
+  if (chairCanFinalize) {
+    return;
+  }
+
+  if (targetRole === "Chair" || targetRole === "Vice Chair") {
+    throw new Error("Only admins can approve extra scores for chairs and vice chairs.");
+  }
+
+  throw new Error("Only the event chair or an admin can approve extra scores.");
+}
 
 /**
  * Submits/Creates a grade request for a participant.
- * Scoped to Chair or Event Lead of the event (Chairs cannot grade their own event participants).
+ * Extra-score submission follows the event hierarchy:
+ * Committee Leads score members, Chairs score Committee Leads, and Admins score Chair/Vice Chair.
  */
 export async function createGradeRequest(data: {
   eventId: string;
@@ -239,26 +335,21 @@ export async function createGradeRequest(data: {
     throw new Error("You cannot grade yourself.");
   }
 
-  if (!user.isAdmin) {
-    const isLead = hasEventRole(user, validated.eventId, ["Chair", "Vice Chair", "Committee Lead"]);
-    if (!isLead) {
-      throw new Error("Only event leads and chairs can submit grading requests.");
-    }
-  }
-
-  await requireActiveEventRoleAssignment(
+  const targetAssignment = await requireActiveEventRoleAssignment(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     validated.targetUserId,
     validated.eventId
   );
-  await requireAttendedParticipationRecord(
+  const participation = await requireAttendedParticipationRecord(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     validated.targetUserId,
     validated.eventId
   );
+  const targetRole = resolveTargetScoringRole(participation, targetAssignment);
 
+  assertCanSubmitExtraScore({ eventId: validated.eventId, targetRole, user });
 
   if (validated.gradeValue < 0 || validated.gradeValue > 10) {
     throw new Error("Grade value must be between 0 and 10.");
@@ -365,19 +456,29 @@ export async function listGradeRequests(params?: { limit?: number; offset?: numb
   );
 
   const rows = JSON.parse(JSON.stringify(result.rows)) as GradeRequest[];
+  const [profiles, events] = await Promise.all([listProfiles(), listEvents()]);
+  const profileMap = new Map(profiles.map((profile) => [profile.authUserId, profile]));
+  const eventMap = new Map(events.map((event) => [event.$id, event]));
+  const enrichedRows = rows.map((row) => ({
+    ...row,
+    eventTitle: eventMap.get(row.eventId)?.title,
+    requestedByName: profileDisplayName(profileMap.get(row.requestedBy)),
+    targetUserName: profileDisplayName(profileMap.get(row.targetUserId)),
+  }));
+
   if (user.isAdmin) {
-    return rows;
+    return enrichedRows;
   }
 
   const userEventIds = user.eventRoles.map((r) => r.eventId);
-  return rows.filter((row) =>
+  return enrichedRows.filter((row) =>
     userEventIds.includes(row.eventId)
   );
 }
 
 /**
  * Submits or updates a grade review for a request.
- * Scoped to Admin, or authorized reviewer (own event). Chairs cannot grade own event.
+ * Uses the same extra-score hierarchy as request creation.
  */
 export async function submitGradeReview(gradeRequestId: string, gradeValue: number) {
   const env = getServerEnv();
@@ -402,25 +503,21 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
     throw new Error("Cannot submit review for a finalized grade request.");
   }
 
-  if (!user.isAdmin) {
-    const hasRole = hasEventRole(user, gradeRequest.eventId, ["Chair", "Vice Chair", "Committee Lead"]);
-    if (!hasRole) {
-      throw new Error("Only authorized event reviewers or admins can submit reviews.");
-    }
-  }
+  const targetAssignment = await requireActiveEventRoleAssignment(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
+  const participation = await requireAttendedParticipationRecord(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.targetUserId,
+    gradeRequest.eventId
+  );
+  const targetRole = resolveTargetScoringRole(participation, targetAssignment);
 
-  await requireActiveEventRoleAssignment(
-    tables,
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    gradeRequest.targetUserId,
-    gradeRequest.eventId
-  );
-  await requireAttendedParticipationRecord(
-    tables,
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    gradeRequest.targetUserId,
-    gradeRequest.eventId
-  );
+  assertCanSubmitExtraScore({ eventId: gradeRequest.eventId, targetRole, user });
 
   if (gradeValue < 0 || gradeValue > 10) {
     throw new Error("Grade value must be between 0 and 10.");
@@ -485,12 +582,6 @@ async function recalculateLedgerEntries(
 ) {
   const ledgerDate = conclusionApprovalDate;
   const term = deriveTermFromDate(conclusionApprovalDate);
-  const participation = await requireAttendedParticipationRecord(
-    tables,
-    databaseId,
-    gradeRequest.targetUserId,
-    gradeRequest.eventId
-  );
 
   // Read all existing ledger entries for this event and target user
   const existingEntries = await tables.listRows(databaseId, APPWRITE_TABLES.pointLedger, [
@@ -505,22 +596,6 @@ async function recalculateLedgerEntries(
   const currentGradePoints = existingRows
     .filter((r) => r.source === "grade")
     .reduce((acc, r) => acc + Number(r.points), 0);
-
-  const currentRolePoints = existingRows
-    .filter((r) => r.source === "role")
-    .reduce((acc, r) => acc + Number(r.points), 0);
-
-  const activeAssignment = await requireActiveEventRoleAssignment(
-    tables,
-    databaseId,
-    gradeRequest.targetUserId,
-    gradeRequest.eventId
-  );
-  const role = participation.role in ROLE_BASE_POINTS
-    ? participation.role
-    : activeAssignment.role ?? null;
-  const rolePoints = role ? (ROLE_BASE_POINTS[role as keyof typeof ROLE_BASE_POINTS] ?? 0) : 0;
-  const targetRolePoints = rolePoints;
 
   const targetGradePoints = averageGrade;
 
@@ -538,26 +613,11 @@ async function recalculateLedgerEntries(
       createdAt: ledgerDate,
     });
   }
-
-  // Append role adjustment if there is a difference
-  const roleDiff = targetRolePoints - currentRolePoints;
-  if (roleDiff !== 0) {
-    await tables.createRow(databaseId, APPWRITE_TABLES.pointLedger, ID.unique(), {
-      userId: gradeRequest.targetUserId,
-      eventId: gradeRequest.eventId,
-      points: roleDiff,
-      conclusionApprovalDate,
-      term,
-      source: "role",
-      createdBy,
-      createdAt: ledgerDate,
-    });
-  }
 }
 
 /**
- * Finalizes a grade request. Averages all grader reviews, allocates points, and records ledger entries.
- * Scoped to Admin, Vice Chair, or Committee Lead only. Own-event grading restrictions apply.
+ * Finalizes an extra-score request. Averages submitted scores and records grade ledger deltas.
+ * Event role/base points are finalized separately when the conclusion report is approved.
  */
 export async function finalizeGrade(gradeRequestId: string) {
   const env = getServerEnv();
@@ -581,26 +641,21 @@ export async function finalizeGrade(gradeRequestId: string) {
     throw new Error("Grade request is already finalized.");
   }
 
-  if (!user.isAdmin) {
-    const hasRole = hasEventRole(user, gradeRequest.eventId, ["Chair", "Vice Chair", "Committee Lead"]);
-    if (!hasRole) {
-      throw new Error("Only authorized event reviewers or admins can finalize grades.");
-    }
-  }
-
-
-  await requireActiveEventRoleAssignment(
+  const targetAssignment = await requireActiveEventRoleAssignment(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     gradeRequest.targetUserId,
     gradeRequest.eventId
   );
-  await requireAttendedParticipationRecord(
+  const participation = await requireAttendedParticipationRecord(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     gradeRequest.targetUserId,
     gradeRequest.eventId
   );
+  const targetRole = resolveTargetScoringRole(participation, targetAssignment);
+
+  assertCanFinalizeExtraScore({ eventId: gradeRequest.eventId, targetRole, user });
 
   const approvalDate = await getApprovedConclusionApprovalDate(
     tables,
@@ -645,6 +700,123 @@ export async function finalizeGrade(gradeRequestId: string) {
   );
 
   return JSON.parse(JSON.stringify(updatedRequest)) as GradeRequest;
+}
+
+async function syncRoleLedgerEntry({
+  createdBy,
+  databaseId,
+  eventId,
+  participation,
+  tables,
+  conclusionApprovalDate,
+}: {
+  createdBy: string;
+  databaseId: string;
+  eventId: string;
+  participation: ParticipationRecord;
+  tables: TablesDB;
+  conclusionApprovalDate: string;
+}) {
+  const assignment = await getActiveEventRoleAssignment(
+    tables,
+    databaseId,
+    participation.userId,
+    eventId
+  );
+  const role = resolveTargetScoringRole(participation, assignment);
+
+  if (!role) {
+    return { changed: false, skipped: true };
+  }
+
+  const existingEntries = await tables.listRows(databaseId, APPWRITE_TABLES.pointLedger, [
+    Query.equal("userId", participation.userId),
+    Query.equal("eventId", eventId),
+    Query.equal("source", "role"),
+    Query.limit(100),
+  ]);
+  const currentRolePoints = (existingEntries.rows as unknown as PointLedgerEntry[])
+    .reduce((acc, row) => acc + Number(row.points), 0);
+  const targetRolePoints = ROLE_BASE_POINTS[role];
+  const roleDiff = targetRolePoints - currentRolePoints;
+
+  if (roleDiff === 0) {
+    return { changed: false, skipped: false };
+  }
+
+  await tables.createRow(databaseId, APPWRITE_TABLES.pointLedger, ID.unique(), {
+    userId: participation.userId,
+    eventId,
+    points: roleDiff,
+    conclusionApprovalDate,
+    term: deriveTermFromDate(conclusionApprovalDate),
+    source: "role",
+    createdBy,
+    createdAt: conclusionApprovalDate,
+  });
+
+  return { changed: true, skipped: false };
+}
+
+export async function finalizeEventRolePoints(eventId: string) {
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const user = await requireAdmin();
+  const validatedEventId = z.string().min(1).parse(eventId);
+  const databaseId = env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
+  const conclusionApprovalDate = await getApprovedConclusionApprovalDate(
+    tables,
+    databaseId,
+    validatedEventId
+  );
+
+  const participationResult = await tables.listRows(
+    databaseId,
+    APPWRITE_TABLES.participationRecords,
+    [
+      Query.equal("eventId", validatedEventId),
+      Query.equal("status", "attended"),
+      Query.limit(500),
+    ]
+  );
+  const participationRecords = participationResult.rows as unknown as ParticipationRecord[];
+  let finalized = 0;
+  let unchanged = 0;
+  let skipped = 0;
+
+  for (const participation of participationRecords) {
+    const result = await syncRoleLedgerEntry({
+      conclusionApprovalDate,
+      createdBy: user.authUser.id,
+      databaseId,
+      eventId: validatedEventId,
+      participation,
+      tables,
+    });
+
+    if (result.skipped) {
+      skipped += 1;
+    } else if (result.changed) {
+      finalized += 1;
+    } else {
+      unchanged += 1;
+    }
+  }
+
+  await writeAuditLog({
+    action: "EVENT_ROLE_POINTS_FINALIZED" as unknown as AuditAction,
+    actorUserId: user.authUser.id,
+    metadata: {
+      eventId: validatedEventId,
+      finalized,
+      skipped,
+      unchanged,
+    },
+    targetId: validatedEventId,
+    targetType: "event",
+  });
+
+  return { eventId: validatedEventId, finalized, skipped, unchanged };
 }
 
 /**
@@ -814,7 +986,16 @@ export async function getVolunteerPoints(userId: string, params?: { limit?: numb
     ]
   );
 
-  return JSON.parse(JSON.stringify(result.rows)) as PointLedgerEntry[];
+  const rows = JSON.parse(JSON.stringify(result.rows)) as PointLedgerEntry[];
+  const [profiles, events] = await Promise.all([listProfiles(), listEvents()]);
+  const profileMap = new Map(profiles.map((profile) => [profile.authUserId, profile]));
+  const eventMap = new Map(events.map((event) => [event.$id, event]));
+
+  return rows.map((row) => ({
+    ...row,
+    createdByName: profileDisplayName(profileMap.get(row.createdBy)),
+    eventTitle: eventMap.get(row.eventId)?.title,
+  }));
 }
 
 /**
@@ -1015,14 +1196,16 @@ export async function listVolunteers(eventId?: string) {
     );
     return profiles.rows.map((p) => ({
       id: p.$id,
-      name: p.name || "Unknown Volunteer",
+      email: p.uomEmail || p.googleEmail || "",
+      name: profileDisplayName(p as unknown as Profile),
     }));
   }
 
   const profiles = await listProfiles();
   return profiles.map((p) => ({
     id: p.$id,
-    name: p.name || "Unknown Volunteer",
+    email: p.uomEmail || p.googleEmail || "",
+    name: profileDisplayName(p),
   }));
 }
 
@@ -1053,7 +1236,7 @@ export async function listDetailedReviews() {
   const { tables } = getAppwriteAdminServices();
   await requireAdmin();
 
-  const [reviewsResult, requestsResult, profilesResult] = await Promise.all([
+  const [reviewsResult, requestsResult, profilesResult, events] = await Promise.all([
     tables.listRows(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
@@ -1069,6 +1252,7 @@ export async function listDetailedReviews() {
       APPWRITE_TABLES.profiles,
       [Query.limit(500)]
     ),
+    listEvents(),
   ]);
 
   const reviews = reviewsResult.rows as unknown as GradeReview[];
@@ -1077,16 +1261,18 @@ export async function listDetailedReviews() {
 
   const requestMap = new Map(requests.map((r) => [r.requestId, r]));
   const profileMap = new Map(profiles.map((p) => [p.$id, p]));
+  const eventMap = new Map(events.map((event) => [event.$id, event]));
 
   return reviews.map((rev) => {
     const req = requestMap.get(rev.gradeRequestId);
     const targetUserId = req?.targetUserId || "";
     const eventId = req?.eventId || "";
-    const volunteerName = profileMap.get(targetUserId)?.name || "Unknown Volunteer";
-    const reviewerName = profileMap.get(rev.reviewerId)?.name || "Unknown Reviewer";
+    const volunteerName = profileDisplayName(profileMap.get(targetUserId));
+    const reviewerName = profileDisplayName(profileMap.get(rev.reviewerId));
 
     return {
       $id: rev.$id,
+      eventTitle: eventMap.get(eventId)?.title,
       gradeRequestId: rev.gradeRequestId,
       reviewerId: rev.reviewerId,
       reviewerName,

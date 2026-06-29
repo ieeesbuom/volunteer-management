@@ -6,7 +6,6 @@ export type VolunteerProfileDetails = {
   bio?: string;
   department: string;
   faculty: string;
-  ieeeMembership: string;
   skills?: string;
   linkedinUrl?: string;
   universityIndex: string;

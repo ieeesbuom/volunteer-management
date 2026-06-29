@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, startTransition, useRef } from "react";
+import { useEffect, useMemo, useState, startTransition, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -31,9 +31,17 @@ import type {
 
 
 interface VolunteerOption {
+  email?: string;
   id: string;
   name: string;
 }
+
+interface EventOption {
+  eventId: string;
+  eventTitle: string;
+}
+
+type DashboardRole = "Admin" | "Chairperson" | "Committee Lead" | "Member";
 
 interface DetailedGradeReview {
   $id: string;
@@ -42,6 +50,7 @@ interface DetailedGradeReview {
   reviewerName: string;
   volunteerName: string;
   eventId: string;
+  eventTitle?: string;
   gradeValue: number;
   submittedAt: string;
   audit_metadata?: string;
@@ -64,7 +73,6 @@ export function VolunteerSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [manualMode, setManualMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,59 +85,39 @@ export function VolunteerSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isManual = manualMode || !!error;
-
-  if (isManual) {
-    return (
-      <div className="space-y-1">
-        <input
-          type="text"
-          required
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter Volunteer User ID manually"
-          className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-        />
-        {error && (
-          <p className="text-xs text-red-500">
-            Failed to load volunteers ({error}). Manual entry enabled.
-          </p>
-        )}
-        {!error && (
-          <button
-            type="button"
-            onClick={() => setManualMode(false)}
-            className="text-xs text-primary underline"
-          >
-            Switch back to dropdown
-          </button>
-        )}
-      </div>
-    );
-  }
-
   const selectedVolunteer = volunteers.find((v) => v.id === value);
   const filteredVolunteers = volunteers.filter((v) =>
-    v.name.toLowerCase().includes(search.toLowerCase())
+    `${v.name} ${v.email ?? ""}`.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative space-y-1" ref={containerRef}>
       <div
-        className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface flex justify-between items-center cursor-pointer select-none"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-3 py-2 border border-border rounded-md text-sm bg-surface flex justify-between items-center select-none ${
+          loading || error ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+        }`}
+        onClick={() => {
+          if (!loading && !error) {
+            setIsOpen(!isOpen);
+          }
+        }}
       >
         <span className={selectedVolunteer ? "text-text-primary" : "text-text-secondary"}>
-          {selectedVolunteer ? selectedVolunteer.name : placeholder}
+          {loading ? "Loading volunteers..." : selectedVolunteer ? selectedVolunteer.name : placeholder}
         </span>
         <span className="text-xs text-text-secondary">▼</span>
       </div>
+      {error ? (
+        <p className="text-xs text-red-500">
+          Failed to load volunteers. Refresh the page or try again after the volunteer list is available.
+        </p>
+      ) : null}
 
       {isOpen && (
         <div className="absolute z-50 mt-1 w-full rounded-md bg-surface border border-border shadow-lg max-h-60 overflow-y-auto flex flex-col p-1 gap-1">
           <input
             type="text"
-            placeholder="Search name..."
+            placeholder="Search name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="px-2 py-1.5 text-sm border border-border rounded bg-surface-muted"
@@ -153,41 +141,43 @@ export function VolunteerSelect({
                     : "hover:bg-surface-muted text-text-primary"
                 }`}
               >
-                {v.name}
+                <span className="block font-medium">{v.name}</span>
+                {v.email ? (
+                  <span className="block text-xs text-text-muted">{v.email}</span>
+                ) : null}
               </div>
             ))
           ) : (
             <div className="px-2 py-1.5 text-sm text-text-secondary">No volunteers found</div>
           )}
-          <div className="border-t border-border mt-1 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setManualMode(true);
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-2 py-1 text-xs text-primary hover:underline"
-            >
-              Enter User ID manually
-            </button>
-          </div>
         </div>
       )}
     </div>
   );
 }
 
+function isDashboardRole(role: string | null): role is DashboardRole {
+  return role === "Admin" || role === "Chairperson" || role === "Committee Lead" || role === "Member";
+}
+
 export function ScoringDashboard({
+  initialEvents = [],
+  initialVolunteers = [],
+  initialVolunteersEventId,
   user,
   userRole,
 }: {
+  initialEvents?: EventOption[];
+  initialVolunteers?: VolunteerOption[];
+  initialVolunteersEventId?: string;
   user: SessionUser;
-  userRole?: "Admin" | "Chairperson" | "Member";
+  userRole?: DashboardRole;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qEventId = searchParams.get("eventId");
-  const qRole = searchParams.get("role");
+  const rawRole = searchParams.get("role");
+  const qRole = isDashboardRole(rawRole) ? rawRole : null;
   const [activeTab, setActiveTab] = useState<string>("leaderboard");
 
   const [leaderboard, setLeaderboard] = useState<
@@ -196,29 +186,44 @@ export function ScoringDashboard({
   const [ledger, setLedger] = useState<PointLedgerEntry[]>([]);
 
   // Selection states for Admin
-  const [allEvents, setAllEvents] = useState<{ eventId: string; eventTitle: string }[]>([]);
-  const [adminSelEvent, setAdminSelEvent] = useState("");
-  const [adminSelRole, setAdminSelRole] = useState<"Admin" | "Chairperson" | "Member">("Admin");
-  const [customEventId, setCustomEventId] = useState("");
-  const [showCustomEvent, setShowCustomEvent] = useState(false);
+  const [allEvents, setAllEvents] = useState<EventOption[]>(initialEvents);
+  const [adminSelEvent, setAdminSelEvent] = useState(initialEvents[0]?.eventId ?? "");
+  const [adminSelRole, setAdminSelRole] = useState<DashboardRole>("Admin");
 
   useEffect(() => {
-    if (user.isAdmin) {
+    if (user.isAdmin && allEvents.length === 0) {
       async function fetchEvents() {
         try {
           const events = await listAllActiveEvents();
           setAllEvents(events);
           if (events.length > 0) {
             setAdminSelEvent(events[0].eventId);
-          } else {
-            setShowCustomEvent(true);
           }
         } catch {}
       }
       fetchEvents();
     }
-  }, [user.isAdmin]);
+  }, [allEvents.length, user.isAdmin]);
   const [gradeRequests, setGradeRequests] = useState<GradeRequest[]>([]);
+
+  const committeeLeadEventIds = useMemo(
+    () =>
+      user.eventRoles
+        .filter(
+          (assignment) =>
+            assignment.active &&
+            assignment.role === "Committee Lead",
+        )
+        .map((assignment) => assignment.eventId),
+    [user.eventRoles],
+  );
+  const chairEventIds = useMemo(
+    () =>
+      user.eventRoles
+        .filter((assignment) => assignment.active && assignment.role === "Chair")
+        .map((assignment) => assignment.eventId),
+    [user.eventRoles],
+  );
 
   // Derived role
   const derivedRole =
@@ -226,8 +231,10 @@ export function ScoringDashboard({
     qRole ||
     (user.isAdmin
       ? "Admin"
-      : user.eventRoles.some((r) => r.active && r.role === "Chair")
+      : chairEventIds.length > 0
       ? "Chairperson"
+      : committeeLeadEventIds.length > 0
+      ? "Committee Lead"
       : "Member");
 
   const [prevRole, setPrevRole] = useState(derivedRole);
@@ -243,16 +250,21 @@ export function ScoringDashboard({
         return [
           { id: "leaderboard", label: "Leaderboard", icon: Trophy },
           { id: "point-ledger", label: "Point Ledger", icon: Award },
-          { id: "grade-requests", label: "Grade Requests", icon: BookOpen },
-          { id: "grade-reviews", label: "Grade Reviews", icon: BookOpen },
-          { id: "finalize-grades", label: "Finalize Grades", icon: BookOpen },
+          { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
+          { id: "grade-reviews", label: "Score Reviews", icon: BookOpen },
           { id: "admin-tools", label: "Admin Tools", icon: Sliders },
         ];
       case "Chairperson":
         return [
           { id: "leaderboard", label: "Leaderboard", icon: Trophy },
           { id: "point-ledger", label: "Point Ledger", icon: Award },
-          { id: "grade-requests", label: "Grade Requests", icon: BookOpen },
+          { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
+        ];
+      case "Committee Lead":
+        return [
+          { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+          { id: "point-ledger", label: "Point Ledger", icon: Award },
+          { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
         ];
       case "Member":
       default:
@@ -266,7 +278,10 @@ export function ScoringDashboard({
   const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : "leaderboard";
 
   // Volunteers state for selectors
-  const [volunteers, setVolunteers] = useState<VolunteerOption[]>([]);
+  const [volunteers, setVolunteers] = useState<VolunteerOption[]>(initialVolunteers);
+  const [volunteersLoadedFor, setVolunteersLoadedFor] = useState<string | null>(
+    initialVolunteersEventId ?? null,
+  );
   const [volunteersLoading, setVolunteersLoading] = useState(false);
   const [volunteersError, setVolunteersError] = useState<string | null>(null);
 
@@ -295,9 +310,14 @@ export function ScoringDashboard({
 
   useEffect(() => {
     async function autoFetchRole() {
-      if (reqTargetUserId && reqEventId) {
+      const selectedEventId =
+        reqEventId || (!qEventId && user.isAdmin ? allEvents[0]?.eventId : "");
+      if (reqTargetUserId && selectedEventId) {
         try {
-          const activeRole = await getVolunteerActiveEventRole(reqTargetUserId, reqEventId);
+          const activeRole = await getVolunteerActiveEventRole(
+            reqTargetUserId,
+            selectedEventId,
+          );
           if (activeRole) {
             setGradingRole(activeRole);
           }
@@ -305,7 +325,7 @@ export function ScoringDashboard({
       }
     }
     autoFetchRole();
-  }, [reqTargetUserId, reqEventId]);
+  }, [allEvents, qEventId, reqTargetUserId, reqEventId, user.isAdmin]);
 
 
 
@@ -328,12 +348,19 @@ export function ScoringDashboard({
 
   // Fetch volunteers list on mount
   useEffect(() => {
+    const volunteerEventKey = qEventId || "";
+
+    if (volunteersLoadedFor === volunteerEventKey) {
+      return;
+    }
+
     async function loadVolunteers() {
       setVolunteersLoading(true);
       setVolunteersError(null);
       try {
         const list = await listVolunteers(qEventId || undefined);
         setVolunteers(list);
+        setVolunteersLoadedFor(volunteerEventKey);
       } catch (err) {
         setVolunteersError(err instanceof Error ? err.message : "Failed to fetch volunteers list.");
       } finally {
@@ -341,7 +368,7 @@ export function ScoringDashboard({
       }
     }
     loadVolunteers();
-  }, [qEventId]);
+  }, [qEventId, volunteersLoadedFor]);
 
   // Fetch leaderboard
   const fetchLeaderboard = async () => {
@@ -452,8 +479,74 @@ export function ScoringDashboard({
     }
   };
 
+  const eventTitleById = useMemo(() => {
+    const map = new Map<string, string>();
 
+    for (const assignment of user.eventRoles) {
+      if (assignment.eventTitle) {
+        map.set(assignment.eventId, assignment.eventTitle);
+      }
+    }
 
+    for (const event of allEvents) {
+      map.set(event.eventId, event.eventTitle);
+    }
+
+    for (const entry of ledger) {
+      if (entry.eventTitle) {
+        map.set(entry.eventId, entry.eventTitle);
+      }
+    }
+
+    for (const request of gradeRequests) {
+      if (request.eventTitle) {
+        map.set(request.eventId, request.eventTitle);
+      }
+    }
+
+    for (const review of detailedReviews) {
+      if (review.eventTitle) {
+        map.set(review.eventId, review.eventTitle);
+      }
+    }
+
+    return map;
+  }, [allEvents, detailedReviews, gradeRequests, ledger, user.eventRoles]);
+
+  const volunteerNameById = useMemo(() => {
+    const map = new Map<string, string>();
+
+    map.set(user.authUser.id, user.authUser.name || user.authUser.email);
+    for (const volunteer of volunteers) {
+      map.set(volunteer.id, volunteer.name);
+    }
+    for (const request of gradeRequests) {
+      if (request.targetUserName) {
+        map.set(request.targetUserId, request.targetUserName);
+      }
+      if (request.requestedByName) {
+        map.set(request.requestedBy, request.requestedByName);
+      }
+    }
+
+    return map;
+  }, [gradeRequests, user.authUser.email, user.authUser.id, user.authUser.name, volunteers]);
+
+  function eventLabel(eventId?: string) {
+    if (!eventId) {
+      return "Selected event";
+    }
+
+    return eventTitleById.get(eventId) ?? "Selected event";
+  }
+
+  function volunteerLabel(userId?: string) {
+    if (!userId) {
+      return "Volunteer";
+    }
+
+    return volunteerNameById.get(userId) ?? "Volunteer";
+  }
 
 
   const hasSelected = !!qEventId && !!qRole;
@@ -476,19 +569,18 @@ export function ScoringDashboard({
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  const targetEvent = showCustomEvent ? customEventId : adminSelEvent;
-                  if (targetEvent) {
-                    router.push(`/scoring?eventId=${encodeURIComponent(targetEvent)}&role=${encodeURIComponent(adminSelRole)}`);
+                  if (adminSelEvent) {
+                    router.push(`/scoring?eventId=${encodeURIComponent(adminSelEvent)}&role=${encodeURIComponent(adminSelRole)}`);
                   }
                 }}
                 className="space-y-4"
               >
                 <div className="bg-surface-muted p-4 rounded-lg border border-border/50 text-xs text-text-secondary space-y-1">
                   <span className="font-semibold text-text-primary uppercase block mb-1">Administrator Access</span>
-                  You have full privileges. You can view scoring for any event and simulate roles.
+                  You have full privileges. You can view scoring for any event and manage score approval.
                 </div>
 
-                {!showCustomEvent && allEvents.length > 0 ? (
+                {allEvents.length > 0 ? (
                   <div>
                     <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
                       Choose Active Event
@@ -500,45 +592,15 @@ export function ScoringDashboard({
                     >
                       {allEvents.map((ev) => (
                         <option key={ev.eventId} value={ev.eventId}>
-                          {ev.eventTitle} ({ev.eventId})
+                          {ev.eventTitle}
                         </option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomEvent(true)}
-                      className="text-xs text-primary underline mt-1 block"
-                    >
-                      Or enter custom Event ID manually
-                    </button>
                   </div>
                 ) : (
-                  <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                      Event ID / Reference
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Open Week"
-                      value={customEventId}
-                      onChange={(e) => setCustomEventId(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-                    />
-                    {!showCustomEvent && allEvents.length === 0 && (
-                      <span className="text-[10px] text-text-muted mt-1 block">
-                        No active event role assignments found in database. Please enter Event ID manually.
-                      </span>
-                    )}
-                    {allEvents.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowCustomEvent(false)}
-                        className="text-xs text-primary underline mt-1 block"
-                      >
-                        Switch back to active events list
-                      </button>
-                    )}
+                  <div className="rounded-md border border-border bg-surface-muted p-4 text-sm text-text-secondary">
+                    No active events are available for scoring yet. Create or assign event
+                    responsibilities before opening a scoring workspace.
                   </div>
                 )}
 
@@ -548,16 +610,17 @@ export function ScoringDashboard({
                   </label>
                   <select
                     value={adminSelRole}
-                    onChange={(e) => setAdminSelRole(e.target.value as "Admin" | "Chairperson" | "Member")}
+                    onChange={(e) => setAdminSelRole(e.target.value as DashboardRole)}
                     className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
                   >
                     <option value="Admin">Admin</option>
                     <option value="Chairperson">Chairperson (Chair)</option>
+                    <option value="Committee Lead">Committee Lead</option>
                     <option value="Member">Member (Volunteer)</option>
                   </select>
                 </div>
 
-                <Button type="submit" className="w-full">
+                <Button disabled={!adminSelEvent} type="submit" className="w-full">
                   Access Dashboard
                 </Button>
               </form>
@@ -570,7 +633,12 @@ export function ScoringDashboard({
                   {user.eventRoles
                     .filter((r) => r.active)
                     .map((assignment) => {
-                      const displayRole = assignment.role === "Chair" ? "Chairperson" : "Member";
+                      const displayRole: DashboardRole =
+                        assignment.role === "Chair"
+                          ? "Chairperson"
+                          : assignment.role === "Committee Lead"
+                            ? "Committee Lead"
+                            : "Member";
                       return (
                         <button
                           key={assignment.$id}
@@ -583,9 +651,11 @@ export function ScoringDashboard({
                             <span className="font-semibold text-text-primary group-hover:text-primary transition-colors">
                               {assignment.eventTitle}
                             </span>
-                            <span className="text-xs text-text-muted block mt-0.5">
-                              ID: {assignment.eventId}
-                            </span>
+                            {assignment.committeeName ? (
+                              <span className="text-xs text-text-muted block mt-0.5">
+                                {assignment.committeeName}
+                              </span>
+                            ) : null}
                           </div>
                           <Badge tone={assignment.role === "Chair" ? "warning" : "neutral"}>
                             {assignment.role}
@@ -620,12 +690,20 @@ export function ScoringDashboard({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface p-4 rounded-lg border border-border gap-2">
         <div className="flex items-center gap-3">
           <span className="font-semibold text-text-primary text-sm uppercase tracking-wider">Dashboard View Mode:</span>
-          <Badge tone={derivedRole === "Admin" ? "primary" : derivedRole === "Chairperson" ? "warning" : "neutral"}>
+          <Badge
+            tone={
+              derivedRole === "Admin"
+                ? "primary"
+                : derivedRole === "Chairperson" || derivedRole === "Committee Lead"
+                  ? "warning"
+                  : "neutral"
+            }
+          >
             {derivedRole}
           </Badge>
           {qEventId && (
             <Badge tone="neutral">
-              Event: {qEventId}
+              Event: {eventLabel(qEventId)}
             </Badge>
           )}
           <Link
@@ -705,7 +783,7 @@ export function ScoringDashboard({
                 </select>
                 <input
                   type="number"
-                  placeholder="Year (e.g. 2026)"
+                  placeholder="Year"
                   value={filterYear}
                   onChange={(e) => setFilterYear(e.target.value)}
                   className="px-3 py-1.5 border border-border rounded-md text-sm w-28 bg-surface"
@@ -746,7 +824,6 @@ export function ScoringDashboard({
                     <tr>
                       <th className="py-2 pr-4 font-semibold">Rank</th>
                       <th className="px-4 py-2 font-semibold">Volunteer Name</th>
-                      <th className="px-4 py-2 font-semibold">User ID</th>
                       <th className="px-4 py-2 font-semibold text-right">Points</th>
                     </tr>
                   </thead>
@@ -765,7 +842,6 @@ export function ScoringDashboard({
                         <td className="px-4 py-3 font-medium text-text-primary">
                           {row.name} {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
                         </td>
-                        <td className="px-4 py-3 text-text-secondary text-xs">{row.userId}</td>
                         <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
                           {row.points}
                         </td>
@@ -837,8 +913,10 @@ export function ScoringDashboard({
                     {ledger.map((entry) => (
                       <tr key={entry.$id}>
                         <td className="py-3 pr-4">
-                          <p className="font-semibold text-text-primary">{entry.eventId}</p>
-                          <p className="text-xs text-text-muted">Recorded by {entry.createdBy}</p>
+                          <p className="font-semibold text-text-primary">
+                            {entry.eventTitle ?? eventLabel(entry.eventId)}
+                          </p>
+                          <p className="text-xs text-text-muted">IEEE term {entry.term}</p>
                         </td>
                         <td className="px-4 py-3">
                           <Badge
@@ -868,7 +946,7 @@ export function ScoringDashboard({
               <p className="text-center py-6 text-text-secondary">
                 {derivedRole === "Admin"
                   ? "This volunteer has not received any points yet."
-                  : "You have not received any points yet. Participate in events and get graded to accumulate points!"}
+                  : "You have not received any points yet. Attend approved events to receive role points and approved extra scores."}
               </p>
             )}
           </CardContent>
@@ -877,12 +955,12 @@ export function ScoringDashboard({
 
       {currentTab === "grade-requests" && (
         <div className="space-y-6">
-          {(derivedRole === "Admin" || derivedRole === "Chairperson") && (
+          {(derivedRole === "Admin" || derivedRole === "Chairperson" || derivedRole === "Committee Lead") && (
             <Card>
               <CardHeader>
-                <CardTitle>Submit Grade Request</CardTitle>
+                <CardTitle>Submit Extra Score</CardTitle>
                 <CardDescription>
-                  Initiate a grading workflow for a volunteer participating in an event.
+                  Add the 0-10 extra score for an attended volunteer. Role points are awarded automatically after the conclusion report is approved.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -891,18 +969,24 @@ export function ScoringDashboard({
                     e.preventDefault();
                     setError(null);
                     setSuccess(null);
+                    const selectedRequestEventId =
+                      reqEventId || (!qEventId && user.isAdmin ? allEvents[0]?.eventId : "");
+                    if (!selectedRequestEventId) {
+                      setError("Select an event before submitting an extra score.");
+                      return;
+                    }
                     try {
                       const res = await fetch("/api/scoring/grade-requests", {
                         method: "POST",
                         body: JSON.stringify({
-                          eventId: reqEventId,
+                          eventId: selectedRequestEventId,
                           targetUserId: reqTargetUserId,
                           gradeValue: Number(reqGradeValue),
                         }),
                       });
                       const data = await res.json();
                       if (data.error) throw new Error(data.error);
-                      setSuccess("Grade request submitted successfully!");
+                      setSuccess("Extra score submitted successfully!");
                       fetchGradeRequests();
                       setReqEventId("");
                       setReqTargetUserId("");
@@ -914,21 +998,38 @@ export function ScoringDashboard({
                 >
                   <div>
                     <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                      Event Reference / ID
+                      Event
                     </label>
-                    <input
-                      type="text"
-                      required
-                      disabled={derivedRole === "Chairperson" && !!qEventId}
-                      value={reqEventId}
-                      onChange={(e) => setReqEventId(e.target.value)}
-                      placeholder="e.g. MoraForesight 4.0"
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface disabled:opacity-75 disabled:cursor-not-allowed"
-                    />
+                    {qEventId ? (
+                      <input
+                        type="text"
+                        required
+                        disabled
+                        value={eventLabel(qEventId)}
+                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-75"
+                      />
+                    ) : user.isAdmin && allEvents.length > 0 ? (
+                      <select
+                        required
+                        value={reqEventId || allEvents[0]?.eventId || ""}
+                        onChange={(e) => setReqEventId(e.target.value)}
+                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                      >
+                        {allEvents.map((event) => (
+                          <option key={event.eventId} value={event.eventId}>
+                            {event.eventTitle}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-text-secondary">
+                        Select an assigned event from the scoring workspace first.
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                      Volunteer User
+                      Volunteer
                     </label>
                     <VolunteerSelect
                       value={reqTargetUserId}
@@ -941,7 +1042,7 @@ export function ScoringDashboard({
                   <div className="flex gap-2 items-center">
                     <div className="flex-1">
                       <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                        Bonus Grade (0-10) - {gradingRole}
+                        Extra Score (0-10) - {gradingRole}
                       </label>
                       <input
                         type="number"
@@ -953,10 +1054,18 @@ export function ScoringDashboard({
                         className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
                       />
                       <span className="text-[10px] text-text-muted mt-1 block">
-                        Allowed range: 0 - 10 (default 5)
+                        Committee Leads score members, Chairs score Committee Leads, and Admins score Chair/Vice Chair.
                       </span>
                     </div>
-                    <Button type="submit" className="shrink-0 flex items-center gap-1 mt-5">
+                    <Button
+                      disabled={
+                        volunteersLoading ||
+                        !reqTargetUserId ||
+                        !(qEventId || reqEventId || (user.isAdmin && allEvents[0]?.eventId))
+                      }
+                      type="submit"
+                      className="shrink-0 flex items-center gap-1 mt-5"
+                    >
                       <Plus className="size-4" /> Submit
                     </Button>
                   </div>
@@ -969,38 +1078,38 @@ export function ScoringDashboard({
             <CardHeader>
               <CardTitle>
                 {derivedRole === "Admin"
-                  ? "All Grading Requests"
+                  ? "All Extra Score Requests"
                   : qEventId
-                  ? `Grading Requests for ${qEventId}`
-                  : "Grading Requests for My Events"}
+                  ? `Extra Score Requests for ${eventLabel(qEventId)}`
+                  : "Extra Score Requests for My Events"}
               </CardTitle>
               <CardDescription>
                 {derivedRole === "Admin"
-                  ? "Manage and inspect the status of all active volunteer grading workflows."
-                  : "List of grading requests for events you chair."}
+                  ? "Manage and inspect the status of all active volunteer extra-score workflows."
+                  : "Review the extra-score requests connected to your event responsibility."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {(() => {
-                const chairEventIds = user.eventRoles
-                  .filter((r) => r.active && r.role === "Chair")
-                  .map((r) => r.eventId);
-
                 const visibleRequests = derivedRole === "Admin"
                   ? (qEventId ? gradeRequests.filter(req => req.eventId === qEventId) : gradeRequests)
                   : gradeRequests.filter((req) => {
                       if (qEventId) {
                         return req.eventId === qEventId;
                       }
-                      return chairEventIds.includes(req.eventId);
+                      return derivedRole === "Chairperson"
+                        ? chairEventIds.includes(req.eventId)
+                        : committeeLeadEventIds.includes(req.eventId);
                     });
 
                 if (visibleRequests.length > 0) {
                   return (
                     <div className="space-y-4">
                       {visibleRequests.map((req) => {
-                        const targetVolName = volunteers.find((v) => v.id === req.targetUserId)?.name || req.targetUserId;
-                        const isChairedByMe = chairEventIds.includes(req.eventId);
+                        const targetVolName = req.targetUserName ?? volunteerLabel(req.targetUserId);
+                        const requestedByName =
+                          req.requestedByName ?? volunteerLabel(req.requestedBy);
+                        const canSubmitScoreForEvent = committeeLeadEventIds.includes(req.eventId);
 
                         return (
                           <div
@@ -1011,7 +1120,7 @@ export function ScoringDashboard({
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold text-sm text-text-primary">
-                                    {req.eventId}
+                                    {req.eventTitle ?? eventLabel(req.eventId)}
                                   </span>
                                   <Badge
                                     tone={
@@ -1026,12 +1135,12 @@ export function ScoringDashboard({
                                   </Badge>
                                 </div>
                                 <p className="text-xs text-text-secondary">
-                                  Volunteer: <span className="font-semibold">{targetVolName}</span> | Requested by: {req.requestedBy}
+                                  Volunteer: <span className="font-semibold">{targetVolName}</span> | Requested by: {requestedByName}
                                 </p>
                               </div>
 
-                              {/* Actions for Admin only */}
-                              {derivedRole === "Admin" && req.status !== "finalized" && (
+                              {/* Approval actions for Admins and Chairs */}
+                              {(derivedRole === "Admin" || derivedRole === "Chairperson") && req.status !== "finalized" && (
                                 <div className="flex gap-2">
                                   <Button
                                     variant="primary"
@@ -1045,35 +1154,37 @@ export function ScoringDashboard({
                                         });
                                         const data = await res.json();
                                         if (data.error) throw new Error(data.error);
-                                        setSuccess("Grading finalized and points awarded!");
+                                        setSuccess("Extra score approved and points awarded!");
                                         fetchGradeRequests();
                                       } catch (err) {
-                                        setError(err instanceof Error ? err.message : "Failed to finalize grade.");
+                                        setError(err instanceof Error ? err.message : "Failed to approve extra score.");
                                       }
                                     }}
                                   >
                                     Approve (Finalize)
                                   </Button>
-                                  <Button
-                                    variant="secondary"
-                                    onClick={() => handleDeleteRequest(req.$id)}
-                                  >
-                                    Reject (Delete)
-                                  </Button>
+                                  {derivedRole === "Admin" ? (
+                                    <Button
+                                      variant="secondary"
+                                      onClick={() => handleDeleteRequest(req.$id)}
+                                    >
+                                      Reject (Delete)
+                                    </Button>
+                                  ) : null}
                                 </div>
                               )}
                             </div>
 
-                            {/* Review input for Chairperson */}
-                            {derivedRole === "Chairperson" && (
+                            {/* Score input for Committee Leads */}
+                            {derivedRole === "Committee Lead" && (
                               <div className="space-y-3 mt-2 pt-2 border-t border-border/50">
                                 {req.targetUserId === user.authUser.id ? (
                                   <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
                                     You cannot grade yourself.
                                   </div>
-                                ) : !isChairedByMe ? (
+                                ) : !canSubmitScoreForEvent && !user.isAdmin ? (
                                   <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
-                                    You are not the chair of this event and cannot submit a grade review for it.
+                                    You must be a Committee Lead for this event to submit a member extra score.
                                   </div>
                                 ) : (
                                   <form
@@ -1090,17 +1201,17 @@ export function ScoringDashboard({
                                         });
                                         const data = await res.json();
                                         if (data.error) throw new Error(data.error);
-                                        setSuccess("Grade review submitted successfully!");
+                                        setSuccess("Extra score submitted successfully!");
                                         fetchGradeRequests();
                                       } catch (err) {
-                                        setError(err instanceof Error ? err.message : "Failed to submit review.");
+                                        setError(err instanceof Error ? err.message : "Failed to submit extra score.");
                                       }
                                     }}
                                     className="flex items-center gap-3"
                                   >
                                     <div className="flex-1 max-w-[150px]">
                                       <label className="block text-[10px] font-semibold uppercase text-text-secondary mb-0.5">
-                                        Grade (0-10)
+                                        Extra Score (0-10)
                                       </label>
                                       <input
                                         type="number"
@@ -1113,7 +1224,7 @@ export function ScoringDashboard({
                                       />
                                     </div>
                                     <Button type="submit" variant="secondary" className="mt-4">
-                                      Submit Review
+                                      Submit Score
                                     </Button>
                                   </form>
                                 )}
@@ -1137,9 +1248,9 @@ export function ScoringDashboard({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Submit Grade Review</CardTitle>
+              <CardTitle>Submit Extra Score Review</CardTitle>
               <CardDescription>
-                Submit or update a grade review for an open request.
+                Submit or update an admin extra-score review for an open request.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1155,7 +1266,7 @@ export function ScoringDashboard({
                     });
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
-                    setSuccess("Grade review submitted!");
+                    setSuccess("Extra score review submitted!");
                     fetchGradeRequests();
                     await fetchDetailedReviews();
                   } catch (err) {
@@ -1178,10 +1289,10 @@ export function ScoringDashboard({
                     {gradeRequests
                       .filter((r) => r.status !== "finalized")
                       .map((r) => {
-                        const targetName = volunteers.find((v) => v.id === r.targetUserId)?.name || r.targetUserId;
+                        const targetName = r.targetUserName ?? volunteerLabel(r.targetUserId);
                         return (
                           <option key={r.$id} value={r.$id}>
-                            {r.eventId} - {targetName}
+                            {r.eventTitle ?? eventLabel(r.eventId)} - {targetName}
                           </option>
                         );
                       })}
@@ -1189,7 +1300,7 @@ export function ScoringDashboard({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                    Grade Value (0-10)
+                    Extra Score (0-10)
                   </label>
                   <input
                     type="number"
@@ -1210,9 +1321,9 @@ export function ScoringDashboard({
 
           <Card>
             <CardHeader>
-              <CardTitle>Grade Reviews Log</CardTitle>
+              <CardTitle>Score Reviews Log</CardTitle>
               <CardDescription>
-                Audit history of all reviewer grade contributions.
+                Audit history of submitted extra-score contributions.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1225,8 +1336,8 @@ export function ScoringDashboard({
                       <tr>
                         <th className="py-2 pr-4 font-semibold">Event</th>
                         <th className="px-4 py-2 font-semibold">Volunteer Name</th>
-                        <th className="px-4 py-2 font-semibold">Reviewer</th>
-                        <th className="px-4 py-2 font-semibold text-center">Grade</th>
+                        <th className="px-4 py-2 font-semibold">Submitted By</th>
+                        <th className="px-4 py-2 font-semibold text-center">Score</th>
                         <th className="px-4 py-2 font-semibold">Submitted At</th>
                         <th className="px-4 py-2 font-semibold">Audit Overrides</th>
                       </tr>
@@ -1248,7 +1359,9 @@ export function ScoringDashboard({
 
                         return (
                           <tr key={rev.$id}>
-                            <td className="py-3 pr-4 font-medium text-text-primary">{rev.eventId}</td>
+                            <td className="py-3 pr-4 font-medium text-text-primary">
+                              {rev.eventTitle ?? eventLabel(rev.eventId)}
+                            </td>
                             <td className="px-4 py-3 text-text-primary">{rev.volunteerName}</td>
                             <td className="px-4 py-3 text-text-secondary">{rev.reviewerName}</td>
                             <td className="px-4 py-3 text-center font-bold text-text-primary">{rev.gradeValue} / 10</td>
@@ -1280,74 +1393,14 @@ export function ScoringDashboard({
         </div>
       )}
 
-      {currentTab === "finalize-grades" && derivedRole === "Admin" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Finalize Grades</CardTitle>
-            <CardDescription>
-              Averages reviews and assigns final points ledger entries.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {gradeRequests.filter((r) => r.status !== "finalized").length > 0 ? (
-              <div className="space-y-4">
-                {gradeRequests
-                  .filter((r) => r.status !== "finalized")
-                  .map((req) => {
-                    const targetName = volunteers.find((v) => v.id === req.targetUserId)?.name || req.targetUserId;
-                    return (
-                      <div
-                        key={req.$id}
-                        className="p-4 border border-border rounded-lg bg-surface flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-                      >
-                        <div>
-                          <p className="font-semibold text-sm text-text-primary">{req.eventId}</p>
-                          <p className="text-xs text-text-secondary">
-                            Volunteer: <span className="font-semibold">{targetName}</span> | Current Status: <span className="font-mono">{req.status}</span>
-                          </p>
-                        </div>
-                        <Button
-                          variant="primary"
-                          onClick={async () => {
-                            setError(null);
-                            setSuccess(null);
-                            try {
-                              const res = await fetch("/api/scoring/grades", {
-                                method: "POST",
-                                body: JSON.stringify({ gradeRequestId: req.$id }),
-                              });
-                              const data = await res.json();
-                              if (data.error) throw new Error(data.error);
-                              setSuccess("Grading finalized and points awarded!");
-                              fetchGradeRequests();
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Failed to finalize grade.");
-                            }
-                          }}
-                        >
-                          Finalize Grade
-                        </Button>
-                      </div>
-                    );
-                  })}
-              </div>
-            ) : (
-              <p className="text-center py-6 text-text-secondary">No requests ready to finalize.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-
-
       {currentTab === "admin-tools" && derivedRole === "Admin" && (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Admin override panel */}
           <Card>
             <CardHeader>
-              <CardTitle>Admin Grade Override</CardTitle>
+              <CardTitle>Admin Score Override</CardTitle>
               <CardDescription>
-                Manually edit a grade review. Automatically logs audit details and preserves original grades.
+                Manually correct an extra score. Every correction is logged.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1367,7 +1420,7 @@ export function ScoringDashboard({
                     });
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
-                    setSuccess("Grade overridden and audit ledger recorded!");
+                    setSuccess("Extra score overridden and audit history recorded!");
                     setOverReviewId("");
                     setOverReason("");
                     await fetchDetailedReviews();
@@ -1379,7 +1432,7 @@ export function ScoringDashboard({
               >
                 <div>
                   <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                    Select Grade Review
+                    Select Score Review
                   </label>
                   <select
                     required
@@ -1393,17 +1446,17 @@ export function ScoringDashboard({
                     }}
                     className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
                   >
-                    <option value="">-- Choose Review to Override --</option>
+                    <option value="">-- Choose Score to Override --</option>
                     {detailedReviews.map((rev) => (
                       <option key={rev.$id} value={rev.$id}>
-                        {rev.eventId} - {rev.volunteerName} (Reviewer: {rev.reviewerName}, Score: {rev.gradeValue})
+                        {rev.eventTitle ?? eventLabel(rev.eventId)} - {rev.volunteerName} (Submitted by: {rev.reviewerName}, Score: {rev.gradeValue})
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                    New Grade Value (0-10)
+                    New Extra Score (0-10)
                   </label>
                   <input
                     type="number"
@@ -1423,7 +1476,7 @@ export function ScoringDashboard({
                     type="text"
                     value={overReason}
                     onChange={(e) => setOverReason(e.target.value)}
-                    placeholder="e.g. Input mistake corrections"
+                    placeholder="Reason for this correction"
                     className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
                   />
                 </div>

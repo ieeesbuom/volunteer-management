@@ -9,11 +9,15 @@ trusted serverless runner.
 - `sendEventReminderNotificationsJob` creates event reminder notifications for
   a supplied recipient list. The HTTP route resolves recipients from active
   verified event role assignments.
+- `refreshRecognitionSnapshotJob` computes recognition data from the point
+  ledger and stores the current Volunteer of the Month / Hall of Fame snapshot
+  in Appwrite for fast report rendering.
 
 Production entrypoints:
 
 - `POST /api/jobs/notifications/digest`
 - `POST /api/jobs/events/reminders`
+- `POST /api/jobs/reports/recognition-snapshot`
 
 Both require `INTERNAL_JOB_TOKEN` in `x-internal-job-token` or as a bearer
 token.

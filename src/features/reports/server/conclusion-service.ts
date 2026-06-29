@@ -35,6 +35,7 @@ import {
   notifyEventUpdateWorkflow,
   notifyReportApprovalWorkflow,
 } from "@/features/notifications/server/workflow-notifications";
+import { finalizeEventRolePoints } from "@/features/scoring/server/actions";
 import {
   getAdminNotificationRecipientIds,
   getEventNotificationContext,
@@ -532,6 +533,10 @@ export async function reviewConclusionReportRecord(
     targetId: reportId,
     targetType: "conclusion_report",
   });
+
+  if (input.status === "APPROVED") {
+    await finalizeEventRolePoints(report.eventId);
+  }
 
   const eventNotificationContext = await getEventNotificationContext(report.eventId, {
     excludeUserIds: [user.authUser.id],

@@ -1,13 +1,32 @@
 import { NextResponse } from "next/server";
 import { GradeRequestSchema } from "@/features/scoring/lib/schemas";
 import { createGradeRequest, listGradeRequests } from "@/features/scoring/server/actions";
+import { requireAuth } from "@/features/access-control/server/current-user";
+import { notifyGradingRequestWorkflow } from "@/features/notifications/server/workflow-notifications";
+import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { jsonError, routeErrorStatus } from "@/server/errors";
 
 export async function POST(request: Request) {
   try {
+    const user = await requireAuth();
     const body = GradeRequestSchema.parse(await request.json());
     const gradeRequest = await createGradeRequest(body);
-    return NextResponse.json({ gradeRequest });
+    const notificationContext = await getEventNotificationContext(gradeRequest.eventId, {
+      excludeUserIds: [user.authUser.id],
+      managerOnly: true,
+    });
+    const notifications = await notifyGradingRequestWorkflow({
+      actorUserId: user.authUser.id,
+      eventId: gradeRequest.eventId,
+      eventTitle: notificationContext.eventTitle,
+      linkHref: `/scoring?eventId=${encodeURIComponent(gradeRequest.eventId)}&role=Admin`,
+      recipientUserIds: [
+        gradeRequest.targetUserId,
+        ...notificationContext.recipientUserIds,
+      ],
+    });
+
+    return NextResponse.json({ gradeRequest, notifications });
   } catch (error) {
     return jsonError(
       error instanceof Error ? error.message : "Failed to create grade request.",

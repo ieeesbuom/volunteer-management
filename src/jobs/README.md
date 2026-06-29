@@ -1,13 +1,22 @@
 # Background Job Patterns
 
-This repo does not include a production scheduler yet. The files in this folder
-are safe, importable job functions that Sadeepa can later wire to cron,
-Appwrite Functions, or another trusted serverless runner.
+This repo includes safe, importable job functions and token-protected HTTP
+entrypoints that Sadeepa can wire to cron, Appwrite Functions, or another
+trusted serverless runner.
 
 - `sendUnreadNotificationDigestJob` scans unread in-app notifications and can
   send a digest through the notification email adapter.
-- `sendEventReminderNotificationsJob` is a placeholder pattern for event
-  reminders. A future event module should provide the canonical recipient list.
+- `sendEventReminderNotificationsJob` creates event reminder notifications for
+  a supplied recipient list. The HTTP route resolves recipients from active
+  verified event role assignments.
+
+Production entrypoints:
+
+- `POST /api/jobs/notifications/digest`
+- `POST /api/jobs/events/reminders`
+
+Both require `INTERNAL_JOB_TOKEN` in `x-internal-job-token` or as a bearer
+token.
 
 Both jobs default to `dryRun: true`. A trusted runner should pass
 `dryRun: false` only after environment variables and notification email delivery

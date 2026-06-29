@@ -35,7 +35,7 @@ export default async function VolunteersPage() {
       <PageHeader
         eyebrow="Reporting"
         title="Volunteer Profile Exports"
-        description="Export volunteer summaries as formal PDFs from Appwrite profile and role data."
+        description="Export volunteer summaries as formal PDFs from profile, participation, recommendations, and points data."
       />
 
       <ReportsNav
@@ -50,7 +50,7 @@ export default async function VolunteersPage() {
             Volunteer profiles
           </CardTitle>
           <CardDescription>
-            Identity, roles, participation, and optional Thesaru points when available.
+            Identity, roles, participation, recommendations, and approved point totals.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,16 +91,10 @@ export default async function VolunteersPage() {
                       {volunteer.participations.length === 1 ? "" : "s"}
                     </td>
                     <td className="px-4 py-3 text-text-secondary">
-                      {volunteer.recommendations.length > 0
-                        ? volunteer.recommendations.length
-                        : "Unavailable"}
+                      {volunteer.recommendations.length}
                     </td>
                     <td className="px-4 py-3">
-                      {volunteer.pointsLedger ? (
-                        <Badge tone="success">{volunteer.pointsLedger.total}</Badge>
-                      ) : (
-                        <Badge tone="warning">Unavailable</Badge>
-                      )}
+                      <Badge tone="success">{volunteer.pointsLedger?.total ?? 0}</Badge>
                     </td>
                     <td className="px-4 py-3">
                       <ExportActions kind="volunteer" userId={volunteer.userId} />

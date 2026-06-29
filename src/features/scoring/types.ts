@@ -28,6 +28,38 @@ export interface GradeAuditEntry {
   reason?: string;
 }
 
+export type ParticipationStatus = "attended" | "absent" | "excused";
+
+export interface ParticipationRecord {
+  $id: string;
+  userId: string;
+  eventId: string;
+  role: string;
+  status: ParticipationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParticipationRosterEntry {
+  userId: string;
+  name: string;
+  googleEmail: string;
+  uomEmail?: string;
+  eventId: string;
+  eventTitle: string;
+  role: string;
+  committeeName?: string;
+  assignedAt: string;
+  participation?: ParticipationRecord;
+}
+
+export interface ParticipationRoster {
+  canManage: boolean;
+  eventId: string;
+  eventTitle: string;
+  records: ParticipationRosterEntry[];
+}
+
 export type PointLedgerSource = "grade" | "role" | "manual";
 
 export interface PointLedgerEntry {

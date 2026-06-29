@@ -38,6 +38,7 @@ export type AuditAction =
   | "CONCLUSION_REPORT_UPDATED"
   | "CONCLUSION_REPORT_REVIEWED"
   | "CONCLUSION_REPORT_REOPENED"
+  | "PARTICIPATION_RECORD_UPSERTED"
   | "event.create"
   | "event.update"
   | "event.status_change"

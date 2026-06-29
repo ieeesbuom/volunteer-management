@@ -13,41 +13,58 @@ import {
 } from "@/features/reports/server/recognition";
 import { listVolunteerProfiles } from "@/features/reports/server/volunteer-profile";
 import type { ReportEvent } from "@/features/reports/types";
+import { listEvents } from "@/features/events/server/event-service";
+import type { Event } from "@/features/events/types";
 
 const EVENT_LEAD_ROLES = ["Chair", "Vice Chair"] as const;
 
-async function listPendingConclusionEvents(user: SessionUser): Promise<ReportEvent[]> {
-  const summaries = await listEventSummaries();
+function toReportEventStatus(event: Event): ReportEvent["status"] {
+  return event.status.toUpperCase() as ReportEvent["status"];
+}
 
-  return summaries
-    .filter((summary) => summary.status === "PENDING_CONCLUSION")
+async function listPendingConclusionEvents(user: SessionUser): Promise<ReportEvent[]> {
+  const events = await listEvents();
+
+  return events
     .filter(
-      (summary) =>
-        user.isAdmin || hasEventRole(user, summary.eventId, [...EVENT_LEAD_ROLES]),
+      (event) =>
+        event.status === "ongoing" ||
+        event.status === "pending_conclusion" ||
+        event.conclusion_status === "rejected",
     )
-    .map((summary) => ({
-      eventId: normalizeEventReference(summary.eventId),
-      eventTitle: summary.eventTitle,
-      heldOn: summary.heldOn,
-      status: summary.status,
-      summary: summary.summary,
+    .filter(
+      (event) => user.isAdmin || hasEventRole(user, event.$id, [...EVENT_LEAD_ROLES]),
+    )
+    .map((event) => ({
+      eventId: normalizeEventReference(event.$id),
+      eventTitle: event.title,
+      heldOn: event.end_date ?? event.start_date,
+      status: toReportEventStatus(event),
+      summary:
+        event.conclusion_status === "rejected"
+          ? "Conclusion report needs changes."
+          : event.status === "pending_conclusion"
+            ? "Conclusion report is awaiting admin review."
+            : "Ready for a structured conclusion report.",
     }));
 }
 
 export async function getReportsPageData(user: SessionUser) {
-  const [events, reports, summaries, volunteers] = await Promise.all([
+  const [events, reports, summaries, volunteers, volunteerOfTheMonth, hallOfFame] = await Promise.all([
     listPendingConclusionEvents(user),
     user.isAdmin ? listConclusionReports() : listConclusionReportsForUser(user),
     listEventSummaries(),
     user.isAdmin ? listVolunteerProfiles() : Promise.resolve([]),
+    getVolunteerOfTheMonth(),
+    getHallOfFame(),
   ]);
 
   return {
     events,
-    hallOfFame: getHallOfFame(),
+    hallOfFame,
     reports,
     summaries,
-    volunteerOfTheMonth: getVolunteerOfTheMonth(),
+    volunteerOfTheMonth,
     volunteers,
   };
 }

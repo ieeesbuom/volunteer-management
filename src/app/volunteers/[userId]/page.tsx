@@ -226,7 +226,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1 border-b border-border pb-2 last:border-0 last:pb-0">
       <span className="font-medium text-text-secondary">{label}</span>
-      <span className="break-words text-text-primary">{value}</span>
+      <span className="wrap-break-word text-text-primary">{value}</span>
     </div>
   );
 }

@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Check,
   ClipboardList,
-  Loader2,
   Pencil,
   Trash2,
   UserPlus,
@@ -28,6 +27,8 @@ import {
 } from "@/components/ui/card";
 import { CommitteeManagement } from "@/features/events/components/CommitteeManagement";
 import { AssignRoleModal } from "@/features/events/components/AssignRoleModal";
+import { EventFormConnections } from "@/features/forms/components/event-form-connections";
+import { ParticipationManagement } from "@/features/scoring/components/participation-management";
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
 import {
   formatConclusionStatus,
@@ -39,7 +40,9 @@ import {
   getEventStatusBadgeTone,
 } from "@/features/events/lib/event-ui";
 import type { Committee, CommitteeMember, Event, EventPermissions, EventRole, EventStatus } from "@/features/events/types";
+import type { FormConnection } from "@/features/forms/types";
 import { EVENT_STATUSES } from "@/features/events/types";
+import type { ParticipationRoster } from "@/features/scoring/types";
 import { cn } from "@/lib/utils";
 
 const LIFECYCLE_LABELS: Record<EventStatus, string> = {
@@ -57,20 +60,35 @@ function formatAssignmentRole(assignment: EventRoleAssignment) {
   });
 }
 
+export type EventVolunteerIdentity = {
+  googleEmail: string;
+  name: string;
+  uomEmail?: string;
+  userId: string;
+};
+
 export function EventDetail({
+  canManageFormConnections,
   currentUserId,
   initialAssignments,
   initialCommittees,
   initialEvent,
+  initialFormConnections,
+  initialParticipationRoster,
   initialPermissions,
+  initialVolunteers,
   isAdmin,
   userEventRole,
 }: Readonly<{
+  canManageFormConnections: boolean;
   currentUserId: string;
   initialAssignments: EventRoleAssignment[];
   initialCommittees: Array<Committee & { members: CommitteeMember[] }>;
   initialEvent: Event;
+  initialFormConnections: FormConnection[];
+  initialParticipationRoster: ParticipationRoster;
   initialPermissions: EventPermissions;
+  initialVolunteers: EventVolunteerIdentity[];
   isAdmin: boolean;
   userEventRole: EventRole | null;
 }>) {
@@ -153,68 +171,6 @@ export function EventDetail({
     }
   }
 
-  async function handleSubmitConclusion() {
-    setPendingAction("conclusion");
-    setError("");
-    setMessage("Submitting conclusion...");
-
-    try {
-      const response = await fetch(`/api/events/${event.$id}/conclude`, {
-        body: JSON.stringify({ action: "submit" }),
-        headers: { "Content-Type": "application/json" },
-        method: "PATCH",
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setError(payload.error ?? "Could not submit conclusion.");
-        setMessage("");
-        return;
-      }
-
-      setEvent(payload.event);
-      setMessage("Event moved to pending conclusion.");
-      router.refresh();
-    } catch {
-      setError("Could not submit conclusion.");
-      setMessage("");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function handleConclusionDecision(decision: "approve" | "reject") {
-    setPendingAction(decision);
-    setError("");
-    setMessage(decision === "approve" ? "Approving conclusion..." : "Rejecting conclusion...");
-
-    try {
-      const response = await fetch(`/api/events/${event.$id}/conclude`, {
-        body: JSON.stringify({ action: decision }),
-        headers: { "Content-Type": "application/json" },
-        method: "PATCH",
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setError(payload.error ?? "Could not process conclusion decision.");
-        setMessage("");
-        return;
-      }
-
-      setEvent(payload.event);
-      setMessage(
-        decision === "approve" ? "Conclusion approved." : "Conclusion rejected.",
-      );
-      router.refresh();
-    } catch {
-      setError("Could not process conclusion decision.");
-      setMessage("");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   async function handleRemoveMember(assignment: EventRoleAssignment) {
     setPendingAction(assignment.$id);
     setError("");
@@ -242,14 +198,17 @@ export function EventDetail({
   }
 
   const statusTransitions = getAvailableStatusTransitions(event.status, { isAdmin });
+  const volunteersByUserId = new Map(
+    initialVolunteers.map((volunteer) => [volunteer.userId, volunteer]),
+  );
   const canChangeStatus =
     (isAdmin || userEventRole === "Chair") && statusTransitions.length > 0;
   const currentStatusIndex = EVENT_STATUSES.indexOf(event.status);
-  const canSubmitConclusion =
+  const canOpenConclusionReport =
     permissions.canSubmitConclusion &&
     event.status === "ongoing" &&
     (event.conclusion_status === "not_submitted" || event.conclusion_status === "rejected");
-  const canDecideConclusion =
+  const canReviewConclusionReport =
     permissions.canApproveConclusion && event.conclusion_status === "submitted";
 
   return (
@@ -405,6 +364,17 @@ export function EventDetail({
         initialCommittees={initialCommittees}
       />
 
+      <EventFormConnections
+        canManage={canManageFormConnections}
+        eventId={event.$id}
+        initialConnections={initialFormConnections}
+      />
+
+      {initialParticipationRoster.records.length > 0 ||
+      initialParticipationRoster.canManage ? (
+        <ParticipationManagement initialRoster={initialParticipationRoster} />
+      ) : null}
+
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -446,13 +416,16 @@ export function EventDetail({
                       isAdmin,
                       targetAssignment: assignment,
                     });
+                    const volunteer = volunteersByUserId.get(assignment.userId);
 
                     return (
                       <tr key={assignment.$id}>
                         <td className="py-3 pr-4">
-                          <p className="font-medium text-text-primary">{assignment.userId}</p>
+                          <p className="font-medium text-text-primary">
+                            {volunteer?.name || assignment.userId}
+                          </p>
                           <p className="mt-1 text-xs text-text-muted">
-                            User display lookup pending platform update
+                            {volunteer?.uomEmail || volunteer?.googleEmail || assignment.userId}
                           </p>
                         </td>
                         <td className="px-4 py-3">
@@ -508,57 +481,19 @@ export function EventDetail({
           </Badge>
 
           <div className="flex flex-wrap gap-2">
-            {canSubmitConclusion ? (
-              <Button
-                disabled={pendingAction === "conclusion"}
-                onClick={handleSubmitConclusion}
-                type="button"
-                variant="primary"
+            {canOpenConclusionReport ? (
+              <Link
+                className={buttonClasses({ variant: "primary" })}
+                href={`/reports/conclusions?eventId=${event.$id}`}
               >
-                {pendingAction === "conclusion" ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Conclusion"
-                )}
-              </Button>
+                Open Report Form
+              </Link>
             ) : null}
 
-            {canDecideConclusion ? (
-              <>
-                <Button
-                  disabled={pendingAction === "approve"}
-                  onClick={() => handleConclusionDecision("approve")}
-                  type="button"
-                  variant="primary"
-                >
-                  {pendingAction === "approve" ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      Approving...
-                    </>
-                  ) : (
-                    "Approve"
-                  )}
-                </Button>
-                <Button
-                  disabled={pendingAction === "reject"}
-                  onClick={() => handleConclusionDecision("reject")}
-                  type="button"
-                  variant="ghost"
-                >
-                  {pendingAction === "reject" ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                      Rejecting...
-                    </>
-                  ) : (
-                    "Reject"
-                  )}
-                </Button>
-              </>
+            {canReviewConclusionReport ? (
+              <Link className={buttonClasses()} href="/reports/approval">
+                Review Report
+              </Link>
             ) : null}
           </div>
         </CardContent>
@@ -578,6 +513,7 @@ export function EventDetail({
           eventId={event.$id}
           onClose={() => setShowAssignModal(false)}
           onSuccess={refreshAssignments}
+          volunteerOptions={initialVolunteers}
         />
       ) : null}
 

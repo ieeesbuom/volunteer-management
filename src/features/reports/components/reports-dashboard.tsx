@@ -179,7 +179,7 @@ export function ReportsDashboard({
               <CardDescription>
                 {volunteerOfTheMonth
                   ? `${volunteerOfTheMonth.month} ${volunteerOfTheMonth.year}`
-                  : "Recognition data unavailable"}
+                  : "No eligible points this month"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
@@ -193,7 +193,7 @@ export function ReportsDashboard({
                 </>
               ) : (
                 <p className="text-text-secondary">
-                  Volunteer of the Month will appear once the points ledger is connected.
+                  No eligible points have been awarded for the current month.
                 </p>
               )}
             </CardContent>
@@ -285,7 +285,7 @@ export function ReportsDashboard({
                         {volunteer.pointsLedger ? (
                           <Badge tone="success">{volunteer.pointsLedger.total}</Badge>
                         ) : (
-                          <Badge tone="warning">Unavailable</Badge>
+                          <Badge tone="success">0</Badge>
                         )}
                       </td>
                       <td className="px-4 py-3">

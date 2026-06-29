@@ -26,6 +26,19 @@ import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
 import { isAppwriteNotFound } from "@/server/errors";
+import {
+  getEventById,
+  syncEventConclusionReviewed,
+  syncEventConclusionSubmitted,
+} from "@/features/events/server/event-service";
+import {
+  notifyEventUpdateWorkflow,
+  notifyReportApprovalWorkflow,
+} from "@/features/notifications/server/workflow-notifications";
+import {
+  getAdminNotificationRecipientIds,
+  getEventNotificationContext,
+} from "@/features/notifications/server/workflow-recipients";
 
 type AppRow = Models.Row & Record<string, unknown>;
 
@@ -109,6 +122,18 @@ export function toReportApproval(row: AppRow): ReportApproval {
 
 async function resolveEventTitle(user: SessionUser, eventId: string) {
   const normalizedEventId = normalizeEventReference(eventId);
+  let event: Awaited<ReturnType<typeof getEventById>> = null;
+
+  try {
+    event = await getEventById(normalizedEventId);
+  } catch {
+    event = null;
+  }
+
+  if (event) {
+    return event.title;
+  }
+
   const assignment = user.eventRoles.find(
     (entry) =>
       entry.active && normalizeEventReference(entry.eventId) === normalizedEventId,
@@ -364,6 +389,21 @@ export async function updateConclusionReportRecord(
 
   const updated = await updateConclusionReportRow(reportId, payload);
 
+  if (input.status === "SUBMITTED") {
+    await syncEventConclusionSubmitted(report.eventId, user.authUser.id);
+    const adminRecipientUserIds = await getAdminNotificationRecipientIds({
+      excludeUserIds: [user.authUser.id],
+    });
+    await notifyEventUpdateWorkflow({
+      actorUserId: user.authUser.id,
+      eventId: report.eventId,
+      eventTitle: updated.eventTitle,
+      linkHref: "/reports/approval",
+      message: `${updated.eventTitle} conclusion report was submitted for review.`,
+      recipientUserIds: adminRecipientUserIds,
+    });
+  }
+
   await writeAuditLog({
     action: "CONCLUSION_REPORT_UPDATED",
     actorUserId: user.authUser.id,
@@ -443,6 +483,11 @@ export async function reviewConclusionReportRecord(
   const updated = await updateConclusionReportRow(reportId, {
     status: input.status,
   });
+  await syncEventConclusionReviewed({
+    actorUserId: user.authUser.id,
+    eventId: report.eventId,
+    status: input.status,
+  });
 
   const existingApproval = await getReportApproval(reportId);
 
@@ -486,6 +531,22 @@ export async function reviewConclusionReportRecord(
     },
     targetId: reportId,
     targetType: "conclusion_report",
+  });
+
+  const eventNotificationContext = await getEventNotificationContext(report.eventId, {
+    excludeUserIds: [user.authUser.id],
+  });
+
+  await notifyReportApprovalWorkflow({
+    actorUserId: user.authUser.id,
+    eventId: report.eventId,
+    eventTitle: report.eventTitle,
+    linkHref: `/reports/conclusions?eventId=${report.eventId}`,
+    recipientUserIds: [
+      report.submittedBy,
+      ...eventNotificationContext.recipientUserIds,
+    ],
+    status: input.status === "APPROVED" ? "approved" : "needs_changes",
   });
 
   return {

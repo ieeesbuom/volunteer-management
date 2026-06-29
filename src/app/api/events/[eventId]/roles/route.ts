@@ -10,6 +10,7 @@ import {
   assignEventRole,
   getRoleAssignmentsForEvent,
 } from "@/features/events/server/event-roles.server";
+import { notifyRoleAssignmentWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { AssignEventRoleInputSchema } from "@/features/events/types";
 import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
 
@@ -72,7 +73,13 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const assignment = await assignEventRole(parsed.data, user!.authUser.id);
-    return NextResponse.json({ assignment }, { status: 201 });
+    const notification = await notifyRoleAssignmentWorkflow({
+      actorUserId: user!.authUser.id,
+      assignment,
+      linkHref: `/events/${eventId}`,
+    });
+
+    return NextResponse.json({ assignment, notification }, { status: 201 });
   } catch (error) {
     return jsonError(
       error instanceof Error ? error.message : "Failed to assign event role.",

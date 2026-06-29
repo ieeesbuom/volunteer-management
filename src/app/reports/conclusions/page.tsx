@@ -8,7 +8,11 @@ import { getCurrentUser } from "@/features/access-control/server/current-user";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConclusionsPage() {
+export default async function ConclusionsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ eventId?: string }>;
+}) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -20,7 +24,15 @@ export default async function ConclusionsPage() {
   }
 
   const data = await getReportsPageData(user);
-  const draftEvent = data.events.find((event) => event.status === "PENDING_CONCLUSION");
+  const requestedEventId = (await searchParams)?.eventId;
+  const draftEvent =
+    data.events.find((event) => event.eventId === requestedEventId) ?? data.events[0];
+  const orderedEvents = draftEvent
+    ? [
+        draftEvent,
+        ...data.events.filter((event) => event.eventId !== draftEvent.eventId),
+      ]
+    : data.events;
   const draftReport =
     data.reports.find((report) => report.eventId === draftEvent?.eventId) ?? null;
 
@@ -38,7 +50,7 @@ export default async function ConclusionsPage() {
       />
 
       <ConclusionsPageContent
-        events={data.events.filter((event) => event.status === "PENDING_CONCLUSION")}
+        events={orderedEvents}
         initialReport={draftReport}
         initialReports={data.reports}
       />

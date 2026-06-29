@@ -3,9 +3,7 @@ import {
   createFormConnectionForCurrentUser,
   listFormConnectionsForCurrentUser,
 } from "@/features/forms/server/form-connection-service";
-import { listProfiles } from "@/features/access-control/server/profiles";
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
 import {
   createFormConnectionSchema,
   listFormConnectionsQuerySchema,
@@ -14,6 +12,7 @@ import {
   notifyEventUpdateWorkflow,
   notifyGradingRequestWorkflow,
 } from "@/features/notifications/server/workflow-notifications";
+import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { jsonError, routeErrorStatus } from "@/server/errors";
 
 export async function GET(request: Request) {
@@ -37,23 +36,23 @@ export async function POST(request: Request) {
     const user = await requireAuth();
     const body = createFormConnectionSchema.parse(await request.json());
     const connection = await createFormConnectionForCurrentUser(body, user);
-    const notificationContext = await getActiveVerifiedEventNotificationContext(
-      connection.eventId,
-    );
+    const notificationContext = await getEventNotificationContext(connection.eventId, {
+      excludeUserIds: [user.authUser.id],
+    });
     const notifications =
       connection.purpose === "grading"
         ? await notifyGradingRequestWorkflow({
             actorUserId: user.authUser.id,
             eventId: connection.eventId,
             eventTitle: notificationContext.eventTitle,
-            linkHref: "/dashboard",
+            linkHref: `/events/${connection.eventId}`,
             recipientUserIds: notificationContext.recipientUserIds,
           })
         : await notifyEventUpdateWorkflow({
             actorUserId: user.authUser.id,
             eventId: connection.eventId,
             eventTitle: notificationContext.eventTitle,
-            linkHref: "/dashboard",
+            linkHref: `/events/${connection.eventId}`,
             message: `${connection.title} is now available.`,
             recipientUserIds: notificationContext.recipientUserIds,
           });
@@ -65,30 +64,4 @@ export async function POST(request: Request) {
       routeErrorStatus(error),
     );
   }
-}
-
-async function getActiveVerifiedEventNotificationContext(eventId: string) {
-  const [assignments, profiles] = await Promise.all([
-    listActiveEventRoleAssignments(),
-    listProfiles(),
-  ]);
-  const eventAssignments = assignments.filter(
-    (assignment) => assignment.eventId === eventId,
-  );
-  const activeVerifiedProfileIds = new Set(
-    profiles
-      .filter((profile) => profile.status === "ACTIVE" && profile.uomVerified)
-      .map((profile) => profile.authUserId),
-  );
-
-  return {
-    eventTitle: eventAssignments[0]?.eventTitle ?? eventId,
-    recipientUserIds: [
-      ...new Set(
-        eventAssignments
-          .filter((assignment) => activeVerifiedProfileIds.has(assignment.userId))
-          .map((assignment) => assignment.userId),
-      ),
-    ],
-  };
 }

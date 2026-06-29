@@ -12,7 +12,6 @@ export const dynamic = "force-dynamic";
 type ScoringPageProps = {
   searchParams?: Promise<{
     eventId?: string;
-    role?: string;
   }>;
 };
 

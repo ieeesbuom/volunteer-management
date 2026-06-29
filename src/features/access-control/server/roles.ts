@@ -167,7 +167,10 @@ export async function getActiveSbRoles(userId: string) {
   return result.rows.map((row) => String((row as AppRow).role) as SbRole);
 }
 
-export async function getActiveEventRoleAssignments(userId: string) {
+export async function getActiveEventRoleAssignments(
+  userId: string,
+  { includeChairCounts = true }: { includeChairCounts?: boolean } = {},
+) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
   const result = await tables.listRows(
@@ -180,7 +183,7 @@ export async function getActiveEventRoleAssignments(userId: string) {
 
   const assignments = result.rows.map((row) => toEventRoleAssignment(row as AppRow));
 
-  if (assignments.length === 0) {
+  if (assignments.length === 0 || !includeChairCounts) {
     return assignments;
   }
 

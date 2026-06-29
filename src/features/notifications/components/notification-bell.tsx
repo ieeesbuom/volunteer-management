@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck, ExternalLink, Inbox, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,7 @@ export function NotificationBell({
     [notifications],
   );
 
-  async function refreshNotifications() {
+  const refreshNotifications = useCallback(async function refreshNotifications() {
     setIsRefreshing(true);
     setMessage("");
 
@@ -55,7 +55,16 @@ export function NotificationBell({
     } finally {
       setIsRefreshing(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void refreshNotifications();
+    }, 0);
+    // The shell should not block navigation on notification IO. This refresh
+    // runs once after hydration and the dropdown still refreshes on open.
+    return () => window.clearTimeout(timer);
+  }, [refreshNotifications]);
 
   async function markRead(notificationIds: string[]) {
     if (notificationIds.length === 0) {

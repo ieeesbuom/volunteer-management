@@ -7,11 +7,11 @@ import {
   listConclusionReports,
 } from "@/features/reports/server/conclusion-service";
 import {
-  getHallOfFame,
-  getVolunteerOfTheMonth,
+  getRecognitionSnapshot,
   listEventSummaries,
 } from "@/features/reports/server/recognition";
 import { listVolunteerProfiles } from "@/features/reports/server/volunteer-profile";
+import { listProfiles } from "@/features/access-control/server/profiles";
 import type { ReportEvent } from "@/features/reports/types";
 import { listEvents } from "@/features/events/server/event-service";
 import type { Event } from "@/features/events/types";
@@ -49,22 +49,67 @@ async function listPendingConclusionEvents(user: SessionUser): Promise<ReportEve
     }));
 }
 
-export async function getReportsPageData(user: SessionUser) {
-  const [events, reports, summaries, volunteers, volunteerOfTheMonth, hallOfFame] = await Promise.all([
-    listPendingConclusionEvents(user),
-    user.isAdmin ? listConclusionReports() : listConclusionReportsForUser(user),
-    listEventSummaries(),
-    user.isAdmin ? listVolunteerProfiles() : Promise.resolve([]),
-    getVolunteerOfTheMonth(),
-    getHallOfFame(),
+async function countActiveProfiles() {
+  const profiles = await listProfiles();
+  return profiles.filter((profile) => profile.status === "ACTIVE").length;
+}
+
+type ReportsPageDataOptions = {
+  includeEvents?: boolean;
+  includeRecognition?: boolean;
+  includeReports?: boolean;
+  includeSummaries?: boolean;
+  includeVolunteerCount?: boolean;
+  includeVolunteerExports?: boolean;
+};
+
+const DEFAULT_REPORTS_PAGE_OPTIONS = {
+  includeEvents: true,
+  includeRecognition: true,
+  includeReports: true,
+  includeSummaries: true,
+  includeVolunteerCount: true,
+  includeVolunteerExports: true,
+} satisfies Required<ReportsPageDataOptions>;
+
+export async function getReportsPageData(
+  user: SessionUser,
+  options: ReportsPageDataOptions = DEFAULT_REPORTS_PAGE_OPTIONS,
+) {
+  const resolvedOptions = { ...DEFAULT_REPORTS_PAGE_OPTIONS, ...options };
+  const [
+    events,
+    reports,
+    summaries,
+    volunteers,
+    volunteerCount,
+    recognition,
+  ] = await Promise.all([
+    resolvedOptions.includeEvents ? listPendingConclusionEvents(user) : Promise.resolve([]),
+    resolvedOptions.includeReports
+      ? user.isAdmin
+        ? listConclusionReports()
+        : listConclusionReportsForUser(user)
+      : Promise.resolve([]),
+    resolvedOptions.includeSummaries ? listEventSummaries() : Promise.resolve([]),
+    resolvedOptions.includeVolunteerExports && user.isAdmin
+      ? listVolunteerProfiles()
+      : Promise.resolve([]),
+    resolvedOptions.includeVolunteerCount && user.isAdmin
+      ? countActiveProfiles()
+      : Promise.resolve(0),
+    resolvedOptions.includeRecognition
+      ? getRecognitionSnapshot(new Date(), { preferCached: true })
+      : Promise.resolve({ hallOfFame: [], volunteerOfTheMonth: null }),
   ]);
 
   return {
     events,
-    hallOfFame,
+    hallOfFame: recognition.hallOfFame,
     reports,
     summaries,
-    volunteerOfTheMonth,
+    volunteerCount,
+    volunteerOfTheMonth: recognition.volunteerOfTheMonth,
     volunteers,
   };
 }

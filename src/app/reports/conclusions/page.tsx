@@ -23,7 +23,14 @@ export default async function ConclusionsPage({
     redirect("/reports/recognition");
   }
 
-  const data = await getReportsPageData(user);
+  const data = await getReportsPageData(user, {
+    includeEvents: true,
+    includeRecognition: false,
+    includeReports: true,
+    includeSummaries: false,
+    includeVolunteerCount: false,
+    includeVolunteerExports: false,
+  });
   const requestedEventId = (await searchParams)?.eventId;
   const draftEvent =
     data.events.find((event) => event.eventId === requestedEventId) ?? data.events[0];

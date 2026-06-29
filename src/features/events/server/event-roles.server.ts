@@ -22,7 +22,7 @@ import { ConflictError, ValidationError } from "@/server/errors";
 import { safeEventAuditLog } from "@/features/events/server/event-audit";
 import { listCommitteesForEvent } from "@/features/events/server/committees.server";
 import { validateAssignableEventUser } from "@/features/events/server/event-user-validation";
-import { getEventById } from "@/features/events/server/event-service";
+import { getEventById, listEventsByIds } from "@/features/events/server/event-service";
 import type { AssignEventRoleInput } from "@/features/events/types";
 
 type AppRow = Models.Row & Record<string, unknown>;
@@ -254,41 +254,41 @@ export async function getEventsForUser(
 ): Promise<{ event: NonNullable<Awaited<ReturnType<typeof getEventById>>>; role: EventRoleAssignment }[]> {
   const assignments = await getActiveEventRoleAssignments(userId);
   const createdEvents = await listEventsCreatedByUser(userId);
+  const assignedEvents = await listEventsByIds(
+    assignments.map((assignment) => assignment.eventId),
+  );
+  const assignedEventsById = new Map(assignedEvents.map((event) => [event.$id, event]));
   const eventIds = new Set<string>();
 
-  const fromRoles = await Promise.all(
-    assignments.map(async (assignment) => {
-      const event = await getEventById(assignment.eventId);
+  const fromRoles = assignments.map((assignment) => {
+    const event = assignedEventsById.get(assignment.eventId);
 
-      if (!event || eventIds.has(event.$id)) {
-        return null;
-      }
+    if (!event || eventIds.has(event.$id)) {
+      return null;
+    }
 
-      eventIds.add(event.$id);
-      return { event, role: assignment };
-    }),
-  );
+    eventIds.add(event.$id);
+    return { event, role: assignment };
+  });
 
-  const fromCreated = await Promise.all(
-    createdEvents
-      .filter((event) => !eventIds.has(event.$id))
-      .map(async (event) => {
-        const role =
-          (await getUserEventRoleAssignment(userId, event.$id)) ??
-          ({
-            $id: "",
-            active: true,
-            assignedAt: event.created_at,
-            assignedBy: event.created_by,
-            eventId: event.$id,
-            eventTitle: event.title,
-            role: "Chair" as EventRole,
-            userId,
-          } satisfies EventRoleAssignment);
+  const fromCreated = createdEvents
+    .filter((event) => !eventIds.has(event.$id))
+    .map((event) => {
+      const role =
+        assignments.find((assignment) => assignment.eventId === event.$id) ??
+        ({
+          $id: "",
+          active: true,
+          assignedAt: event.created_at,
+          assignedBy: event.created_by,
+          eventId: event.$id,
+          eventTitle: event.title,
+          role: "Chair" as EventRole,
+          userId,
+        } satisfies EventRoleAssignment);
 
-        return { event, role };
-      }),
-  );
+      return { event, role };
+    });
 
   return [...fromRoles, ...fromCreated].filter(
     (entry): entry is { event: NonNullable<Awaited<ReturnType<typeof getEventById>>>; role: EventRoleAssignment } =>

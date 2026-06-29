@@ -590,16 +590,16 @@ export async function listAuditLogs({
 
 export async function getInitialSystemSettingsData() {
   const env = getServerEnv();
-  const initialTerms = await listIeeeTerms();
-  const activeTermId = await reconcileActiveTermState("system", initialTerms);
-  const [terms, auditPage] = await Promise.all([
-    listIeeeTerms(),
-    listAuditLogs(),
-  ]);
+  const terms = await listIeeeTerms();
+  const activeTermId = await reconcileActiveTermState("system", terms);
 
   return {
     activeTermId,
-    auditPage,
+    auditPage: {
+      auditLogs: [],
+      nextCursor: undefined,
+      total: 0,
+    },
     permissions: getPermissionOverview(env.ADMIN_EMAIL),
     terms,
   };

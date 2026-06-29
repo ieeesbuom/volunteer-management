@@ -14,6 +14,7 @@ import {
 import { AccessControlPanel } from "@/features/access-control/components/access-control-panel";
 import { listAdminUsers } from "@/features/access-control/server/admin-users";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { listEvents } from "@/features/events/server/event-service";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,12 @@ export default async function AdminUsersPage() {
     redirect("/dashboard");
   }
 
-  const users = await listAdminUsers();
+  const [users, events] = await Promise.all([listAdminUsers(), listEvents()]);
+  const eventOptions = events.map((event) => ({
+    id: event.$id,
+    label: `${event.title} · ${event.term} · ${event.year}`,
+    title: event.title,
+  }));
 
   return (
     <AppShell active="users" user={currentUser}>
@@ -54,7 +60,7 @@ export default async function AdminUsersPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <AccessControlPanel initialUsers={users} />
+            <AccessControlPanel eventOptions={eventOptions} initialUsers={users} />
           </CardContent>
         </Card>
       </div>

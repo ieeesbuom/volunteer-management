@@ -12,10 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import { listAdminUsers } from "@/features/access-control/server/admin-users";
 import { SystemSettingsPanel } from "@/features/system-settings/components/system-settings-panel";
 import { getInitialSystemSettingsData } from "@/features/system-settings/server/settings";
-import { listTopBoardExclusions } from "@/features/system-settings/server/top-board-exclusions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,14 +28,8 @@ export default async function AdminSettingsPage() {
     redirect("/dashboard");
   }
 
-  const [settingsData, users] = await Promise.all([
-    getInitialSystemSettingsData(),
-    listAdminUsers(),
-  ]);
+  const settingsData = await getInitialSystemSettingsData();
   const selectedTermId = settingsData.activeTermId || settingsData.terms[0]?.$id || "";
-  const exclusions = selectedTermId
-    ? await listTopBoardExclusions(selectedTermId)
-    : [];
 
   return (
     <AppShell active="settings" user={currentUser}>
@@ -66,11 +58,11 @@ export default async function AdminSettingsPage() {
             <SystemSettingsPanel
               initialActiveTermId={settingsData.activeTermId}
               initialAuditPage={settingsData.auditPage}
-              initialExclusions={exclusions}
+              initialExclusions={[]}
               initialPermissions={settingsData.permissions}
               initialSelectedTermId={selectedTermId}
               initialTerms={settingsData.terms}
-              initialUsers={users}
+              initialUsers={[]}
             />
           </CardContent>
         </Card>

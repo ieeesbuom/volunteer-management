@@ -33,6 +33,12 @@ type AdminUser = Profile & {
   sbRoles: SbRole[];
 };
 
+type AccessControlEventOption = {
+  id: string;
+  label: string;
+  title: string;
+};
+
 type EventRoleFormState = {
   committeeName: string;
   eventId: string;
@@ -71,7 +77,13 @@ type NoticeStatus = "error" | "idle" | "success";
 const inputClasses =
   "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
 
-export function AccessControlPanel({ initialUsers }: { initialUsers: AdminUser[] }) {
+export function AccessControlPanel({
+  eventOptions,
+  initialUsers,
+}: {
+  eventOptions: AccessControlEventOption[];
+  initialUsers: AdminUser[];
+}) {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [message, setMessage] = useState("");
   const [mode, setMode] = useState<PanelMode>("branch");
@@ -81,8 +93,8 @@ export function AccessControlPanel({ initialUsers }: { initialUsers: AdminUser[]
   const [users, setUsers] = useState(initialUsers);
   const [eventRoleForm, setEventRoleForm] = useState<EventRoleFormState>({
     committeeName: "",
-    eventId: "",
-    eventTitle: "",
+    eventId: eventOptions[0]?.id ?? "",
+    eventTitle: eventOptions[0]?.title ?? "",
     role: "Chair",
     userId: initialUsers.find((user) => user.uomVerified)?.authUserId ?? "",
   });
@@ -99,7 +111,6 @@ export function AccessControlPanel({ initialUsers }: { initialUsers: AdminUser[]
         user.name,
         user.googleEmail,
         user.uomEmail,
-        user.authUserId,
         ...user.eventRoles.map((assignment) => assignment.eventTitle),
       ]
         .filter(Boolean)
@@ -217,7 +228,7 @@ export function AccessControlPanel({ initialUsers }: { initialUsers: AdminUser[]
               ) ?? 0) + 1
             : 0,
       }),
-      userName: user?.name || user?.googleEmail || eventRoleForm.userId,
+      userName: user?.name || user?.googleEmail || "Volunteer",
     });
   }
 
@@ -412,6 +423,7 @@ export function AccessControlPanel({ initialUsers }: { initialUsers: AdminUser[]
           assignments={filteredEventAssignments}
           assignableUsers={verifiedUsers}
           committeeRequired={committeeRequired}
+          eventOptions={eventOptions}
           eventChairCounts={eventChairCounts}
           eventRoleForm={eventRoleForm}
           pendingAction={pendingAction}
@@ -466,7 +478,7 @@ function BranchRoleTable({
                   {user.name || "Not provided"}
                 </p>
                 <p className="mt-1 max-w-52 truncate text-xs text-text-muted">
-                  {user.authUserId}
+                  {user.uomEmail || user.googleEmail}
                 </p>
               </td>
               <td className="px-4 py-4">
@@ -644,6 +656,7 @@ function EventRolesPanel({
   assignments,
   assignableUsers,
   committeeRequired,
+  eventOptions,
   eventChairCounts,
   eventRoleForm,
   pendingAction,
@@ -661,6 +674,7 @@ function EventRolesPanel({
   >;
   assignableUsers: AdminUser[];
   committeeRequired: boolean;
+  eventOptions: AccessControlEventOption[];
   eventChairCounts: Map<string, number>;
   eventRoleForm: EventRoleFormState;
   pendingAction: string | null;
@@ -701,7 +715,7 @@ function EventRolesPanel({
               {assignableUsers.length > 0 ? (
                 assignableUsers.map((user) => (
                   <option key={user.authUserId} value={user.authUserId}>
-                    {user.name || user.googleEmail}
+                    {user.name || user.googleEmail} · {user.uomEmail || user.googleEmail}
                   </option>
                 ))
               ) : (
@@ -711,35 +725,32 @@ function EventRolesPanel({
           </label>
 
           <label className="block text-sm font-medium text-text-secondary">
-            Event reference
-            <input
+            Event
+            <select
               className={cn(inputClasses, "mt-1")}
-              onChange={(event) =>
+              onChange={(event) => {
+                const selectedEvent = eventOptions.find(
+                  (option) => option.id === event.target.value,
+                );
                 setEventRoleForm((current) => ({
                   ...current,
-                  eventId: event.target.value,
-                }))
-              }
-              placeholder="foresight-4.0"
+                  eventId: selectedEvent?.id ?? "",
+                  eventTitle: selectedEvent?.title ?? "",
+                }));
+              }}
               required
               value={eventRoleForm.eventId}
-            />
-          </label>
-
-          <label className="block text-sm font-medium text-text-secondary">
-            Event title
-            <input
-              className={cn(inputClasses, "mt-1")}
-              onChange={(event) =>
-                setEventRoleForm((current) => ({
-                  ...current,
-                  eventTitle: event.target.value,
-                }))
-              }
-              placeholder="MoraForesight 4.0"
-              required
-              value={eventRoleForm.eventTitle}
-            />
+            >
+              {eventOptions.length > 0 ? (
+                eventOptions.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.label}
+                  </option>
+                ))
+              ) : (
+                <option value="">Create an event before assigning responsibilities</option>
+              )}
+            </select>
           </label>
 
           <label className="block text-sm font-medium text-text-secondary">
@@ -776,7 +787,7 @@ function EventRolesPanel({
                   committeeName: event.target.value,
                 }))
               }
-              placeholder={committeeRequired ? "Program, Logistics, Design" : "Not required"}
+              placeholder={committeeRequired ? "Committee name" : "Not required"}
               required={committeeRequired}
               value={eventRoleForm.committeeName}
             />
@@ -788,6 +799,7 @@ function EventRolesPanel({
           disabled={
             pendingAction === "event-role:assign" ||
             assignableUsers.length === 0 ||
+            eventOptions.length === 0 ||
             !selectedUserId
           }
           type="submit"
@@ -823,7 +835,6 @@ function EventRolesPanel({
                 </td>
                 <td className="px-4 py-4">
                   <p className="font-medium text-text-primary">{assignment.eventTitle}</p>
-                  <p className="mt-1 text-xs text-text-muted">{assignment.eventId}</p>
                 </td>
                 <td className="px-4 py-4">
                   <div className="flex flex-wrap gap-2">

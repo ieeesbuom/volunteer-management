@@ -115,7 +115,7 @@ export function CreateEventForm() {
           id="reference"
           label="Reference code"
           onChange={(value) => updateField("reference", value)}
-          placeholder="foresight-4.0"
+          placeholder="event-reference"
           required
           value={form.reference}
         />

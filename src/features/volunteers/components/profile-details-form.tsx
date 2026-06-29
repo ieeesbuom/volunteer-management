@@ -15,9 +15,6 @@ export function ProfileDetailsForm({
   const [department, setDepartment] = useState(initialDetails?.department ?? "");
   const [faculty, setFaculty] = useState(initialDetails?.faculty ?? "");
   const [headline, setHeadline] = useState(initialDetails?.headline ?? "");
-  const [ieeeMembership, setIeeeMembership] = useState(
-    initialDetails?.ieeeMembership ?? "",
-  );
   const [linkedinUrl, setLinkedinUrl] = useState(initialDetails?.linkedinUrl ?? "");
   const [skills, setSkills] = useState(initialDetails?.skills ?? "");
   const [status, setStatus] = useState("");
@@ -39,7 +36,6 @@ export function ProfileDetailsForm({
           department,
           faculty,
           headline,
-          ieeeMembership,
           linkedinUrl,
           skills,
           universityIndex,
@@ -101,16 +97,6 @@ export function ProfileDetailsForm({
           />
         </Field>
       </div>
-      <Field label="IEEE Membership">
-        <input
-          className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-          maxLength={120}
-          onChange={(event) => setIeeeMembership(event.target.value)}
-          placeholder="Member status or membership number"
-          required
-          value={ieeeMembership}
-        />
-      </Field>
       <Field label="Headline">
         <input
           className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"

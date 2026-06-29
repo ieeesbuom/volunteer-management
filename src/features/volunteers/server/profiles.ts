@@ -39,7 +39,6 @@ function toVolunteerProfileDetails(row: AppRow): VolunteerProfileDetails {
     department: typeof row.department === "string" ? row.department : "",
     faculty: typeof row.faculty === "string" ? row.faculty : "",
     headline: typeof row.headline === "string" && row.headline ? row.headline : undefined,
-    ieeeMembership: typeof row.ieeeMembership === "string" ? row.ieeeMembership : "",
     linkedinUrl:
       typeof row.linkedinUrl === "string" && row.linkedinUrl ? row.linkedinUrl : undefined,
     skills: typeof row.skills === "string" && row.skills ? row.skills : undefined,
@@ -91,7 +90,6 @@ export async function upsertMyVolunteerProfileDetails({
     department: details.department,
     faculty: details.faculty,
     headline: details.headline,
-    ieeeMembership: details.ieeeMembership,
     linkedinUrl: details.linkedinUrl,
     skills: details.skills,
     updatedAt: now,

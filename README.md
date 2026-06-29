@@ -10,12 +10,9 @@ Volunteer Management System.
 - Tailwind CSS
 - Appwrite Cloud: Auth, TablesDB, Storage, Realtime, Functions, Sites
 
-## Current Status
+## Product Scope
 
-Feature 1 is implemented: authentication, UoM verification, single Admin access,
-Student Branch roles, event-scoped responsibilities, and audit logging.
-
-The revised product scope is internal volunteer management:
+The product scope is internal volunteer management for IEEE SB UoM:
 
 - Google login for accounts.
 - `@uom.lk` email verification before a user can volunteer.
@@ -28,6 +25,8 @@ The revised product scope is internal volunteer management:
 - No public event discovery module.
 - Lifetime volunteer points, with monthly/yearly best selections based on points
   earned during those periods.
+- Structured conclusion reports, participation records, scoring, recognition,
+  volunteer profile exports, notifications, and scheduler-ready background jobs.
 
 ## Setup
 
@@ -62,6 +61,11 @@ SMTP_PASSWORD=your_smtp_password_or_app_password
 SMTP_FROM_EMAIL=sender@example.com
 SMTP_FROM_NAME=IEEE SB UoM Volunteer Management
 ```
+
+For production background jobs and trusted notification creation, set
+`INTERNAL_JOB_TOKEN` and pass it from your scheduler as either a bearer token or
+`x-internal-job-token`. Workflow notification emails require
+`NOTIFICATION_EMAILS_ENABLED=true` plus SMTP settings.
 
 ## Getting Started
 

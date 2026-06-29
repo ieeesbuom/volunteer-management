@@ -1,15 +1,16 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getServerEnv } from "@/lib/env";
 import { canVolunteer, hasEventRole, hasSbRole, isAdminEmail } from "@/features/access-control/lib/rules";
 import { getAppwriteSessionServices } from "@/server/appwrite";
-import { bootstrapProfile } from "@/features/access-control/server/profiles";
+import { getOrCreateProfile } from "@/features/access-control/server/profiles";
 import { getActiveEventRoleAssignments, getActiveSbRoles } from "@/features/access-control/server/roles";
 import { getSessionSecret } from "@/server/session";
 import type { EventRole, SbRole, SessionUser } from "@/features/access-control/types";
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const sessionSecret = await getSessionSecret();
 
   if (!sessionSecret) {
@@ -20,9 +21,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     const env = getServerEnv();
     const { account } = getAppwriteSessionServices(sessionSecret);
     const appwriteUser = await account.get();
-    const profile = await bootstrapProfile(appwriteUser);
-    const sbRoles = await getActiveSbRoles(appwriteUser.$id);
-    const eventRoles = await getActiveEventRoleAssignments(appwriteUser.$id);
+    const [profile, sbRoles, eventRoles] = await Promise.all([
+      getOrCreateProfile(appwriteUser),
+      getActiveSbRoles(appwriteUser.$id),
+      getActiveEventRoleAssignments(appwriteUser.$id, { includeChairCounts: false }),
+    ]);
 
     return {
       authUser: {
@@ -38,7 +41,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireAuth() {
   const user = await getCurrentUser();

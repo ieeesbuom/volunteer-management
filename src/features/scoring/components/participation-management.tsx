@@ -184,7 +184,7 @@ export function ParticipationManagement({
                       <td className="py-3 pr-4">
                         <p className="font-medium text-text-primary">{entry.name}</p>
                         <p className="mt-1 text-xs text-text-muted">
-                          {entry.uomEmail || entry.googleEmail || entry.userId}
+                          {entry.uomEmail || entry.googleEmail || "Profile unavailable"}
                         </p>
                       </td>
                       <td className="px-4 py-3 text-text-primary">{entry.role}</td>
@@ -256,4 +256,3 @@ function StatusBadge({ status }: { status: ParticipationStatus | "unrecorded" })
 
   return <Badge>Not recorded</Badge>;
 }
-

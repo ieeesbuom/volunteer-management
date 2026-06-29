@@ -32,10 +32,10 @@ export default async function VolunteerProfilePage({
     if (!user) {
       return (
         <PublicVolunteerLayout>
-          <PageHeader
-            title="Volunteer Not Found"
-            description="No active verified volunteer profile exists for this user ID."
-          />
+            <PageHeader
+              title="Volunteer Not Found"
+              description="No active verified volunteer profile exists for this account."
+            />
         </PublicVolunteerLayout>
       );
     }
@@ -44,7 +44,7 @@ export default async function VolunteerProfilePage({
       <AppShell active="volunteers" user={user}>
         <PageHeader
           title="Volunteer Not Found"
-          description="No active verified volunteer profile exists for this user ID."
+          description="No active verified volunteer profile exists for this account."
         />
       </AppShell>
     );
@@ -123,7 +123,6 @@ function VolunteerProfileContent({
                   <InfoRow label="Faculty" value={profile.details?.faculty ?? "Not provided"} />
                   <InfoRow label="Department" value={profile.details?.department ?? "Not provided"} />
                   <InfoRow label="Batch / Year" value={profile.details?.batchYear ?? "Not provided"} />
-                  <InfoRow label="IEEE Membership" value={profile.details?.ieeeMembership ?? "Not provided"} />
                 </>
               ) : (
                 <p className="text-sm text-text-secondary">
@@ -137,7 +136,7 @@ function VolunteerProfileContent({
           <Card>
             <CardHeader>
               <CardTitle>Contribution Summary</CardTitle>
-              <CardDescription>Participation and points will connect after later features.</CardDescription>
+              <CardDescription>Public profile highlights and useful volunteer links.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-text-secondary">
               <p>{profile.details?.bio ?? "No volunteer bio has been added yet."}</p>

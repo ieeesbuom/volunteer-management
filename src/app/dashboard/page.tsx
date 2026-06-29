@@ -24,7 +24,6 @@ import {
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { NotificationPreferencesForm } from "@/features/notifications/components/notification-preferences-form";
-import { getNotificationPreferencesForUser } from "@/features/notifications/server/notification-service";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +33,6 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
-
-  const notificationPreference = await getNotificationPreferencesForUser(
-    user.authUser.id,
-  );
 
   return (
     <AppShell active="dashboard" user={user}>
@@ -51,10 +46,10 @@ export default async function DashboardPage() {
                 className={buttonClasses({
                   variant: user.profile.uomVerified ? "secondary" : "primary",
                 })}
-                href="/verify-uom"
+                href="/volunteers/me"
               >
                 <MailCheck className="size-4" aria-hidden="true" />
-                {user.profile.uomVerified ? "View Verification" : "Verify UoM Email"}
+                {user.profile.uomVerified ? "Open Profile" : "Verify in Profile"}
               </Link>
               {user.isAdmin ? (
                 <>
@@ -135,7 +130,6 @@ export default async function DashboardPage() {
             <CardContent className="space-y-3 text-sm">
               <InfoRow label="Name" value={user.authUser.name || "Not provided"} />
               <InfoRow label="Google email" value={user.authUser.email} />
-              <InfoRow label="User ID" value={user.authUser.id} />
               <InfoRow label="Profile status" value={user.profile.status} />
             </CardContent>
           </Card>
@@ -188,7 +182,7 @@ export default async function DashboardPage() {
             <CardDescription>In-app and email delivery choices.</CardDescription>
           </CardHeader>
           <CardContent>
-            <NotificationPreferencesForm initialPreference={notificationPreference} />
+            <NotificationPreferencesForm />
           </CardContent>
         </Card>
 
@@ -219,16 +213,11 @@ export default async function DashboardPage() {
                       <tr key={assignment.$id}>
                         <td className="py-3 pr-4">
                           <Link
-                            href={`/scoring?eventId=${encodeURIComponent(
-                              assignment.eventId,
-                            )}&role=${assignment.role === "Chair" ? "Chairperson" : "Member"}`}
+                            href={`/events/${assignment.eventId}`}
                             className="font-medium text-primary hover:underline"
                           >
                             {assignment.eventTitle}
                           </Link>
-                          <p className="mt-1 text-xs text-text-muted">
-                            {assignment.eventId}
-                          </p>
                         </td>
                         <td className="px-4 py-3">
                           <Badge tone="primary">

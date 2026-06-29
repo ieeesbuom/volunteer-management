@@ -31,7 +31,6 @@ export function toPublicVolunteerProfileDetails(
     department: "",
     faculty: "",
     headline: details.headline,
-    ieeeMembership: "",
     linkedinUrl: details.linkedinUrl,
     skills: details.skills,
     updatedAt: details.updatedAt,

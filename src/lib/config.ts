@@ -36,5 +36,8 @@ export const ROLE_BASE_POINTS = {
 } as const;
 
 export function isUomEmail(email: string) {
-  return email.toLowerCase().endsWith(`@${UOM_EMAIL_DOMAIN}`);
+  const normalized = email.trim().toLowerCase();
+  const parts = normalized.split("@");
+
+  return parts.length === 2 && Boolean(parts[0]) && !/\s/.test(parts[0]) && parts[1] === UOM_EMAIL_DOMAIN;
 }

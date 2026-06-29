@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, startTransition, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   Trophy,
   Award,
@@ -15,12 +14,11 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { SessionUser } from "@/features/access-control/types";
+import type { EventRole, EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import {
   toggleTopBoardExclusion,
   listVolunteers,
   listDetailedReviews,
-  getVolunteerActiveEventRole,
   listAllActiveEvents,
 } from "../server/actions";
 import type {
@@ -42,6 +40,30 @@ interface EventOption {
 }
 
 type DashboardRole = "Admin" | "Chairperson" | "Committee Lead" | "Member";
+const AUDIT_PAGE_SIZE = 50;
+
+const EVENT_ROLE_PRIORITY: Record<EventRole, number> = {
+  Chair: 4,
+  "Committee Lead": 3,
+  "Vice Chair": 2,
+  "Committee Member": 1,
+};
+
+function dashboardRoleFromAssignment(assignment?: EventRoleAssignment | null): DashboardRole {
+  if (!assignment) {
+    return "Member";
+  }
+
+  if (assignment.role === "Chair") {
+    return "Chairperson";
+  }
+
+  if (assignment.role === "Committee Lead") {
+    return "Committee Lead";
+  }
+
+  return "Member";
+}
 
 interface DetailedGradeReview {
   $id: string;
@@ -156,28 +178,20 @@ export function VolunteerSelect({
   );
 }
 
-function isDashboardRole(role: string | null): role is DashboardRole {
-  return role === "Admin" || role === "Chairperson" || role === "Committee Lead" || role === "Member";
-}
-
 export function ScoringDashboard({
   initialEvents = [],
   initialVolunteers = [],
   initialVolunteersEventId,
   user,
-  userRole,
 }: {
   initialEvents?: EventOption[];
   initialVolunteers?: VolunteerOption[];
   initialVolunteersEventId?: string;
   user: SessionUser;
-  userRole?: DashboardRole;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qEventId = searchParams.get("eventId");
-  const rawRole = searchParams.get("role");
-  const qRole = isDashboardRole(rawRole) ? rawRole : null;
   const [activeTab, setActiveTab] = useState<string>("leaderboard");
 
   const [leaderboard, setLeaderboard] = useState<
@@ -185,10 +199,7 @@ export function ScoringDashboard({
   >([]);
   const [ledger, setLedger] = useState<PointLedgerEntry[]>([]);
 
-  // Selection states for Admin
   const [allEvents, setAllEvents] = useState<EventOption[]>(initialEvents);
-  const [adminSelEvent, setAdminSelEvent] = useState(initialEvents[0]?.eventId ?? "");
-  const [adminSelRole, setAdminSelRole] = useState<DashboardRole>("Admin");
 
   useEffect(() => {
     if (user.isAdmin && allEvents.length === 0) {
@@ -196,9 +207,6 @@ export function ScoringDashboard({
         try {
           const events = await listAllActiveEvents();
           setAllEvents(events);
-          if (events.length > 0) {
-            setAdminSelEvent(events[0].eventId);
-          }
         } catch {}
       }
       fetchEvents();
@@ -225,17 +233,39 @@ export function ScoringDashboard({
     [user.eventRoles],
   );
 
-  // Derived role
-  const derivedRole =
-    userRole ||
-    qRole ||
-    (user.isAdmin
-      ? "Admin"
-      : chairEventIds.length > 0
-      ? "Chairperson"
-      : committeeLeadEventIds.length > 0
-      ? "Committee Lead"
-      : "Member");
+  const activeEventAssignments = useMemo(
+    () =>
+      user.eventRoles
+        .filter((assignment) => assignment.active)
+        .sort((a, b) => {
+          const priorityDelta = EVENT_ROLE_PRIORITY[b.role] - EVENT_ROLE_PRIORITY[a.role];
+          if (priorityDelta !== 0) {
+            return priorityDelta;
+          }
+
+          return a.eventTitle.localeCompare(b.eventTitle);
+        }),
+    [user.eventRoles],
+  );
+
+  const selectedEventAssignment = useMemo(() => {
+    if (user.isAdmin) {
+      return null;
+    }
+
+    const requestedAssignment = qEventId
+      ? activeEventAssignments.find((assignment) => assignment.eventId === qEventId)
+      : undefined;
+
+    return requestedAssignment ?? activeEventAssignments[0] ?? null;
+  }, [activeEventAssignments, qEventId, user.isAdmin]);
+
+  const effectiveEventId = user.isAdmin
+    ? qEventId ?? ""
+    : selectedEventAssignment?.eventId ?? "";
+  const derivedRole = user.isAdmin
+    ? "Admin"
+    : dashboardRoleFromAssignment(selectedEventAssignment);
 
   const [prevRole, setPrevRole] = useState(derivedRole);
   if (derivedRole !== prevRole) {
@@ -251,7 +281,6 @@ export function ScoringDashboard({
           { id: "leaderboard", label: "Leaderboard", icon: Trophy },
           { id: "point-ledger", label: "Point Ledger", icon: Award },
           { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
-          { id: "grade-reviews", label: "Score Reviews", icon: BookOpen },
           { id: "admin-tools", label: "Admin Tools", icon: Sliders },
         ];
       case "Chairperson":
@@ -291,46 +320,19 @@ export function ScoringDashboard({
   // Detailed reviews for admin
   const [detailedReviews, setDetailedReviews] = useState<DetailedGradeReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditPage, setAuditPage] = useState(0);
 
   // Filters for Leaderboard
   const [filterTerm, setFilterTerm] = useState("2026");
   const [filterYear, setFilterYear] = useState("2026");
   const [filterMonth, setFilterMonth] = useState("");
 
-  const [reqEventId, setReqEventId] = useState(qEventId || "");
+  const [reqEventId, setReqEventId] = useState("");
   const [reqTargetUserId, setReqTargetUserId] = useState("");
   const [reqGradeValue, setReqGradeValue] = useState(5);
-  const [gradingRole, setGradingRole] = useState("Committee Member");
-
-  const [prevQEventId, setPrevQEventId] = useState(qEventId);
-  if (qEventId !== prevQEventId) {
-    setPrevQEventId(qEventId);
-    setReqEventId(qEventId || "");
-  }
-
-  useEffect(() => {
-    async function autoFetchRole() {
-      const selectedEventId =
-        reqEventId || (!qEventId && user.isAdmin ? allEvents[0]?.eventId : "");
-      if (reqTargetUserId && selectedEventId) {
-        try {
-          const activeRole = await getVolunteerActiveEventRole(
-            reqTargetUserId,
-            selectedEventId,
-          );
-          if (activeRole) {
-            setGradingRole(activeRole);
-          }
-        } catch {}
-      }
-    }
-    autoFetchRole();
-  }, [allEvents, qEventId, reqTargetUserId, reqEventId, user.isAdmin]);
-
-
-
-  const [revRequestId, setRevRequestId] = useState("");
-  const [revGradeValue, setRevGradeValue] = useState(5);
+  const selectedRequestEventId =
+    reqEventId || effectiveEventId || (user.isAdmin ? allEvents[0]?.eventId ?? "" : "");
 
   const [overReviewId, setOverReviewId] = useState("");
   const [overGradeValue, setOverGradeValue] = useState(5);
@@ -348,7 +350,7 @@ export function ScoringDashboard({
 
   // Fetch volunteers list on mount
   useEffect(() => {
-    const volunteerEventKey = qEventId || "";
+    const volunteerEventKey = effectiveEventId || "";
 
     if (volunteersLoadedFor === volunteerEventKey) {
       return;
@@ -358,7 +360,7 @@ export function ScoringDashboard({
       setVolunteersLoading(true);
       setVolunteersError(null);
       try {
-        const list = await listVolunteers(qEventId || undefined);
+        const list = await listVolunteers(effectiveEventId || undefined);
         setVolunteers(list);
         setVolunteersLoadedFor(volunteerEventKey);
       } catch (err) {
@@ -368,7 +370,7 @@ export function ScoringDashboard({
       }
     }
     loadVolunteers();
-  }, [qEventId, volunteersLoadedFor]);
+  }, [effectiveEventId, volunteersLoadedFor]);
 
   // Fetch leaderboard
   const fetchLeaderboard = async () => {
@@ -447,7 +449,10 @@ export function ScoringDashboard({
         await fetchPointsForUser(targetId);
       } else if (currentTab === "grade-requests") {
         await fetchGradeRequests();
-      } else if (currentTab === "grade-reviews") {
+        if (derivedRole === "Admin") {
+          await fetchDetailedReviews();
+        }
+      } else if (currentTab === "admin-tools") {
         await fetchDetailedReviews();
       }
     };
@@ -548,175 +553,57 @@ export function ScoringDashboard({
     return volunteerNameById.get(userId) ?? "Volunteer";
   }
 
+  const filteredAuditReviews = useMemo(() => {
+    const normalizedSearch = auditSearch.trim().toLowerCase();
 
-  const hasSelected = !!qEventId && !!qRole;
+    if (!normalizedSearch) {
+      return detailedReviews;
+    }
 
-  if (!hasSelected) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-6 py-6">
-        <Card className="border-border bg-surface shadow-sm">
-          <CardHeader className="text-center">
-            <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-soft text-primary mb-4">
-              <Trophy className="size-6" />
-            </span>
-            <CardTitle className="text-2xl font-bold">Select Event & View Mode</CardTitle>
-            <CardDescription className="text-sm">
-              Please select the event responsibility and role you want to view the scoring dashboard as.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {user.isAdmin ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (adminSelEvent) {
-                    router.push(`/scoring?eventId=${encodeURIComponent(adminSelEvent)}&role=${encodeURIComponent(adminSelRole)}`);
-                  }
-                }}
-                className="space-y-4"
-              >
-                <div className="bg-surface-muted p-4 rounded-lg border border-border/50 text-xs text-text-secondary space-y-1">
-                  <span className="font-semibold text-text-primary uppercase block mb-1">Administrator Access</span>
-                  You have full privileges. You can view scoring for any event and manage score approval.
-                </div>
-
-                {allEvents.length > 0 ? (
-                  <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                      Choose Active Event
-                    </label>
-                    <select
-                      value={adminSelEvent}
-                      onChange={(e) => setAdminSelEvent(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-                    >
-                      {allEvents.map((ev) => (
-                        <option key={ev.eventId} value={ev.eventId}>
-                          {ev.eventTitle}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-border bg-surface-muted p-4 text-sm text-text-secondary">
-                    No active events are available for scoring yet. Create or assign event
-                    responsibilities before opening a scoring workspace.
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                    Select Role / View Mode
-                  </label>
-                  <select
-                    value={adminSelRole}
-                    onChange={(e) => setAdminSelRole(e.target.value as DashboardRole)}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Chairperson">Chairperson (Chair)</option>
-                    <option value="Committee Lead">Committee Lead</option>
-                    <option value="Member">Member (Volunteer)</option>
-                  </select>
-                </div>
-
-                <Button disabled={!adminSelEvent} type="submit" className="w-full">
-                  Access Dashboard
-                </Button>
-              </form>
-            ) : user.eventRoles && user.eventRoles.filter((r) => r.active).length > 0 ? (
-              <div className="space-y-3">
-                <span className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                  Your Event Responsibilities
-                </span>
-                <div className="grid gap-3">
-                  {user.eventRoles
-                    .filter((r) => r.active)
-                    .map((assignment) => {
-                      const displayRole: DashboardRole =
-                        assignment.role === "Chair"
-                          ? "Chairperson"
-                          : assignment.role === "Committee Lead"
-                            ? "Committee Lead"
-                            : "Member";
-                      return (
-                        <button
-                          key={assignment.$id}
-                          onClick={() => {
-                            router.push(`/scoring?eventId=${encodeURIComponent(assignment.eventId)}&role=${encodeURIComponent(displayRole)}`);
-                          }}
-                          className="flex items-center justify-between p-4 border border-border hover:border-primary/50 hover:bg-primary-soft/5 rounded-lg text-left transition-all group animate-fade-in"
-                        >
-                          <div>
-                            <span className="font-semibold text-text-primary group-hover:text-primary transition-colors">
-                              {assignment.eventTitle}
-                            </span>
-                            {assignment.committeeName ? (
-                              <span className="text-xs text-text-muted block mt-0.5">
-                                {assignment.committeeName}
-                              </span>
-                            ) : null}
-                          </div>
-                          <Badge tone={assignment.role === "Chair" ? "warning" : "neutral"}>
-                            {assignment.role}
-                          </Badge>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6 space-y-4">
-                <p className="text-sm text-text-secondary">
-                  No active event responsibilities are currently assigned to this account.
-                </p>
-                <div className="bg-surface-muted p-4 rounded-lg border border-border/50 text-xs text-text-secondary">
-                  Please ask an administrator to assign a responsibility in Access Control.
-                </div>
-                <Link href="/dashboard" className="text-xs text-primary hover:underline block">
-                  Back to Access Overview
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+    return detailedReviews.filter((review) =>
+      [
+        review.eventTitle ?? eventTitleById.get(review.eventId) ?? "Selected event",
+        review.volunteerName,
+        review.reviewerName,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch),
     );
+  }, [auditSearch, detailedReviews, eventTitleById]);
+  const auditPageCount = Math.max(1, Math.ceil(filteredAuditReviews.length / AUDIT_PAGE_SIZE));
+  const safeAuditPage = Math.min(auditPage, auditPageCount - 1);
+  const pagedAuditReviews = filteredAuditReviews.slice(
+    safeAuditPage * AUDIT_PAGE_SIZE,
+    safeAuditPage * AUDIT_PAGE_SIZE + AUDIT_PAGE_SIZE,
+  );
+
+  const showEventContextSwitcher = !user.isAdmin && activeEventAssignments.length > 1;
+
+  function handleEventContextChange(eventId: string) {
+    router.push(`/scoring?eventId=${encodeURIComponent(eventId)}`);
   }
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Header with Role Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface p-4 rounded-lg border border-border gap-2">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold text-text-primary text-sm uppercase tracking-wider">Dashboard View Mode:</span>
-          <Badge
-            tone={
-              derivedRole === "Admin"
-                ? "primary"
-                : derivedRole === "Chairperson" || derivedRole === "Committee Lead"
-                  ? "warning"
-                  : "neutral"
-            }
-          >
-            {derivedRole}
-          </Badge>
-          {qEventId && (
-            <Badge tone="neutral">
-              Event: {eventLabel(qEventId)}
-            </Badge>
-          )}
-          <Link
-            href="/scoring"
-            className="text-xs text-primary hover:underline ml-2 flex items-center gap-1 font-medium border-l border-border pl-3"
-          >
-            Switch Event/Role
-          </Link>
+      {showEventContextSwitcher ? (
+        <div className="flex justify-end">
+          <label className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+            Event
+            <select
+              value={effectiveEventId}
+              onChange={(event) => handleEventContextChange(event.target.value)}
+              className="min-w-64 rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary"
+            >
+              {activeEventAssignments.map((assignment) => (
+                <option key={assignment.$id} value={assignment.eventId}>
+                  {assignment.eventTitle} - {assignment.role}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        <div className="text-xs text-text-secondary">
-          Logged in as: <span className="font-semibold">{user.authUser.name}</span> ({user.authUser.email})
-        </div>
-      </div>
+      ) : null}
 
       {/* Tab bar header */}
       <div className="flex border-b border-border bg-surface px-4 py-2 rounded-t-lg gap-2 overflow-x-auto">
@@ -727,7 +614,7 @@ export function ScoringDashboard({
             <button
               key={tab.id}
               onClick={() => startTransition(() => setActiveTab(tab.id))}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${
+              className={`flex cursor-pointer items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${
                 isActive
                   ? "bg-primary-soft text-primary border border-primary/20"
                   : "text-text-secondary hover:bg-surface-muted"
@@ -969,8 +856,6 @@ export function ScoringDashboard({
                     e.preventDefault();
                     setError(null);
                     setSuccess(null);
-                    const selectedRequestEventId =
-                      reqEventId || (!qEventId && user.isAdmin ? allEvents[0]?.eventId : "");
                     if (!selectedRequestEventId) {
                       setError("Select an event before submitting an extra score.");
                       return;
@@ -988,30 +873,29 @@ export function ScoringDashboard({
                       if (data.error) throw new Error(data.error);
                       setSuccess("Extra score submitted successfully!");
                       fetchGradeRequests();
-                      setReqEventId("");
                       setReqTargetUserId("");
                     } catch (err) {
                       setError(err instanceof Error ? err.message : "Failed to submit request.");
                     }
                   }}
-                  className="grid gap-4 md:grid-cols-3 items-end"
+                  className="grid items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,16rem)_auto]"
                 >
                   <div>
                     <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
                       Event
                     </label>
-                    {qEventId ? (
+                    {!user.isAdmin && effectiveEventId ? (
                       <input
                         type="text"
                         required
                         disabled
-                        value={eventLabel(qEventId)}
+                        value={eventLabel(effectiveEventId)}
                         className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-75"
                       />
                     ) : user.isAdmin && allEvents.length > 0 ? (
                       <select
                         required
-                        value={reqEventId || allEvents[0]?.eventId || ""}
+                        value={selectedRequestEventId}
                         onChange={(e) => setReqEventId(e.target.value)}
                         className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
                       >
@@ -1039,36 +923,31 @@ export function ScoringDashboard({
                       error={volunteersError}
                     />
                   </div>
-                  <div className="flex gap-2 items-center">
-                    <div className="flex-1">
-                      <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                        Extra Score (0-10) - {gradingRole}
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={10}
-                        required
-                        value={reqGradeValue}
-                        onChange={(e) => setReqGradeValue(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-                      />
-                      <span className="text-[10px] text-text-muted mt-1 block">
-                        Committee Leads score members, Chairs score Committee Leads, and Admins score Chair/Vice Chair.
-                      </span>
-                    </div>
-                    <Button
-                      disabled={
-                        volunteersLoading ||
-                        !reqTargetUserId ||
-                        !(qEventId || reqEventId || (user.isAdmin && allEvents[0]?.eventId))
-                      }
-                      type="submit"
-                      className="shrink-0 flex items-center gap-1 mt-5"
-                    >
-                      <Plus className="size-4" /> Submit
-                    </Button>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                      Extra Score (0-10)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      required
+                      value={reqGradeValue}
+                      onChange={(e) => setReqGradeValue(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                    />
                   </div>
+                  <Button
+                    disabled={
+                      volunteersLoading ||
+                      !reqTargetUserId ||
+                      !selectedRequestEventId
+                    }
+                    type="submit"
+                    className="flex h-10 shrink-0 items-center gap-1"
+                  >
+                    <Plus className="size-4" /> Submit
+                  </Button>
                 </form>
               </CardContent>
             </Card>
@@ -1078,37 +957,36 @@ export function ScoringDashboard({
             <CardHeader>
               <CardTitle>
                 {derivedRole === "Admin"
-                  ? "All Extra Score Requests"
-                  : qEventId
-                  ? `Extra Score Requests for ${eventLabel(qEventId)}`
+                  ? "Extra Score Requests"
+                  : effectiveEventId
+                  ? `Extra Score Requests for ${eventLabel(effectiveEventId)}`
                   : "Extra Score Requests for My Events"}
               </CardTitle>
               <CardDescription>
                 {derivedRole === "Admin"
-                  ? "Manage and inspect the status of all active volunteer extra-score workflows."
-                  : "Review the extra-score requests connected to your event responsibility."}
+                  ? "Only requests that still need review or final approval are shown here."
+                  : "Only requests connected to your event responsibility that still need action are shown here."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {(() => {
+                const actionableRequests = gradeRequests.filter((req) => req.status !== "finalized");
                 const visibleRequests = derivedRole === "Admin"
-                  ? (qEventId ? gradeRequests.filter(req => req.eventId === qEventId) : gradeRequests)
-                  : gradeRequests.filter((req) => {
-                      if (qEventId) {
-                        return req.eventId === qEventId;
-                      }
-                      return derivedRole === "Chairperson"
-                        ? chairEventIds.includes(req.eventId)
-                        : committeeLeadEventIds.includes(req.eventId);
-                    });
+                  ? (effectiveEventId ? actionableRequests.filter(req => req.eventId === effectiveEventId) : actionableRequests)
+                  : actionableRequests.filter((req) => {
+                    if (effectiveEventId) {
+                      return req.eventId === effectiveEventId;
+                    }
+                    return derivedRole === "Chairperson"
+                      ? chairEventIds.includes(req.eventId)
+                      : committeeLeadEventIds.includes(req.eventId);
+                  });
 
                 if (visibleRequests.length > 0) {
                   return (
                     <div className="space-y-4">
                       {visibleRequests.map((req) => {
                         const targetVolName = req.targetUserName ?? volunteerLabel(req.targetUserId);
-                        const requestedByName =
-                          req.requestedByName ?? volunteerLabel(req.requestedBy);
                         const canSubmitScoreForEvent = committeeLeadEventIds.includes(req.eventId);
 
                         return (
@@ -1135,7 +1013,7 @@ export function ScoringDashboard({
                                   </Badge>
                                 </div>
                                 <p className="text-xs text-text-secondary">
-                                  Volunteer: <span className="font-semibold">{targetVolName}</span> | Requested by: {requestedByName}
+                                  Volunteer: <span className="font-semibold">{targetVolName}</span>
                                 </p>
                               </div>
 
@@ -1236,160 +1114,140 @@ export function ScoringDashboard({
                     </div>
                   );
                 } else {
-                  return <p className="text-center py-6 text-text-secondary">No grading requests found.</p>;
+                  return <p className="text-center py-6 text-text-secondary">No extra score requests need review right now.</p>;
                 }
               })()}
             </CardContent>
           </Card>
-        </div>
-      )}
 
-      {currentTab === "grade-reviews" && derivedRole === "Admin" && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Submit Extra Score Review</CardTitle>
-              <CardDescription>
-                Submit or update an admin extra-score review for an open request.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setError(null);
-                  setSuccess(null);
-                  try {
-                    const res = await fetch(`/api/scoring/grade-requests/${revRequestId}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({ gradeValue: revGradeValue }),
-                    });
-                    const data = await res.json();
-                    if (data.error) throw new Error(data.error);
-                    setSuccess("Extra score review submitted!");
-                    fetchGradeRequests();
-                    await fetchDetailedReviews();
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : "Failed to submit review.");
-                  }
-                }}
-                className="grid gap-4 md:grid-cols-3 items-end"
-              >
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                    Select Open Request
-                  </label>
-                  <select
-                    required
-                    value={revRequestId}
-                    onChange={(e) => setRevRequestId(e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-                  >
-                    <option value="">-- Choose Request --</option>
-                    {gradeRequests
-                      .filter((r) => r.status !== "finalized")
-                      .map((r) => {
-                        const targetName = r.targetUserName ?? volunteerLabel(r.targetUserId);
-                        return (
-                          <option key={r.$id} value={r.$id}>
-                            {r.eventTitle ?? eventLabel(r.eventId)} - {targetName}
-                          </option>
-                        );
-                      })}
-                  </select>
+          {derivedRole === "Admin" ? (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <CardTitle>Extra Score Audit Log</CardTitle>
+                    <CardDescription>
+                      History of submitted extra scores and admin corrections for accountability.
+                    </CardDescription>
+                  </div>
+                  <div className="w-full md:w-80">
+                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                      Search
+                    </label>
+                    <input
+                      type="search"
+                      value={auditSearch}
+                      onChange={(event) => {
+                        setAuditSearch(event.target.value);
+                        setAuditPage(0);
+                      }}
+                      placeholder="Event or volunteer name"
+                      className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                    Extra Score (0-10)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    required
-                    value={revGradeValue}
-                    onChange={(e) => setRevGradeValue(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  Submit Review
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Score Reviews Log</CardTitle>
-              <CardDescription>
-                Audit history of submitted extra-score contributions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {reviewsLoading ? (
-                <div className="text-center py-6 text-text-secondary">Loading reviews...</div>
-              ) : detailedReviews.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-left text-sm">
-                    <thead className="text-text-secondary">
-                      <tr>
-                        <th className="py-2 pr-4 font-semibold">Event</th>
-                        <th className="px-4 py-2 font-semibold">Volunteer Name</th>
-                        <th className="px-4 py-2 font-semibold">Submitted By</th>
-                        <th className="px-4 py-2 font-semibold text-center">Score</th>
-                        <th className="px-4 py-2 font-semibold">Submitted At</th>
-                        <th className="px-4 py-2 font-semibold">Audit Overrides</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {detailedReviews.map((rev) => {
-                        let auditHistory: string[] = [];
-                        if (rev.audit_metadata) {
-                          try {
-                            const parsed = JSON.parse(rev.audit_metadata);
-                            if (Array.isArray(parsed)) {
-                              auditHistory = parsed.map(
-                                (entry: GradeAuditEntry) =>
-                                  `Changed from ${entry.originalValue} to ${entry.newValue} by ${entry.changedBy} on ${new Date(entry.changedAt).toLocaleDateString()} (Reason: ${entry.reason || "None"})`
-                              );
-                            }
-                          } catch {}
-                        }
-
-                        return (
-                          <tr key={rev.$id}>
-                            <td className="py-3 pr-4 font-medium text-text-primary">
-                              {rev.eventTitle ?? eventLabel(rev.eventId)}
-                            </td>
-                            <td className="px-4 py-3 text-text-primary">{rev.volunteerName}</td>
-                            <td className="px-4 py-3 text-text-secondary">{rev.reviewerName}</td>
-                            <td className="px-4 py-3 text-center font-bold text-text-primary">{rev.gradeValue} / 10</td>
-                            <td className="px-4 py-3 text-text-secondary">
-                              {new Date(rev.submittedAt).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 text-xs text-text-muted">
-                              {auditHistory.length > 0 ? (
-                                <ul className="list-disc pl-4 space-y-0.5">
-                                  {auditHistory.map((item, idx) => (
-                                    <li key={idx}>{item}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                "No overrides"
-                              )}
-                            </td>
+              </CardHeader>
+              <CardContent>
+                {reviewsLoading ? (
+                  <div className="text-center py-6 text-text-secondary">Loading audit log...</div>
+                ) : filteredAuditReviews.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-border text-left text-sm">
+                        <thead className="text-text-secondary">
+                          <tr>
+                            <th className="py-2 pr-4 font-semibold">Event</th>
+                            <th className="px-4 py-2 font-semibold">Volunteer</th>
+                            <th className="px-4 py-2 font-semibold">Submitted By</th>
+                            <th className="px-4 py-2 font-semibold text-center">Score</th>
+                            <th className="px-4 py-2 font-semibold">Submitted At</th>
+                            <th className="px-4 py-2 font-semibold">Corrections</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-center py-6 text-text-secondary">No reviews found.</p>
-              )}
-            </CardContent>
-          </Card>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {pagedAuditReviews.map((rev) => {
+                            let auditHistory: string[] = [];
+                            if (rev.audit_metadata) {
+                              try {
+                                const parsed = JSON.parse(rev.audit_metadata);
+                                if (Array.isArray(parsed)) {
+                                  auditHistory = parsed.map(
+                                    (entry: GradeAuditEntry) =>
+                                      `Changed from ${entry.originalValue} to ${entry.newValue} by ${entry.changedBy} on ${new Date(entry.changedAt).toLocaleDateString()} (Reason: ${entry.reason || "None"})`,
+                                  );
+                                }
+                              } catch {}
+                            }
+
+                            return (
+                              <tr key={rev.$id}>
+                                <td className="py-3 pr-4 font-medium text-text-primary">
+                                  {rev.eventTitle ?? eventLabel(rev.eventId)}
+                                </td>
+                                <td className="px-4 py-3 text-text-primary">{rev.volunteerName}</td>
+                                <td className="px-4 py-3 text-text-secondary">{rev.reviewerName}</td>
+                                <td className="px-4 py-3 text-center font-bold text-text-primary">
+                                  {rev.gradeValue} / 10
+                                </td>
+                                <td className="px-4 py-3 text-text-secondary">
+                                  {new Date(rev.submittedAt).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-3 text-xs text-text-muted">
+                                  {auditHistory.length > 0 ? (
+                                    <ul className="list-disc space-y-0.5 pl-4">
+                                      {auditHistory.map((item, idx) => (
+                                        <li key={idx}>{item}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    "No corrections"
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-text-secondary">
+                        Showing {safeAuditPage * AUDIT_PAGE_SIZE + 1}-
+                        {Math.min((safeAuditPage + 1) * AUDIT_PAGE_SIZE, filteredAuditReviews.length)} of{" "}
+                        {filteredAuditReviews.length}
+                      </p>
+                      {filteredAuditReviews.length > AUDIT_PAGE_SIZE ? (
+                        <div className="flex gap-2">
+                          <Button
+                            disabled={safeAuditPage === 0}
+                            onClick={() => setAuditPage((page) => Math.max(0, page - 1))}
+                            type="button"
+                            variant="secondary"
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            disabled={safeAuditPage >= auditPageCount - 1}
+                            onClick={() => setAuditPage((page) => Math.min(auditPageCount - 1, page + 1))}
+                            type="button"
+                            variant="secondary"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-text-secondary">
+                    {auditSearch
+                      ? "No extra score audit records match that search."
+                      : "No extra score submissions have been recorded yet."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       )}
 

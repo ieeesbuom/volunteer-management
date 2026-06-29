@@ -3,9 +3,16 @@ import { z } from "zod";
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { jsonError, routeErrorStatus } from "@/server/errors";
 import { requestUomVerification } from "@/features/access-control/server/uom-verification";
+import { isUomEmail, UOM_EMAIL_DOMAIN } from "@/lib/config";
 
 const requestSchema = z.object({
-  uomEmail: z.string().email(),
+  uomEmail: z
+    .string()
+    .trim()
+    .email()
+    .refine((email) => isUomEmail(email), {
+      message: `Use your University of Moratuwa email ending with @${UOM_EMAIL_DOMAIN}.`,
+    }),
 });
 
 export async function POST(request: Request) {

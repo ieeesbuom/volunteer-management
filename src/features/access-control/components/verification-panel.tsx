@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isUomEmail, UOM_EMAIL_DOMAIN } from "@/lib/config";
 
 type RequestResult = {
   deliveredTo: string;
@@ -22,6 +23,13 @@ export function VerificationPanel() {
 
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!isUomEmail(uomEmail)) {
+      setStatus("error");
+      setMessage(`Use your University of Moratuwa email ending with @${UOM_EMAIL_DOMAIN}.`);
+      return;
+    }
+
     setSubmitting("request");
     setStatus("idle");
     setMessage("Sending verification email...");
@@ -91,7 +99,7 @@ export function VerificationPanel() {
           </div>
           <h3 className="text-sm font-semibold text-text-primary">Request code</h3>
           <p className="text-sm leading-6 text-text-secondary">
-            Enter the university email address connected to your volunteer identity.
+            Enter your University of Moratuwa email ending with @{UOM_EMAIL_DOMAIN}.
           </p>
         </div>
         <form className="space-y-3" onSubmit={requestCode}>
@@ -102,6 +110,7 @@ export function VerificationPanel() {
             className="h-11 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none transition-colors focus:border-primary"
             id="uom-email"
             onChange={(event) => setUomEmail(event.target.value)}
+            pattern={`^[^\\s@]+@${UOM_EMAIL_DOMAIN.replace(".", "\\.")}$`}
             placeholder="name@uom.lk"
             required
             type="email"

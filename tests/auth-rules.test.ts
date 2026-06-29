@@ -74,6 +74,10 @@ describe("auth rules", () => {
 
   it("normalizes and validates UoM email", () => {
     expect(normalizeUomEmail("User@UOM.LK")).toBe("user@uom.lk");
+    expect(normalizeUomEmail(" user.name+tag@uom.lk ")).toBe("user.name+tag@uom.lk");
     expect(() => normalizeUomEmail("user@example.com")).toThrow("@uom.lk");
+    expect(() => normalizeUomEmail("user@student.uom.lk")).toThrow("@uom.lk");
+    expect(() => normalizeUomEmail("user@uom.lk.example.com")).toThrow("@uom.lk");
+    expect(() => normalizeUomEmail("user@@uom.lk")).toThrow("@uom.lk");
   });
 });

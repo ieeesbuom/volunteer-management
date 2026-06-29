@@ -108,7 +108,7 @@ export default async function ReportsOverviewPage() {
               <Trophy className="size-4 text-primary" aria-hidden="true" />
               Recognition snapshot
             </CardTitle>
-            <CardDescription>Points-based recognition is not connected yet.</CardDescription>
+            <CardDescription>Recognition from approved point ledger entries.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {data.volunteerOfTheMonth ? (
@@ -121,7 +121,7 @@ export default async function ReportsOverviewPage() {
               </div>
             ) : (
               <p className="text-text-secondary">
-                Volunteer of the Month will appear once the points ledger is connected.
+                No eligible points have been awarded for the current month.
               </p>
             )}
             {data.hallOfFame[0] ? (
@@ -132,7 +132,9 @@ export default async function ReportsOverviewPage() {
                 </p>
               </div>
             ) : (
-              <p className="text-text-secondary">Hall of Fame rankings are not available yet.</p>
+              <p className="text-text-secondary">
+                No eligible points have been awarded for the current IEEE term.
+              </p>
             )}
             <Link className={buttonClasses()} href="/reports/recognition">
               View recognition
@@ -162,7 +164,7 @@ export default async function ReportsOverviewPage() {
           ) : null}
           {user.isAdmin ? (
             <QuickLinkCard
-              description="Export volunteer identity, roles, and participation."
+              description="Export identity, roles, participation, recommendations, and points."
               href="/reports/volunteers"
               icon={UsersRound}
               title="Volunteer PDFs"

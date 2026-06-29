@@ -17,13 +17,20 @@ Structural committees (`event_committees`) and membership (`event_committee_memb
 | `DELETE /api/events/[eventId]/committees/[committeeId]` | Delete committee |
 | `GET/POST /api/events/[eventId]/committees/[committeeId]/members` | List / add members |
 | `DELETE .../members/[memberId]` | Remove member |
-| `PATCH /api/events/[eventId]/conclude` | Conclusion workflow only |
+| `PATCH /api/events/[eventId]/conclude` | Legacy guard route; returns `409` and points users to structured reports |
 | `PATCH /api/events/[eventId]/status` | Operational status only (no conclusion bypass) |
+| `GET/POST /api/events/[eventId]/participation` | Event-staff participation intake for assigned volunteers |
 
 ## Conclusion workflow
 
-`pending_conclusion` and `closed` cannot be set through the generic status API or event PATCH.
-Use `PATCH /api/events/[eventId]/conclude` with `{ action: "submit" | "approve" | "reject" }`.
+`pending_conclusion` and `closed` cannot be set through the generic status API,
+event PATCH, or direct conclusion endpoint. Structured conclusion reports are
+the canonical path:
+
+- Event leads submit through `/reports/conclusions`.
+- Admins review through `/reports/approval`.
+- Submitted reports move events to `pending_conclusion`.
+- Approved reports close events and unlock scoring finalization.
 
 Approval writes audit action `EVENT_CONCLUSION_APPROVED` with scoring-ready metadata.
 

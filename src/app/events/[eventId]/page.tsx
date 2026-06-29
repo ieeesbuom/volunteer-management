@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { listProfiles } from "@/features/access-control/server/profiles";
 import { EventDetail } from "@/features/events/components/EventDetail";
 import {
   getEventUserContext,
@@ -11,6 +12,8 @@ import {
 import { listCommitteesForEvent, listCommitteeMembers } from "@/features/events/server/committees.server";
 import { getRoleAssignmentsForEvent } from "@/features/events/server/event-roles.server";
 import { getEventById } from "@/features/events/server/event-service";
+import { listFormConnectionsForCurrentUser } from "@/features/forms/server/form-connection-service";
+import { listEventParticipationRoster } from "@/features/scoring/server/participation";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +45,8 @@ export default async function EventDetailPage({ params }: PageProps) {
     redirect("/events");
   }
 
-  const [assignments, committees, permissions] = await Promise.all([
+  const permissions = getPermissionsForUser(user, event, userEventRole);
+  const [assignments, committees, formConnections, participationRoster, profiles] = await Promise.all([
     getRoleAssignmentsForEvent(eventId),
     listCommitteesForEvent(eventId).then(async (items) =>
       Promise.all(
@@ -52,17 +56,42 @@ export default async function EventDetailPage({ params }: PageProps) {
         })),
       ),
     ),
-    Promise.resolve(getPermissionsForUser(user, event, userEventRole)),
+    listFormConnectionsForCurrentUser(eventId).catch(() => []),
+    listEventParticipationRoster({ eventId, user }).catch(() => ({
+      canManage: false,
+      eventId,
+      eventTitle: event.title,
+      records: [],
+    })),
+    listProfiles(),
   ]);
+  const volunteerOptions = profiles
+    .filter((profile) => profile.status === "ACTIVE" && profile.uomVerified)
+    .map((profile) => ({
+      googleEmail: profile.googleEmail,
+      name: profile.name || profile.uomEmail || profile.googleEmail,
+      uomEmail: profile.uomEmail,
+      userId: profile.authUserId,
+    }));
+  const canManageFormConnections =
+    permissions.canManageCommittee ||
+    permissions.canEdit ||
+    user.isAdmin ||
+    userEventRole === "Vice Chair" ||
+    userEventRole === "Committee Lead";
 
   return (
     <AppShell active="events" user={user}>
       <EventDetail
+        canManageFormConnections={canManageFormConnections}
         currentUserId={user.authUser.id}
         initialAssignments={assignments}
         initialCommittees={committees}
         initialEvent={event}
+        initialFormConnections={formConnections}
+        initialParticipationRoster={participationRoster}
         initialPermissions={permissions}
+        initialVolunteers={volunteerOptions}
         isAdmin={user.isAdmin}
         userEventRole={userEventRole}
       />

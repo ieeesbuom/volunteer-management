@@ -249,37 +249,15 @@ describe("notification routes", () => {
       })),
       listFormConnectionsForCurrentUser: vi.fn(),
     }));
-    vi.doMock("@/features/access-control/server/profiles", () => ({
-      listProfiles: vi.fn(async () => [
-        {
-          authUserId: "user-a",
-          status: "ACTIVE",
-          uomVerified: true,
-        },
-        {
-          authUserId: "user-b",
-          status: "ACTIVE",
-          uomVerified: false,
-        },
-      ]),
-    }));
-    vi.doMock("@/features/access-control/server/roles", () => ({
-      listActiveEventRoleAssignments: vi.fn(async () => [
-        {
-          eventId: "event-1",
-          eventTitle: "MoraForesight",
-          userId: "user-a",
-        },
-        {
-          eventId: "event-1",
-          eventTitle: "MoraForesight",
-          userId: "user-b",
-        },
-      ]),
-    }));
     vi.doMock("@/features/notifications/server/workflow-notifications", () => ({
       notifyEventUpdateWorkflow,
       notifyGradingRequestWorkflow,
+    }));
+    vi.doMock("@/features/notifications/server/workflow-recipients", () => ({
+      getEventNotificationContext: vi.fn(async () => ({
+        eventTitle: "MoraForesight",
+        recipientUserIds: ["user-a"],
+      })),
     }));
 
     const route = await import("../src/app/api/forms/connections/route");

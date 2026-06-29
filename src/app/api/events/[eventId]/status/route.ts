@@ -8,6 +8,8 @@ import {
   requireVisibleEvent,
 } from "@/features/events/server/event-route-helpers";
 import { updateEventStatus } from "@/features/events/server/event-service";
+import { notifyEventUpdateWorkflow } from "@/features/notifications/server/workflow-notifications";
+import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { EVENT_STATUSES } from "@/features/events/types";
 import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
 
@@ -51,8 +53,19 @@ export async function PATCH(request: Request, context: RouteContext) {
       actorUserId: user!.authUser.id,
       allowAdminBackward: user!.isAdmin,
     });
+    const notificationContext = await getEventNotificationContext(eventId, {
+      excludeUserIds: [user!.authUser.id],
+    });
+    const notifications = await notifyEventUpdateWorkflow({
+      actorUserId: user!.authUser.id,
+      eventId,
+      eventTitle: notificationContext.eventTitle,
+      linkHref: `/events/${eventId}`,
+      message: `${notificationContext.eventTitle} status changed to ${parsed.data.status.replaceAll("_", " ")}.`,
+      recipientUserIds: notificationContext.recipientUserIds,
+    });
 
-    return NextResponse.json({ event: updatedEvent });
+    return NextResponse.json({ event: updatedEvent, notifications });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to update event status.";

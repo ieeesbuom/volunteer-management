@@ -51,6 +51,14 @@ export function ConclusionReportForm({
   const selectedEvent = events.find((event) => event.eventId === eventId);
   const contentEditable = !report || canEditReportContent(report);
 
+  if (events.length === 0 && !report) {
+    return (
+      <p className="text-sm text-text-secondary">
+        No ongoing or pending events are available for conclusion reporting.
+      </p>
+    );
+  }
+
   async function persist(nextStatus?: "SUBMITTED") {
     setPending(true);
     setStatus("idle");

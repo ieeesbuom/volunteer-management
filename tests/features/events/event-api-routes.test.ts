@@ -17,6 +17,9 @@ const mockGetUserEventRole = vi.fn();
 const mockAssignEventRole = vi.fn();
 const mockGetRoleAssignmentsForEvent = vi.fn();
 const mockRemoveEventRole = vi.fn();
+const mockNotifyEventUpdateWorkflow = vi.fn();
+const mockNotifyRoleAssignmentWorkflow = vi.fn();
+const mockGetEventNotificationContext = vi.fn();
 
 vi.mock("@/features/access-control/server/current-user", () => ({
   getCurrentUser: () => mockGetCurrentUser(),
@@ -43,6 +46,18 @@ vi.mock("@/features/events/server/event-roles.server", () => ({
     mockGetRoleAssignmentsForEvent(...args),
   getUserEventRole: (...args: unknown[]) => mockGetUserEventRole(...args),
   removeEventRole: (...args: unknown[]) => mockRemoveEventRole(...args),
+}));
+
+vi.mock("@/features/notifications/server/workflow-notifications", () => ({
+  notifyEventUpdateWorkflow: (...args: unknown[]) =>
+    mockNotifyEventUpdateWorkflow(...args),
+  notifyRoleAssignmentWorkflow: (...args: unknown[]) =>
+    mockNotifyRoleAssignmentWorkflow(...args),
+}));
+
+vi.mock("@/features/notifications/server/workflow-recipients", () => ({
+  getEventNotificationContext: (...args: unknown[]) =>
+    mockGetEventNotificationContext(...args),
 }));
 
 function createSessionUser(overrides: Partial<SessionUser> = {}): SessionUser {
@@ -90,6 +105,12 @@ describe("event API routes", () => {
     vi.clearAllMocks();
     mockGetEvents.mockResolvedValue({ events: [], total: 0 });
     mockGetUserEventRole.mockResolvedValue(null);
+    mockNotifyEventUpdateWorkflow.mockResolvedValue([]);
+    mockNotifyRoleAssignmentWorkflow.mockResolvedValue({ notification: null });
+    mockGetEventNotificationContext.mockResolvedValue({
+      eventTitle: "MoraForesight 4.0",
+      recipientUserIds: ["user-2"],
+    });
   });
 
   describe("GET /api/events", () => {
@@ -400,7 +421,7 @@ describe("event API routes", () => {
   });
 
   describe("PATCH /api/events/[eventId]/conclude", () => {
-    it("returns 403 when a chair tries to approve the conclusion", async () => {
+    it("returns 409 because structured reports own conclusion decisions", async () => {
       const ongoingEvent = createEventFixture({ status: "ongoing" });
       mockGetCurrentUser.mockResolvedValueOnce(createSessionUser());
       mockGetEventById.mockResolvedValueOnce(ongoingEvent);
@@ -415,73 +436,13 @@ describe("event API routes", () => {
         { params: Promise.resolve({ eventId: "event-1" }) },
       );
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(409);
+      expect(await readJson<{ error: string }>(response)).toEqual({
+        error: "Conclusion actions are managed through structured conclusion reports.",
+      });
       expect(mockApproveConclusion).not.toHaveBeenCalled();
-    });
-
-    it("returns 200 when a chair submits the conclusion", async () => {
-      const ongoingEvent = createEventFixture({
-        conclusion_status: "not_submitted",
-        status: "ongoing",
-      });
-      const updatedEvent = createEventFixture({
-        conclusion_status: "submitted",
-        status: "pending_conclusion",
-      });
-      mockGetCurrentUser.mockResolvedValueOnce(createSessionUser());
-      mockGetEventById.mockResolvedValueOnce(ongoingEvent);
-      mockGetUserEventRole.mockResolvedValueOnce("Chair");
-      mockSubmitConclusion.mockResolvedValueOnce(updatedEvent);
-      const { PATCH } = await import("@/app/api/events/[eventId]/conclude/route");
-
-      const response = await PATCH(
-        new Request("http://localhost/api/events/event-1/conclude", {
-          body: JSON.stringify({ action: "submit" }),
-          method: "PATCH",
-        }),
-        { params: Promise.resolve({ eventId: "event-1" }) },
-      );
-
-      expect(response.status).toBe(200);
-      expect(mockSubmitConclusion).toHaveBeenCalledWith("event-1", "user-1");
-    });
-
-    it("returns 200 when an admin approves a submitted conclusion", async () => {
-      const pendingEvent = createEventFixture({
-        conclusion_status: "submitted",
-        status: "pending_conclusion",
-      });
-      const closedEvent = createEventFixture({
-        conclusion_status: "approved",
-        status: "closed",
-      });
-      mockGetCurrentUser.mockResolvedValueOnce(
-        createSessionUser({
-          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
-          isAdmin: true,
-          profile: {
-            $id: "profile-admin",
-            authUserId: "admin-1",
-            googleEmail: "admin@example.com",
-            status: "ACTIVE",
-            uomVerified: false,
-          },
-        }),
-      );
-      mockGetEventById.mockResolvedValueOnce(pendingEvent);
-      mockApproveConclusion.mockResolvedValueOnce(closedEvent);
-      const { PATCH } = await import("@/app/api/events/[eventId]/conclude/route");
-
-      const response = await PATCH(
-        new Request("http://localhost/api/events/event-1/conclude", {
-          body: JSON.stringify({ action: "approve" }),
-          method: "PATCH",
-        }),
-        { params: Promise.resolve({ eventId: "event-1" }) },
-      );
-
-      expect(response.status).toBe(200);
-      expect(mockApproveConclusion).toHaveBeenCalledWith("event-1", "admin-1");
+      expect(mockSubmitConclusion).not.toHaveBeenCalled();
+      expect(mockRejectConclusion).not.toHaveBeenCalled();
     });
   });
 

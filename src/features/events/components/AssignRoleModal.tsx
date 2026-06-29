@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus } from "lucide-react";
+import { Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import { AssignEventRoleInputSchema, type EventRole } from "@/features/events/types";
@@ -15,29 +15,58 @@ const CHAIR_ASSIGNABLE_ROLES: EventRole[] = [
 
 const ADMIN_ASSIGNABLE_ROLES: EventRole[] = ["Chair", ...CHAIR_ASSIGNABLE_ROLES];
 
+type VolunteerOption = {
+  googleEmail: string;
+  name: string;
+  uomEmail?: string;
+  userId: string;
+};
+
 export function AssignRoleModal({
   committeeNames,
   currentUserIsAdmin,
   eventId,
   onClose,
   onSuccess,
+  volunteerOptions,
 }: Readonly<{
   committeeNames: string[];
   currentUserIsAdmin: boolean;
   eventId: string;
   onClose: () => void;
   onSuccess: () => void;
+  volunteerOptions: VolunteerOption[];
 }>) {
   const availableRoles = currentUserIsAdmin
     ? ADMIN_ASSIGNABLE_ROLES
     : CHAIR_ASSIGNABLE_ROLES;
   const [userId, setUserId] = useState("");
+  const [search, setSearch] = useState("");
   const [role, setRole] = useState<EventRole>(availableRoles[0]);
   const [committeeName, setCommitteeName] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const committeeRequired = role === "Committee Lead" || role === "Committee Member";
+  const filteredVolunteers = volunteerOptions
+    .filter((volunteer) => {
+      const query = search.trim().toLowerCase();
+
+      if (!query) {
+        return true;
+      }
+
+      return [
+        volunteer.name,
+        volunteer.googleEmail,
+        volunteer.uomEmail,
+        volunteer.userId,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(query));
+    })
+    .slice(0, 12);
+  const selectedVolunteer = volunteerOptions.find((volunteer) => volunteer.userId === userId);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -103,21 +132,53 @@ export function AssignRoleModal({
         </div>
 
         <form className="space-y-4 px-5 py-4" onSubmit={handleSubmit}>
-          <label className="block text-sm font-medium text-text-secondary" htmlFor="user_id">
-            User ID
-            <input
-              className={cn(eventInputClasses, "mt-1")}
-              id="user_id"
-              onChange={(event) => setUserId(event.target.value)}
-              placeholder="Appwrite user ID"
-              required
-              value={userId}
-            />
-          </label>
-          <p className="text-xs leading-5 text-text-muted">
-            Enter the volunteer&apos;s platform user ID. Full name and email search will be
-            provided in a future platform update.
-          </p>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-text-secondary" htmlFor="volunteer_search">
+              Volunteer
+              <span className="relative mt-1 block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" aria-hidden="true" />
+                <input
+                  className={cn(eventInputClasses, "pl-9")}
+                  id="volunteer_search"
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search name or email"
+                  value={search}
+                />
+              </span>
+            </label>
+            <div className="max-h-52 overflow-y-auto rounded-md border border-border bg-surface">
+              {filteredVolunteers.length > 0 ? (
+                filteredVolunteers.map((volunteer) => (
+                  <button
+                    className={cn(
+                      "flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-surface-muted",
+                      userId === volunteer.userId && "bg-primary-soft text-primary",
+                    )}
+                    key={volunteer.userId}
+                    onClick={() => {
+                      setUserId(volunteer.userId);
+                      setSearch(volunteer.name || volunteer.googleEmail);
+                    }}
+                    type="button"
+                  >
+                    <span className="font-medium">{volunteer.name || volunteer.googleEmail}</span>
+                    <span className="text-xs text-text-muted">
+                      {volunteer.uomEmail || volunteer.googleEmail}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="px-3 py-4 text-sm text-text-secondary">
+                  No active volunteers match this search.
+                </p>
+              )}
+            </div>
+            {selectedVolunteer ? (
+              <p className="text-xs text-text-muted">
+                Selected {selectedVolunteer.name || selectedVolunteer.googleEmail}
+              </p>
+            ) : null}
+          </div>
 
           <label className="block text-sm font-medium text-text-secondary" htmlFor="role">
             Role

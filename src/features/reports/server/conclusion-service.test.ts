@@ -14,6 +14,7 @@ const appwriteMock = vi.hoisted(() => {
   const tableIds = {
     auditLogs: "audit_logs",
     conclusionReports: "conclusion_reports",
+    events: "events",
     eventRoleAssignments: "event_role_assignments",
     reportApprovals: "report_approvals",
   } as const;
@@ -226,6 +227,23 @@ function createUser({
 }
 
 function seedEvent(eventId = "event-1", eventTitle = "IEEE Day") {
+  appwriteMock.insertRow(appwriteMock.tableIds.events, {
+    $createdAt: "2026-01-01T00:00:00.000Z",
+    $id: eventId,
+    $updatedAt: "2026-01-01T00:00:00.000Z",
+    conclusion_status: "not_submitted",
+    created_at: "2026-01-01T00:00:00.000Z",
+    created_by: "chair-1",
+    description: "",
+    end_date: "2026-06-01T12:00:00.000Z",
+    reference: eventId,
+    start_date: "2026-06-01T09:00:00.000Z",
+    status: "ongoing",
+    term: "2025/2026",
+    title: eventTitle,
+    updated_at: "2026-01-01T00:00:00.000Z",
+    year: 2026,
+  });
   appwriteMock.insertRow(appwriteMock.tableIds.eventRoleAssignments, {
     ...eventAssignment({ eventId, eventTitle, userId: "seed-chair" }),
     $id: `seed-${eventId}`,

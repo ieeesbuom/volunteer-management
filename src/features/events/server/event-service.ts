@@ -551,6 +551,103 @@ export async function approveConclusion(
   return updated;
 }
 
+export async function syncEventConclusionSubmitted(
+  eventId: string,
+  actorUserId: string,
+): Promise<Event> {
+  const event = await getEventById(eventId);
+
+  if (!event) {
+    throw new NotFoundError("Event was not found.");
+  }
+
+  if (event.status !== "ongoing" && event.status !== "pending_conclusion") {
+    throw new ConflictError(
+      "Conclusion reports can only be submitted for ongoing events.",
+    );
+  }
+
+  if (event.conclusion_status === "approved") {
+    throw new ConflictError("Approved conclusions cannot be resubmitted.");
+  }
+
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const now = new Date().toISOString();
+  const row = await tables.updateRow<AppRow>(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.events,
+    eventId,
+    {
+      conclusion_status: "submitted",
+      status: "pending_conclusion",
+      updated_at: now,
+    },
+  );
+  const updated = toEvent(row);
+
+  await safeEventAuditLog({
+    action: "event.conclusion_submitted",
+    actorUserId,
+    metadata: { source: "structured_report" },
+    targetId: eventId,
+    targetType: "event",
+  });
+
+  return updated;
+}
+
+export async function syncEventConclusionReviewed({
+  actorUserId,
+  eventId,
+  status,
+}: {
+  actorUserId: string;
+  eventId: string;
+  status: "APPROVED" | "REJECTED";
+}): Promise<Event> {
+  const event = await getEventById(eventId);
+
+  if (!event) {
+    throw new NotFoundError("Event was not found.");
+  }
+
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const now = new Date().toISOString();
+  const approved = status === "APPROVED";
+  const row = await tables.updateRow<AppRow>(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.events,
+    eventId,
+    {
+      conclusion_status: approved ? "approved" : "rejected",
+      status: approved ? "closed" : "ongoing",
+      updated_at: now,
+    },
+  );
+  const updated = toEvent(row);
+
+  await safeEventAuditLog({
+    action: approved ? "EVENT_CONCLUSION_APPROVED" : "event.conclusion_rejected",
+    actorUserId,
+    metadata: {
+      conclusion_status: approved ? "approved" : "rejected",
+      event_id: eventId,
+      reference: event.reference,
+      scoring_ready: approved,
+      source: "structured_report",
+      status: approved ? "closed" : "ongoing",
+      term: event.term,
+      year: event.year,
+    },
+    targetId: eventId,
+    targetType: "event",
+  });
+
+  return updated;
+}
+
 export async function rejectConclusion(
   eventId: string,
   actorUserId: string,

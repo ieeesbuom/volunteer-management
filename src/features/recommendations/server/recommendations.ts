@@ -7,7 +7,7 @@ import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
 import { isAppwriteConflict, isAppwriteNotFound } from "@/server/errors";
 import { canVolunteer } from "@/features/access-control/lib/rules";
-import { getProfile } from "@/features/access-control/server/profiles";
+import { getProfile, listProfiles } from "@/features/access-control/server/profiles";
 import {
   assertCanRequestRecommendation,
   assertCanReportRecommendation,
@@ -97,19 +97,19 @@ function toRecommendationProfileIdentity(
   };
 }
 
-async function withRecommendationProfiles(
-  request: RecommendationRequest,
-): Promise<RecommendationRequestWithProfiles> {
-  const [requester, respondent] = await Promise.all([
-    getProfile(request.requesterId),
-    getProfile(request.respondentId),
-  ]);
+async function getProfilesByUserId(userIds: Iterable<string>) {
+  const requestedUserIds = new Set([...userIds].filter(Boolean));
 
-  return {
-    ...request,
-    requester: toRecommendationProfileIdentity(requester, { includePrivate: true }),
-    respondent: toRecommendationProfileIdentity(respondent, { includePrivate: true }),
-  };
+  if (requestedUserIds.size === 0) {
+    return new Map<string, Profile>();
+  }
+
+  const profiles = await listProfiles();
+  return new Map(
+    profiles
+      .filter((profile) => requestedUserIds.has(profile.authUserId))
+      .map((profile) => [profile.authUserId, profile]),
+  );
 }
 
 async function getRecommendationForRequest(requestId: string) {
@@ -549,13 +549,16 @@ export async function listVisibleRecommendationsForVolunteer(
   );
 
   const recommendations = result.rows.map((row) => toRecommendation(row as AppRow));
-
-  return Promise.all(
-    recommendations.map(async (recommendation) => ({
-      ...recommendation,
-      respondent: toRecommendationProfileIdentity(await getProfile(recommendation.respondentId)),
-    })),
+  const profilesByUserId = await getProfilesByUserId(
+    recommendations.map((recommendation) => recommendation.respondentId),
   );
+
+  return recommendations.map((recommendation) => ({
+    ...recommendation,
+    respondent: toRecommendationProfileIdentity(
+      profilesByUserId.get(recommendation.respondentId) ?? null,
+    ),
+  }));
 }
 
 export async function listReportedRecommendations(): Promise<RecommendationWithProfiles[]> {
@@ -581,20 +584,24 @@ export async function listReportedRecommendations(): Promise<RecommendationWithP
     .map((row) => toRecommendation(row as AppRow))
     .filter((recommendation) => Boolean(recommendation.reportedAt));
 
-  return Promise.all(
-    recommendations.map(async (recommendation) => {
-      const [requester, respondent] = await Promise.all([
-        getProfile(recommendation.requesterId),
-        getProfile(recommendation.respondentId),
-      ]);
-
-      return {
-        ...recommendation,
-        requester: toRecommendationProfileIdentity(requester, { includePrivate: true }),
-        respondent: toRecommendationProfileIdentity(respondent, { includePrivate: true }),
-      };
-    }),
+  const profilesByUserId = await getProfilesByUserId(
+    recommendations.flatMap((recommendation) => [
+      recommendation.requesterId,
+      recommendation.respondentId,
+    ]),
   );
+
+  return recommendations.map((recommendation) => ({
+    ...recommendation,
+    requester: toRecommendationProfileIdentity(
+      profilesByUserId.get(recommendation.requesterId) ?? null,
+      { includePrivate: true },
+    ),
+    respondent: toRecommendationProfileIdentity(
+      profilesByUserId.get(recommendation.respondentId) ?? null,
+      { includePrivate: true },
+    ),
+  }));
 }
 
 export async function getRecommendationRequest(requestId: string) {
@@ -646,19 +653,28 @@ export async function listRecommendationRequestsForVolunteer(userId: string) {
     ),
   ]);
 
-  const incoming = await Promise.all(
-    incomingResult.rows
-      .map((row) => toRecommendationRequest(row as AppRow))
-      .map(withRecommendationProfiles),
+  const incomingRows = incomingResult.rows.map((row) => toRecommendationRequest(row as AppRow));
+  const outgoingRows = outgoingResult.rows.map((row) => toRecommendationRequest(row as AppRow));
+  const profilesByUserId = await getProfilesByUserId(
+    [...incomingRows, ...outgoingRows].flatMap((request) => [
+      request.requesterId,
+      request.respondentId,
+    ]),
   );
-  const outgoing = await Promise.all(
-    outgoingResult.rows
-      .map((row) => toRecommendationRequest(row as AppRow))
-      .map(withRecommendationProfiles),
-  );
+  const attachProfiles = (request: RecommendationRequest): RecommendationRequestWithProfiles => ({
+    ...request,
+    requester: toRecommendationProfileIdentity(
+      profilesByUserId.get(request.requesterId) ?? null,
+      { includePrivate: true },
+    ),
+    respondent: toRecommendationProfileIdentity(
+      profilesByUserId.get(request.respondentId) ?? null,
+      { includePrivate: true },
+    ),
+  });
 
   return {
-    incoming,
-    outgoing,
+    incoming: incomingRows.map(attachProfiles),
+    outgoing: outgoingRows.map(attachProfiles),
   };
 }

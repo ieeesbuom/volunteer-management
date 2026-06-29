@@ -22,7 +22,14 @@ export default async function RecognitionPage() {
     return null;
   }
 
-  const data = await getReportsPageData(user);
+  const data = await getReportsPageData(user, {
+    includeEvents: false,
+    includeRecognition: true,
+    includeReports: false,
+    includeSummaries: false,
+    includeVolunteerCount: false,
+    includeVolunteerExports: false,
+  });
 
   return (
     <div className="space-y-6">

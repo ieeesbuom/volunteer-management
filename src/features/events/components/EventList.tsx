@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Loader2, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
@@ -19,52 +18,11 @@ import type { Event } from "@/features/events/types";
 
 export function EventList({
   canCreate,
+  events,
 }: Readonly<{
   canCreate: boolean;
+  events: Event[];
 }>) {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadEvents() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const response = await fetch("/api/events");
-        const payload = await response.json();
-
-        if (!response.ok) {
-          if (!cancelled) {
-            setError(payload.error ?? "Could not load events.");
-          }
-          return;
-        }
-
-        if (!cancelled) {
-          setEvents(payload.events ?? payload.results ?? []);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Could not load events.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadEvents();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -80,20 +38,7 @@ export function EventList({
         }
       />
 
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-text-secondary">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          Loading events...
-        </div>
-      ) : null}
-
-      {error ? (
-        <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-
-      {!loading && !error && events.length === 0 ? (
+      {events.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <CalendarDays className="size-8 text-text-muted" aria-hidden="true" />
@@ -102,7 +47,7 @@ export function EventList({
         </Card>
       ) : null}
 
-      {!loading && !error && events.length > 0 ? (
+      {events.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {events.map((event) => (
             <Link href={`/events/${event.$id}`} key={event.$id}>

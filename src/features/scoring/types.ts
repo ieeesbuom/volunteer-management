@@ -4,8 +4,11 @@ export interface GradeRequest {
   $id: string;
   requestId: string;
   eventId: string;
+  eventTitle?: string;
   requestedBy: string;
+  requestedByName?: string;
   targetUserId: string;
+  targetUserName?: string;
   status: GradingStatus;
   createdAt: string;
   updatedAt: string;
@@ -66,11 +69,13 @@ export interface PointLedgerEntry {
   $id: string;
   userId: string;
   eventId: string;
+  eventTitle?: string;
   points: number;
   conclusionApprovalDate: string;
   term: string;
   source: PointLedgerSource;
   createdBy: string;
+  createdByName?: string;
   createdAt: string;
 }
 

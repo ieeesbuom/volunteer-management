@@ -41,7 +41,6 @@ const serverEnvSchema = z.object({
   SMTP_FROM_NAME: optionalString,
   INTERNAL_JOB_TOKEN: optionalString,
   NOTIFICATION_EMAILS_ENABLED: optionalBooleanString,
-  OPTIONAL_AI_API_KEY: z.string().optional(),
 });
 
 const publicEnvSchema = z.object({

@@ -14,6 +14,7 @@ import {
 import {
   createGradeRequest,
   finalizeGrade,
+  finalizeEventRolePoints,
   adminOverrideGrade,
   submitGradeReview,
   listVolunteers,
@@ -229,8 +230,7 @@ describe("Scoring Server Actions & Access Control", () => {
     } as unknown as ReturnType<typeof getAppwriteAdminServices>);
   });
 
-  it("Chair own-event grading of members is allowed, but grading themselves is blocked", async () => {
-    // 1. Grading member under chaired event succeeds
+  it("allows Chair own-event scoring for Committee Leads and still blocks self-grading", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
@@ -251,11 +251,30 @@ describe("Scoring Server Actions & Access Control", () => {
     });
 
     vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "lead-1", eventId: "event-1", role: "Committee Lead", active: true }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "part-1", userId: "lead-1", eventId: "event-1", role: "Committee Lead", status: "attended" }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
 
-    const result = await createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 });
-    expect(result).toBeDefined();
+    const result = await createGradeRequest({
+      eventId: "event-1",
+      targetUserId: "lead-1",
+      gradeValue: 8,
+    });
 
-    // 2. Grading themselves is blocked
+    expect(result.status).toBe("submitted");
+
     await expect(
       createGradeRequest({ eventId: "event-1", targetUserId: "chair-1", gradeValue: 8 })
     ).rejects.toThrow("You cannot grade yourself.");
@@ -282,17 +301,17 @@ describe("Scoring Server Actions & Access Control", () => {
 
   it("Point ledger uses conclusionApprovalDate from audit logs, delta is computed", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
-      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
       sbRoles: [],
       eventRoles: [
         {
           $id: "r2",
-          userId: "reviewer-1",
+          userId: "chair-1",
           eventId: "event-1",
           eventTitle: "Event One",
-          role: "Committee Lead",
+          role: "Chair",
           assignedBy: "admin",
           assignedAt: "2026-01-01T00:00:00.000Z",
           active: true,
@@ -477,7 +496,7 @@ describe("Scoring Server Actions & Access Control", () => {
     vi.mocked(hasEventRole).mockReturnValue(false);
 
     await expect(submitGradeReview("request-1", 7)).rejects.toThrow(
-      "Only authorized event reviewers or admins can submit reviews."
+      "Only committee leads can score committee members"
     );
   });
 
@@ -507,17 +526,17 @@ describe("Scoring Server Actions & Access Control", () => {
 
   it("Recalculate preserves existing entries and appends delta correctly", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
-      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
       sbRoles: [],
       eventRoles: [
         {
           $id: "r2",
-          userId: "reviewer-1",
+          userId: "chair-1",
           eventId: "event-1",
           eventTitle: "Event One",
-          role: "Committee Lead",
+          role: "Chair",
           assignedBy: "admin",
           assignedAt: "2026-01-01T00:00:00.000Z",
           active: true,
@@ -743,8 +762,8 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
 
     const result = await listVolunteers();
     expect(result).toEqual([
-      { id: "vol-1", name: "John Doe" },
-      { id: "vol-2", name: "Jane Smith" },
+      { email: "vol1@uom.lk", id: "vol-1", name: "John Doe" },
+      { email: "vol2@uom.lk", id: "vol-2", name: "Jane Smith" },
     ]);
   });
 
@@ -848,17 +867,17 @@ describe("Scoring Extra Requirements Tests", () => {
 
   it("blocks finalization until the event has an approved conclusion report", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
-      profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
       sbRoles: [],
       eventRoles: [
         {
           $id: "r2",
-          userId: "reviewer-1",
+          userId: "chair-1",
           eventId: "event-1",
           eventTitle: "Event One",
-          role: "Committee Lead",
+          role: "Chair",
           assignedBy: "admin",
           assignedAt: "2026-01-01T00:00:00.000Z",
           active: true,
@@ -905,6 +924,120 @@ describe("Scoring Extra Requirements Tests", () => {
       "point_ledger",
       expect.any(String),
       expect.any(Object)
+    );
+  });
+
+  it("blocks Committee Leads from approving extra scores", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "lead-1", name: "Lead User", email: "lead@uom.lk" },
+      profile: { $id: "lead-1", authUserId: "lead-1", googleEmail: "lead@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r2",
+          userId: "lead-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Committee Lead",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+    vi.mocked(hasEventRole).mockReturnValue(false);
+    mockTables.getRow.mockResolvedValue({
+      $id: "request-1",
+      eventId: "event-1",
+      targetUserId: "volunteer-1",
+      status: "reviewed",
+    });
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    await expect(finalizeGrade("request-1")).rejects.toThrow(
+      "Only the event chair or an admin can approve extra scores."
+    );
+  });
+
+  it("automatically finalizes role points for attended volunteers after approval", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({
+      authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
+      sbRoles: ["ExCom"],
+      eventRoles: [],
+    });
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "conclusion_reports") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "report-1", eventId: "event-1", status: "APPROVED" }],
+        });
+      }
+      if (table === "report_approvals") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "approval-1", reportId: "report-1", status: "APPROVED", reviewedAt: "2026-06-15T00:00:00.000Z" }],
+        });
+      }
+      if (table === "participation_records") {
+        return Promise.resolve({
+          total: 2,
+          rows: [
+            { $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" },
+            { $id: "part-2", userId: "lead-1", eventId: "event-1", role: "Committee Lead", status: "attended" },
+          ],
+        });
+      }
+      if (table === "point_ledger" || table === "event_role_assignments") {
+        return Promise.resolve({ total: 0, rows: [] });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    const result = await finalizeEventRolePoints("event-1");
+
+    expect(result).toEqual({ eventId: "event-1", finalized: 2, skipped: 0, unchanged: 0 });
+    expect(mockTables.createRow).toHaveBeenCalledWith(
+      "database-1",
+      "point_ledger",
+      expect.any(String),
+      expect.objectContaining({
+        points: 10,
+        source: "role",
+        userId: "volunteer-1",
+      })
+    );
+    expect(mockTables.createRow).toHaveBeenCalledWith(
+      "database-1",
+      "point_ledger",
+      expect.any(String),
+      expect.objectContaining({
+        points: 25,
+        source: "role",
+        userId: "lead-1",
+      })
+    );
+    expect(writeAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "EVENT_ROLE_POINTS_FINALIZED" as unknown as AuditAction,
+        actorUserId: "admin-1",
+      })
     );
   });
 

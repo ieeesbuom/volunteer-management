@@ -153,5 +153,5 @@ function displayName(profile: RecommendationWithProfiles["requester"]) {
     return "Unknown volunteer";
   }
 
-  return profile.name || profile.uomEmail || profile.googleEmail || profile.userId;
+  return profile.name || profile.uomEmail || profile.googleEmail || "Unknown volunteer";
 }

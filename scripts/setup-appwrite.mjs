@@ -102,6 +102,7 @@ const tableDefinitions = [
     indexes: [
       ["profiles_google_email_idx", ["googleEmail"]],
       ["profiles_uom_email_idx", ["uomEmail"]],
+      ["profiles_last_login_idx", ["lastLoginAt"]],
     ],
   },
   {
@@ -113,7 +114,6 @@ const tableDefinitions = [
       ["string", "faculty", 120, false],
       ["string", "department", 120, false],
       ["string", "batchYear", 40, false],
-      ["string", "ieeeMembership", 120, false],
       ["string", "headline", 160, false],
       ["string", "bio", 1200, false],
       ["string", "skills", 500, false],
@@ -140,6 +140,10 @@ const tableDefinitions = [
       ["rec_req_respondent_idx", ["respondentId"]],
       ["rec_req_key_idx", ["requestKey"]],
       ["rec_req_status_idx", ["status"]],
+      ["rec_req_key_status_idx", ["requestKey", "status"]],
+      ["rec_req_pair_status_idx", ["requesterId", "respondentId", "status"]],
+      ["rec_req_requester_created_idx", ["requesterId", "createdAt"]],
+      ["rec_req_respondent_created_idx", ["respondentId", "createdAt"]],
     ],
   },
   {
@@ -165,6 +169,9 @@ const tableDefinitions = [
       ["recommendations_requester_idx", ["requesterId"]],
       ["recommendations_respondent_idx", ["respondentId"]],
       ["recommendations_status_idx", ["status"]],
+      ["recs_req_status_created_idx", ["requesterId", "status", "createdAt"]],
+      ["recommendations_status_created_idx", ["status", "createdAt"]],
+      ["recommendations_status_updated_idx", ["status", "updatedAt"]],
     ],
   },
   {
@@ -183,6 +190,7 @@ const tableDefinitions = [
       ["uom_verification_user_idx", ["userId"]],
       ["uom_verification_status_idx", ["status"]],
       ["uom_verification_email_idx", ["uomEmail"]],
+      ["uom_verification_user_status_idx", ["userId", "status"]],
     ],
   },
   {
@@ -200,6 +208,7 @@ const tableDefinitions = [
       ["sb_roles_user_idx", ["userId"]],
       ["sb_roles_role_idx", ["role"]],
       ["sb_roles_active_idx", ["active"]],
+      ["sb_roles_user_active_idx", ["userId", "active"]],
     ],
   },
   {
@@ -221,6 +230,14 @@ const tableDefinitions = [
       ["event_roles_event_idx", ["eventId"]],
       ["event_roles_role_idx", ["role"]],
       ["event_roles_active_idx", ["active"]],
+      ["event_roles_user_active_idx", ["userId", "active"]],
+      ["event_roles_user_event_active_idx", ["userId", "eventId", "active"]],
+      ["event_roles_event_active_time_idx", ["eventId", "active", "assignedAt"]],
+      ["event_roles_event_role_active_idx", ["eventId", "role", "active"]],
+      [
+        "event_roles_lookup_idx",
+        ["userId", "eventId", "role", "committeeName", "active"],
+      ],
     ],
   },
   {
@@ -282,6 +299,8 @@ const tableDefinitions = [
       ["top_board_exclusions_term_idx", ["termId"]],
       ["top_board_exclusions_user_idx", ["userId"]],
       ["top_board_exclusions_active_idx", ["active"]],
+      ["top_board_term_created_idx", ["termId", "createdAt"]],
+      ["top_board_exclusions_term_active_idx", ["termId", "active"]],
     ],
   },
   {
@@ -297,8 +316,12 @@ const tableDefinitions = [
     ],
     indexes: [
       ["audit_target_idx", ["targetId"]],
+      ["audit_actor_idx", ["actorUserId"]],
       ["audit_action_idx", ["action"]],
       ["audit_created_at_idx", ["createdAt"]],
+      ["audit_action_created_idx", ["action", "createdAt"]],
+      ["audit_actor_created_idx", ["actorUserId", "createdAt"]],
+      ["audit_target_created_idx", ["targetId", "createdAt"]],
     ],
   },
   {
@@ -320,6 +343,8 @@ const tableDefinitions = [
       ["conclusion_reports_status_idx", ["status"]],
       ["conclusion_reports_submitted_by_idx", ["submittedBy"]],
       ["conclusion_reports_updated_at_idx", ["updatedAt"]],
+      ["conclusion_reports_event_status_idx", ["eventId", "status"]],
+      ["conclusion_status_updated_idx", ["status", "updatedAt"]],
     ],
   },
   {
@@ -338,6 +363,7 @@ const tableDefinitions = [
       ["report_approvals_status_idx", ["status"]],
       ["report_approvals_reviewed_by_idx", ["reviewedBy"]],
       ["report_approvals_reviewed_at_idx", ["reviewedAt"]],
+      ["report_appr_report_status_time_idx", ["reportId", "status", "reviewedAt"]],
     ],
   },
   {
@@ -354,6 +380,8 @@ const tableDefinitions = [
     indexes: [
       ["participation_user_idx", ["userId"]],
       ["participation_event_idx", ["eventId"]],
+      ["participation_event_status_idx", ["eventId", "status"]],
+      ["participation_user_event_status_idx", ["userId", "eventId", "status"]],
     ],
   },
   {
@@ -371,6 +399,8 @@ const tableDefinitions = [
     indexes: [
       ["grade_requests_event_idx", ["eventId"]],
       ["grade_requests_target_idx", ["targetUserId"]],
+      ["grade_requests_updated_idx", ["updatedAt"]],
+      ["grade_requests_target_updated_idx", ["targetUserId", "updatedAt"]],
     ],
   },
   {
@@ -386,6 +416,7 @@ const tableDefinitions = [
     indexes: [
       ["grade_reviews_request_idx", ["gradeRequestId"]],
       ["grade_reviews_reviewer_idx", ["reviewerId"]],
+      ["grade_reviews_submitted_idx", ["submittedAt"]],
     ],
   },
   {
@@ -405,6 +436,29 @@ const tableDefinitions = [
       ["point_ledger_user_idx", ["userId"]],
       ["point_ledger_event_idx", ["eventId"]],
       ["point_ledger_approval_idx", ["conclusionApprovalDate"]],
+      ["point_ledger_term_idx", ["term"]],
+      ["point_ledger_user_event_idx", ["userId", "eventId"]],
+      ["point_ledger_user_event_source_idx", ["userId", "eventId", "source"]],
+      ["point_ledger_term_approval_idx", ["term", "conclusionApprovalDate"]],
+    ],
+  },
+  {
+    id: "recognition_snapshots",
+    name: "Recognition Snapshots",
+    columns: [
+      ["string", "snapshotKey", 128, true],
+      ["enum", "kind", ["recognition"], true],
+      ["string", "term", 32, false],
+      ["integer", "year", false],
+      ["integer", "month", false],
+      ["string", "payload", 12000, true],
+      ["datetime", "generatedAt", true],
+      ["string", "generatedBy", 64, false],
+    ],
+    indexes: [
+      ["recognition_snapshots_key_idx", ["snapshotKey"], "unique"],
+      ["recognition_snapshots_kind_idx", ["kind"]],
+      ["recognition_snapshots_time_idx", ["generatedAt"]],
     ],
   },
   {
@@ -421,6 +475,7 @@ const tableDefinitions = [
     indexes: [
       ["term_config_user_idx", ["userId"]],
       ["term_config_lookup_idx", ["term", "year"]],
+      ["term_config_user_term_year_idx", ["userId", "term", "year"]],
     ],
   },
   {
@@ -454,6 +509,9 @@ const tableDefinitions = [
       ["events_status_idx", ["status"]],
       ["events_term_idx", ["term"]],
       ["events_created_by_idx", ["created_by"]],
+      ["events_created_at_idx", ["created_at"]],
+      ["events_status_created_idx", ["status", "created_at"]],
+      ["events_term_created_idx", ["term", "created_at"]],
       ["events_reference_idx", ["reference"], "unique"],
     ],
   },
@@ -508,6 +566,7 @@ const tableDefinitions = [
       ["notifications_recipient_read_idx", ["recipientUserId", "readAt"]],
       ["notifications_created_at_idx", ["createdAt"]],
       ["notifications_type_idx", ["type"]],
+      ["notifications_recipient_created_idx", ["recipientUserId", "createdAt"]],
     ],
   },
   {
@@ -545,6 +604,7 @@ const tableDefinitions = [
       ["form_connections_event_idx", ["eventId"]],
       ["form_connections_provider_status_idx", ["provider", "status"]],
       ["form_connections_status_idx", ["status"]],
+      ["form_connections_event_updated_idx", ["eventId", "updatedAt"]],
     ],
   },
 ];

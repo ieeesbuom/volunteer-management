@@ -52,6 +52,12 @@ export function EventFormConnections({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const registrationConnections = connections.filter(
+    (connection) =>
+      connection.status === "active" &&
+      connection.purpose === "registration" &&
+      connection.formUrl,
+  ) as Array<FormConnection & { formUrl: string }>;
 
   async function submitConnection(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -118,6 +124,33 @@ export function EventFormConnections({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {registrationConnections.length > 0 ? (
+          <div className="rounded-md border border-primary/20 bg-primary-soft/10 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">OC Registration</p>
+                <p className="text-xs text-text-secondary">
+                  Registration form connected for this event.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {registrationConnections.map((connection) => (
+                  <a
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover"
+                    href={connection.formUrl}
+                    key={connection.id}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {connection.title || "Open Registration"}
+                    <ExternalLink className="size-4" aria-hidden="true" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {showForm ? (
           <form className="grid gap-4 rounded-md border border-border bg-surface-subtle p-4 md:grid-cols-2" onSubmit={submitConnection}>
             <label className="block text-sm font-medium text-text-secondary">
@@ -170,12 +203,12 @@ export function EventFormConnections({
               />
             </label>
             <label className="block text-sm font-medium text-text-secondary md:col-span-2">
-              External Form ID
+              Provider form reference
               <input
                 className={cn(eventInputClasses, "mt-1")}
                 maxLength={256}
                 onChange={(event) => setExternalFormId(event.target.value)}
-                placeholder="Optional stable provider ID"
+                placeholder="Optional provider reference"
                 value={externalFormId}
               />
             </label>

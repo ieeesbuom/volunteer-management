@@ -111,6 +111,9 @@ export function SystemSettingsPanel({
     targetId: "",
   });
   const [auditLogs, setAuditLogs] = useState(initialAuditPage.auditLogs);
+  const [auditLoaded, setAuditLoaded] = useState(
+    initialAuditPage.auditLogs.length > 0 || initialAuditPage.total > 0,
+  );
   const [auditNextCursor, setAuditNextCursor] = useState(
     initialAuditPage.nextCursor ?? "",
   );
@@ -122,6 +125,7 @@ export function SystemSettingsPanel({
     userId: initialUsers[0]?.authUserId ?? "",
   });
   const [exclusions, setExclusions] = useState(initialExclusions);
+  const [exclusionsLoaded, setExclusionsLoaded] = useState(initialExclusions.length > 0);
   const [message, setMessage] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [selectedTermId, setSelectedTermId] = useState(initialSelectedTermId);
@@ -129,10 +133,11 @@ export function SystemSettingsPanel({
   const [tab, setTab] = useState<PanelTab>("terms");
   const [termForm, setTermForm] = useState<TermFormState>(emptyTermForm);
   const [terms, setTerms] = useState(initialTerms);
+  const [users, setUsers] = useState(initialUsers);
 
   const userById = useMemo(
-    () => new Map(initialUsers.map((user) => [user.authUserId, user])),
-    [initialUsers],
+    () => new Map(users.map((user) => [user.authUserId, user])),
+    [users],
   );
   const selectedTerm = terms.find((term) => term.$id === selectedTermId);
   const activeExclusions = exclusions.filter(isActiveTopBoardExclusion);
@@ -185,7 +190,7 @@ export function SystemSettingsPanel({
     setSelectedTermId(nextSelectedTermId);
     setNotice("success", nextMessage);
 
-    if (nextSelectedTermId) {
+    if (nextSelectedTermId && exclusionsLoaded) {
       await refreshExclusions(nextSelectedTermId, false);
     }
   }
@@ -276,6 +281,7 @@ export function SystemSettingsPanel({
   async function refreshExclusions(termId = selectedTermId, showMessage = true) {
     if (!termId) {
       setExclusions([]);
+      setExclusionsLoaded(true);
       return;
     }
 
@@ -290,9 +296,48 @@ export function SystemSettingsPanel({
     }
 
     setExclusions(payload.exclusions);
+    setExclusionsLoaded(true);
 
     if (showMessage) {
       setNotice("success", "Top Board exclusions refreshed.");
+    }
+  }
+
+  async function loadExclusionUsers() {
+    if (users.length > 0) {
+      return users;
+    }
+
+    const response = await fetch("/api/admin/settings/profiles");
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setNotice("error", payload.error ?? "Could not load profiles.");
+      return [];
+    }
+
+    const nextUsers = payload.profiles as Profile[];
+    setUsers(nextUsers);
+    setExclusionForm((current) => ({
+      ...current,
+      userId: current.userId || nextUsers[0]?.authUserId || "",
+    }));
+
+    return nextUsers;
+  }
+
+  async function loadExclusionData() {
+    setPendingAction("exclusions:load");
+    setNotice("idle", "Loading Top Board exclusions...");
+
+    try {
+      await Promise.all([
+        loadExclusionUsers(),
+        selectedTermId ? refreshExclusions(selectedTermId, false) : Promise.resolve(),
+      ]);
+      setNotice("success", "Top Board exclusions loaded.");
+    } finally {
+      setPendingAction(null);
     }
   }
 
@@ -395,6 +440,7 @@ export function SystemSettingsPanel({
       setAuditLogs((current) =>
         append ? [...current, ...page.auditLogs] : page.auditLogs,
       );
+      setAuditLoaded(true);
       setAuditNextCursor(page.nextCursor ?? "");
       setAuditTotal(page.total);
       setNotice(
@@ -417,6 +463,18 @@ export function SystemSettingsPanel({
     }
 
     await loadAuditLogs({ append: true, cursor: auditNextCursor });
+  }
+
+  function openTab(nextTab: PanelTab) {
+    setTab(nextTab);
+
+    if (nextTab === "audit" && !auditLoaded) {
+      void loadAuditLogs({ append: false });
+    }
+
+    if (nextTab === "exclusions" && !exclusionsLoaded) {
+      void loadExclusionData();
+    }
   }
 
   async function runConfirmedAction() {
@@ -448,15 +506,18 @@ export function SystemSettingsPanel({
           label="Active term"
           value={activeTermId ? terms.find((term) => term.$id === activeTermId)?.label ?? "Set" : "None"}
         />
-        <SummaryTile label="Top Board exclusions" value={String(activeExclusions.length)} />
-        <SummaryTile label="Audit records" value={String(auditTotal)} />
+        <SummaryTile
+          label="Top Board exclusions"
+          value={exclusionsLoaded ? String(activeExclusions.length) : "On demand"}
+        />
+        <SummaryTile label="Audit records" value={auditLoaded ? String(auditTotal) : "On demand"} />
       </section>
 
       <div className="inline-flex flex-wrap rounded-md border border-border bg-surface p-1">
-        <TabButton active={tab === "terms"} icon={CalendarRange} label="Terms" onClick={() => setTab("terms")} />
-        <TabButton active={tab === "exclusions"} icon={UserMinus} label="Top Board Exclusions" onClick={() => setTab("exclusions")} />
-        <TabButton active={tab === "permissions"} icon={ShieldCheck} label="Permissions" onClick={() => setTab("permissions")} />
-        <TabButton active={tab === "audit"} icon={History} label="Audit" onClick={() => setTab("audit")} />
+        <TabButton active={tab === "terms"} icon={CalendarRange} label="Terms" onClick={() => openTab("terms")} />
+        <TabButton active={tab === "exclusions"} icon={UserMinus} label="Top Board Exclusions" onClick={() => openTab("exclusions")} />
+        <TabButton active={tab === "permissions"} icon={ShieldCheck} label="Permissions" onClick={() => openTab("permissions")} />
+        <TabButton active={tab === "audit"} icon={History} label="Audit" onClick={() => openTab("audit")} />
       </div>
 
       {message ? <Notice message={message} status={status} /> : null}
@@ -498,7 +559,7 @@ export function SystemSettingsPanel({
           submitExclusion={submitExclusion}
           terms={terms}
           userById={userById}
-          users={initialUsers}
+          users={users}
         />
       ) : null}
 
@@ -900,7 +961,7 @@ function TopBoardExclusionsPanel({
                       {getUserDisplayName(user, exclusion.userId)}
                     </p>
                     <p className="mt-1 text-xs text-text-muted">
-                      {user?.googleEmail ?? exclusion.userId}
+                      {user?.googleEmail ?? "Profile unavailable"}
                     </p>
                   </td>
                   <td className="px-4 py-4 text-text-secondary">
@@ -1039,7 +1100,7 @@ function AuditPanel({
           </select>
         </label>
         <label className="block text-sm font-medium text-text-secondary">
-          Actor ID
+          Actor reference
           <input
             className={cn(inputClasses, "mt-1")}
             onChange={(event) =>
@@ -1048,12 +1109,12 @@ function AuditPanel({
                 actorUserId: event.target.value,
               }))
             }
-            placeholder="Appwrite user ID"
+            placeholder="Optional internal reference"
             value={auditFilters.actorUserId}
           />
         </label>
         <label className="block text-sm font-medium text-text-secondary">
-          Target ID
+          Target reference
           <input
             className={cn(inputClasses, "mt-1")}
             onChange={(event) =>
@@ -1062,7 +1123,7 @@ function AuditPanel({
                 targetId: event.target.value,
               }))
             }
-            placeholder="Target ID"
+            placeholder="Optional internal reference"
             value={auditFilters.targetId}
           />
         </label>
@@ -1340,7 +1401,7 @@ function Notice({ message, status }: { message: string; status: NoticeStatus }) 
   );
 }
 
-function getUserDisplayName(user: Profile | undefined, fallback: string) {
+function getUserDisplayName(user: Profile | undefined, fallback = "Unknown user") {
   return user?.name || user?.uomEmail || user?.googleEmail || fallback;
 }
 

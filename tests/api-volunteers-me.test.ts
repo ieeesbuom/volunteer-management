@@ -25,7 +25,6 @@ const validDetails = {
   batchYear: "2024",
   department: "Computer Science",
   faculty: "Engineering",
-  ieeeMembership: "Student Member",
   linkedinUrl: "https://www.linkedin.com/in/test",
   universityIndex: "220000A",
 };
@@ -82,7 +81,6 @@ describe("/api/volunteers/me", () => {
       createdAt: "2026-01-01T00:00:00.000Z",
       department: "Computer Science",
       faculty: "Engineering",
-      ieeeMembership: "Student Member",
       linkedinUrl: "https://www.linkedin.com/in/test",
       universityIndex: "220000A",
       updatedAt: "2026-01-01T00:00:00.000Z",

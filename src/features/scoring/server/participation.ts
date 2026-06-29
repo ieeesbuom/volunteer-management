@@ -103,7 +103,7 @@ export async function listEventParticipationRoster({
         eventId,
         eventTitle: assignment.eventTitle || event.title,
         googleEmail: profile?.googleEmail ?? "",
-        name: profile?.name || profile?.googleEmail || assignment.userId,
+        name: profile?.name || profile?.googleEmail || "Volunteer",
         participation: participationByUserId.get(assignment.userId),
         role: assignment.role,
         uomEmail: profile?.uomEmail,
@@ -204,4 +204,3 @@ export async function upsertEventParticipationRecords({
 
   return updatedRecords;
 }
-

@@ -18,6 +18,7 @@ export const APPWRITE_TABLES = {
   gradeRequests: "grade_requests",
   gradeReviews: "grade_reviews",
   pointLedger: "point_ledger",
+  recognitionSnapshots: "recognition_snapshots",
   termScoringConfig: "term_scoring_config",
   events: "events",
   eventCommittees: "event_committees",

@@ -156,6 +156,15 @@ vi.mock("@/server/audit", () => ({
   writeAuditLog: vi.fn(),
 }));
 
+vi.mock("@/features/scoring/server/actions", () => ({
+  finalizeEventRolePoints: vi.fn().mockResolvedValue({
+    eventId: "event-1",
+    finalized: 0,
+    skipped: 0,
+    unchanged: 0,
+  }),
+}));
+
 import {
   assertConclusionReportExportable,
   canManageConclusionReport,
@@ -163,6 +172,7 @@ import {
   reviewConclusionReportRecord,
   updateConclusionReportRecord,
 } from "@/features/reports/server/conclusion-service";
+import { finalizeEventRolePoints } from "@/features/scoring/server/actions";
 
 const completeContent: ConclusionReportContent = {
   attendanceNotes: "Peak attendance in the morning session.",
@@ -354,6 +364,7 @@ describe("conclusion report service", () => {
     });
 
     expect(reviewed.report.status).toBe("APPROVED");
+    expect(finalizeEventRolePoints).toHaveBeenCalledWith("event-1");
     await expect(assertConclusionReportExportable(submitted.$id)).resolves.toMatchObject({
       approval: expect.objectContaining({ status: "APPROVED" }),
       report: expect.objectContaining({ status: "APPROVED" }),

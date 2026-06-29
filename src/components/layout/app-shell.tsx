@@ -6,7 +6,6 @@ import {
   Flag,
   LayoutDashboard,
   LogOut,
-  MailCheck,
   Settings,
   ShieldCheck,
   UserRound,
@@ -17,10 +16,8 @@ import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/features/access-control/types";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
-import { getNotificationSummaryForUser } from "@/features/notifications/server/notification-service";
-import type { NotificationListResult } from "@/features/notifications/types";
 
-export async function AppShell({
+export function AppShell({
   active,
   children,
   user,
@@ -32,7 +29,6 @@ export async function AppShell({
     | "moderation"
     | "events"
     | "my-events"
-    | "verification"
     | "users"
     | "reports"
     | "scoring"
@@ -63,12 +59,6 @@ export async function AppShell({
           },
         ]
       : []),
-    {
-      href: "/verify-uom",
-      icon: MailCheck,
-      id: "verification",
-      label: "UoM Verification",
-    },
     {
       href: "/reports",
       icon: FileBarChart,
@@ -116,21 +106,6 @@ export async function AppShell({
         ]
       : []),
   ] as const;
-  let notificationSummary: NotificationListResult = {
-    notifications: [],
-    unreadCount: 0,
-  };
-
-  try {
-    notificationSummary = await getNotificationSummaryForUser(user.authUser.id, {
-      limit: 15,
-    });
-  } catch {
-    notificationSummary = {
-      notifications: [],
-      unreadCount: 0,
-    };
-  }
 
   return (
     <main className="min-h-screen bg-background text-text-primary">
@@ -153,8 +128,8 @@ export async function AppShell({
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <NotificationBell
-                initialNotifications={notificationSummary.notifications}
-                initialUnreadCount={notificationSummary.unreadCount}
+                initialNotifications={[]}
+                initialUnreadCount={0}
               />
               <div className="min-w-0 text-sm">
                 <p className="truncate font-medium text-text-primary">

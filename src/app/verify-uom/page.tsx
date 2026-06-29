@@ -25,7 +25,7 @@ export default async function VerifyUomPage() {
   }
 
   return (
-    <AppShell active="verification" user={user}>
+    <AppShell active="volunteers" user={user}>
       <div className="space-y-6">
         <PageHeader
           title="UoM Email Verification"
@@ -35,9 +35,9 @@ export default async function VerifyUomPage() {
               : "Confirm a university email address before volunteer access is enabled."
           }
           actions={
-            <Link className={buttonClasses()} href="/dashboard">
+            <Link className={buttonClasses()} href="/volunteers/me">
               <ArrowLeft className="size-4" aria-hidden="true" />
-              Back to Overview
+              Back to Profile
             </Link>
           }
         />

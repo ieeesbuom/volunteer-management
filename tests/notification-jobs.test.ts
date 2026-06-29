@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}));
 
 import { sendEventReminderNotificationsJob } from "../src/jobs/send-event-reminder-notifications-job";
 import { sendUnreadNotificationDigestJob } from "../src/jobs/send-unread-notification-digest-job";
+import { refreshRecognitionSnapshotJob } from "../src/jobs/refresh-recognition-snapshot-job";
 
 describe("notification jobs", () => {
   it("validates and deduplicates unread digest recipients", async () => {
@@ -142,5 +143,50 @@ describe("notification jobs", () => {
         recipientUserIds: ["user-a"],
       }),
     ).rejects.toThrow("Notification links");
+  });
+
+  it("refreshes recognition snapshots through the configured writer", async () => {
+    const snapshot = {
+      generatedAt: "2026-06-01T00:00:00.000Z",
+      hallOfFame: [],
+      volunteerOfTheMonth: null,
+    };
+    const writeSnapshot = vi.fn().mockResolvedValue({
+      snapshot,
+      storedAt: "2026-06-01T00:00:01.000Z",
+    });
+
+    const dryRunResult = await refreshRecognitionSnapshotJob(
+      { referenceDate: "2026-06-01T00:00:00.000Z" },
+      {
+        async buildSnapshot() {
+          return snapshot;
+        },
+        writeSnapshot,
+      },
+    );
+
+    expect(dryRunResult.persisted).toBe(false);
+    expect(writeSnapshot).not.toHaveBeenCalled();
+
+    const persistedResult = await refreshRecognitionSnapshotJob(
+      {
+        dryRun: false,
+        generatedBy: "cron",
+        referenceDate: "2026-06-01T00:00:00.000Z",
+      },
+      {
+        async buildSnapshot() {
+          return snapshot;
+        },
+        writeSnapshot,
+      },
+    );
+
+    expect(persistedResult.persisted).toBe(true);
+    expect(writeSnapshot).toHaveBeenCalledWith({
+      date: new Date("2026-06-01T00:00:00.000Z"),
+      generatedBy: "cron",
+    });
   });
 });

@@ -33,7 +33,14 @@ export default async function ReportsOverviewPage() {
   }
 
   const canAccessConclusions = canAccessConclusionsTab(user);
-  const data = await getReportsPageData(user);
+  const data = await getReportsPageData(user, {
+    includeEvents: false,
+    includeRecognition: true,
+    includeReports: true,
+    includeSummaries: user.isAdmin,
+    includeVolunteerCount: user.isAdmin,
+    includeVolunteerExports: false,
+  });
   const pendingApproval = data.reports.filter((report) => report.status === "SUBMITTED").length;
   const approvedReports = data.reports.filter((report) => report.status === "APPROVED").length;
 
@@ -56,7 +63,7 @@ export default async function ReportsOverviewPage() {
           <StatCard label="Event summaries" value={String(data.summaries.length)} />
           <StatCard label="Conclusion reports" value={String(data.reports.length)} />
           <StatCard label="Awaiting approval" value={String(pendingApproval)} />
-          <StatCard label="Volunteer profiles" value={String(data.volunteers.length)} />
+          <StatCard label="Volunteer profiles" value={String(data.volunteerCount)} />
         </section>
       ) : null}
 

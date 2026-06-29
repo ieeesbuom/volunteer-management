@@ -27,7 +27,14 @@ export default async function ApprovalPage() {
     redirect("/reports");
   }
 
-  const data = await getReportsPageData(user);
+  const data = await getReportsPageData(user, {
+    includeEvents: false,
+    includeRecognition: false,
+    includeReports: true,
+    includeSummaries: false,
+    includeVolunteerCount: false,
+    includeVolunteerExports: false,
+  });
 
   return (
     <div className="space-y-6">

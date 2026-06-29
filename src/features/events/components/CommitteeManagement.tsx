@@ -18,14 +18,23 @@ type CommitteeWithMembers = Committee & {
   members: CommitteeMember[];
 };
 
+type CommitteeVolunteerOption = {
+  googleEmail: string;
+  name: string;
+  uomEmail?: string;
+  userId: string;
+};
+
 export function CommitteeManagement({
   canManage,
   eventId,
   initialCommittees,
+  volunteerOptions,
 }: Readonly<{
   canManage: boolean;
   eventId: string;
   initialCommittees: CommitteeWithMembers[];
+  volunteerOptions: CommitteeVolunteerOption[];
 }>) {
   const [committees, setCommittees] = useState<CommitteeWithMembers[]>(initialCommittees);
   const [name, setName] = useState("");
@@ -33,6 +42,9 @@ export function CommitteeManagement({
   const [memberUserId, setMemberUserId] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const volunteersByUserId = new Map(
+    volunteerOptions.map((volunteer) => [volunteer.userId, volunteer]),
+  );
 
   const refreshCommittees = useCallback(async () => {
     const response = await fetch(`/api/events/${eventId}/committees`);
@@ -247,21 +259,32 @@ export function CommitteeManagement({
                   <h4 className="text-sm font-medium text-text-secondary">Members</h4>
                   {committee.members.length > 0 ? (
                     <ul className="space-y-2 text-sm">
-                      {committee.members.map((member) => (
-                        <li className="flex items-center justify-between gap-3" key={member.$id}>
-                          <span className="text-text-primary">{member.user_id}</span>
-                          {canManage ? (
-                            <Button
-                              disabled={pendingAction === member.$id}
-                              onClick={() => handleRemoveMember(committee.$id, member.$id)}
-                              type="button"
-                              variant="ghost"
-                            >
-                              Remove
-                            </Button>
-                          ) : null}
-                        </li>
-                      ))}
+                      {committee.members.map((member) => {
+                        const volunteer = volunteersByUserId.get(member.user_id);
+
+                        return (
+                          <li className="flex items-center justify-between gap-3" key={member.$id}>
+                            <span className="min-w-0">
+                              <span className="block truncate text-text-primary">
+                                {volunteer?.name || volunteer?.googleEmail || "Volunteer"}
+                              </span>
+                              <span className="block truncate text-xs text-text-muted">
+                                {volunteer?.uomEmail || volunteer?.googleEmail || "Verified volunteer"}
+                              </span>
+                            </span>
+                            {canManage ? (
+                              <Button
+                                disabled={pendingAction === member.$id}
+                                onClick={() => handleRemoveMember(committee.$id, member.$id)}
+                                type="button"
+                                variant="ghost"
+                              >
+                                Remove
+                              </Button>
+                            ) : null}
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     <p className="text-sm text-text-muted">No members yet.</p>
@@ -270,8 +293,8 @@ export function CommitteeManagement({
                   {canManage ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                       <label className="block flex-1 text-sm font-medium text-text-secondary">
-                        User ID
-                        <input
+                        Volunteer
+                        <select
                           className={cn(eventInputClasses, "mt-1")}
                           onChange={(event) =>
                             setMemberUserId((current) => ({
@@ -280,10 +303,20 @@ export function CommitteeManagement({
                             }))
                           }
                           value={memberUserId[committee.$id] ?? ""}
-                        />
+                        >
+                          <option value="">Select volunteer</option>
+                          {volunteerOptions.map((volunteer) => (
+                            <option key={volunteer.userId} value={volunteer.userId}>
+                              {volunteer.name || volunteer.googleEmail}
+                            </option>
+                          ))}
+                        </select>
                       </label>
                       <Button
-                        disabled={pendingAction === `member:${committee.$id}`}
+                        disabled={
+                          pendingAction === `member:${committee.$id}` ||
+                          !memberUserId[committee.$id]
+                        }
                         onClick={() => handleAddMember(committee.$id)}
                         type="button"
                         variant="primary"

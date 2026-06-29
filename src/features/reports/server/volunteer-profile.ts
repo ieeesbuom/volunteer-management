@@ -1,12 +1,12 @@
 import "server-only";
 
+import { cache } from "react";
 import { Query } from "node-appwrite";
 import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { listActiveEventRoleAssignments, listActiveRoleAssignments } from "@/features/access-control/server/roles";
 import type { VolunteerProfileExport } from "@/features/reports/types";
 import type { ParticipationRecord, PointLedgerEntry } from "@/features/scoring/types";
-import { listVisibleRecommendationsForVolunteer } from "@/features/recommendations/server/recommendations";
 import { listEvents } from "@/features/events/server/event-service";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
@@ -14,8 +14,15 @@ import { getAppwriteAdminServices } from "@/server/appwrite";
 type VolunteerPointsLedger = NonNullable<VolunteerProfileExport["pointsLedger"]>;
 type VolunteerPointsLedgerEntry = VolunteerPointsLedger["entries"][number];
 type VolunteerParticipationEntry = VolunteerProfileExport["participations"][number];
+type VisibleRecommendationRow = {
+  $id: string;
+  createdAt: string;
+  requesterId: string;
+  respondentId: string;
+  text: string;
+};
 
-async function listParticipationRecords() {
+const listParticipationRecords = cache(async function listParticipationRecords() {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
   const result = await tables.listRows(
@@ -27,9 +34,9 @@ async function listParticipationRecords() {
   );
 
   return result.rows as unknown as ParticipationRecord[];
-}
+});
 
-async function listPointLedgerEntries() {
+const listPointLedgerEntries = cache(async function listPointLedgerEntries() {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
   const result = await tables.listRows(
@@ -41,9 +48,23 @@ async function listPointLedgerEntries() {
   );
 
   return result.rows as unknown as PointLedgerEntry[];
-}
+});
 
-export async function listVolunteerProfiles(): Promise<VolunteerProfileExport[]> {
+const listVisibleRecommendationRows = cache(async function listVisibleRecommendationRows() {
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  const result = await tables.listRows(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.recommendations,
+    [Query.equal("status", "VISIBLE"), Query.orderDesc("createdAt"), Query.limit(1000)],
+    undefined,
+    false,
+  );
+
+  return result.rows as unknown as VisibleRecommendationRow[];
+});
+
+export const listVolunteerProfiles = cache(async function listVolunteerProfiles(): Promise<VolunteerProfileExport[]> {
   const [
     profiles,
     sbAssignments,
@@ -51,6 +72,7 @@ export async function listVolunteerProfiles(): Promise<VolunteerProfileExport[]>
     participationRecords,
     pointLedgerEntries,
     events,
+    visibleRecommendations,
   ] = await Promise.all([
     listProfiles(),
     listActiveRoleAssignments(),
@@ -58,7 +80,9 @@ export async function listVolunteerProfiles(): Promise<VolunteerProfileExport[]>
     listParticipationRecords(),
     listPointLedgerEntries(),
     listEvents(),
+    listVisibleRecommendationRows(),
   ]);
+  const profilesByUserId = new Map(profiles.map((profile) => [profile.authUserId, profile]));
   const eventsById = new Map(events.map((event) => [event.$id, event]));
   const assignmentsByEventAndUser = new Map(
     eventAssignments.map((assignment) => [
@@ -114,27 +138,24 @@ export async function listVolunteerProfiles(): Promise<VolunteerProfileExport[]>
 
   const recommendationsByUser = new Map<string, VolunteerProfileExport["recommendations"]>();
 
-  await Promise.all(
-    profiles
-      .filter((profile) => profile.status === "ACTIVE")
-      .map(async (profile) => {
-        const recommendations = await listVisibleRecommendationsForVolunteer(profile.authUserId);
-        recommendationsByUser.set(
-          profile.authUserId,
-          recommendations.map((recommendation) => ({
-            $id: recommendation.$id,
-            createdAt: recommendation.createdAt,
-            eventTitle: "Recommendation",
-            fromName:
-              recommendation.respondent?.name ||
-              recommendation.respondent?.uomEmail ||
-              recommendation.respondent?.googleEmail ||
-              recommendation.respondentId,
-            note: recommendation.text,
-          })),
-        );
-      }),
-  );
+  for (const recommendation of visibleRecommendations) {
+    const current = recommendationsByUser.get(recommendation.requesterId) ?? [];
+    const respondent = profilesByUserId.get(recommendation.respondentId);
+    recommendationsByUser.set(recommendation.requesterId, [
+      ...current,
+      {
+        $id: recommendation.$id,
+        createdAt: recommendation.createdAt,
+        eventTitle: "Recommendation",
+        fromName:
+          respondent?.name ||
+          respondent?.uomEmail ||
+          respondent?.googleEmail ||
+          "Unknown volunteer",
+        note: recommendation.text,
+      },
+    ]);
+  }
 
   return profiles
     .filter((profile) => profile.status === "ACTIVE")
@@ -148,7 +169,7 @@ export async function listVolunteerProfiles(): Promise<VolunteerProfileExport[]>
       uomEmail: profile.uomEmail,
       userId: profile.authUserId,
     }));
-}
+});
 
 export async function getVolunteerProfile(userId: string) {
   const profiles = await listVolunteerProfiles();

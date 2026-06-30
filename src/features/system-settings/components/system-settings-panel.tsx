@@ -130,7 +130,7 @@ export function SystemSettingsPanel({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [selectedTermId, setSelectedTermId] = useState(initialSelectedTermId);
   const [status, setStatus] = useState<NoticeStatus>("idle");
-  const [tab, setTab] = useState<PanelTab>("terms");
+  const [tab, setTab] = useState<PanelTab>("permissions");
   const [termForm, setTermForm] = useState<TermFormState>(emptyTermForm);
   const [terms, setTerms] = useState(initialTerms);
   const [users, setUsers] = useState(initialUsers);
@@ -514,10 +514,10 @@ export function SystemSettingsPanel({
       </section>
 
       <div className="inline-flex flex-wrap rounded-md border border-border bg-surface p-1">
-        <TabButton active={tab === "terms"} icon={CalendarRange} label="Terms" onClick={() => openTab("terms")} />
-        <TabButton active={tab === "exclusions"} icon={UserMinus} label="Top Board Exclusions" onClick={() => openTab("exclusions")} />
         <TabButton active={tab === "permissions"} icon={ShieldCheck} label="Permissions" onClick={() => openTab("permissions")} />
+        <TabButton active={tab === "exclusions"} icon={UserMinus} label="Top Board Exclusions" onClick={() => openTab("exclusions")} />
         <TabButton active={tab === "audit"} icon={History} label="Audit" onClick={() => openTab("audit")} />
+        <TabButton active={tab === "terms"} icon={CalendarRange} label="Terms" onClick={() => openTab("terms")} />
       </div>
 
       {message ? <Notice message={message} status={status} /> : null}

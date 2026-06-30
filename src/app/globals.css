@@ -75,3 +75,23 @@ body {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* Ensure all clickable elements show a hand (pointer) cursor on hover */
+a,
+button,
+select,
+[role="button"],
+.cursor-pointer,
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+/* Ensure elements inside links also inherit or show the pointer cursor */
+a * {
+  cursor: pointer;
+}
+

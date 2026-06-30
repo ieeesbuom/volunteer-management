@@ -399,7 +399,7 @@ export async function updateConclusionReportRecord(
       actorUserId: user.authUser.id,
       eventId: report.eventId,
       eventTitle: updated.eventTitle,
-      linkHref: "/reports/approval",
+      linkHref: "/reports/conclusions",
       message: `${updated.eventTitle} conclusion report was submitted for review.`,
       recipientUserIds: adminRecipientUserIds,
     });

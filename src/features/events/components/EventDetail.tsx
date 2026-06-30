@@ -492,7 +492,7 @@ export function EventDetail({
             ) : null}
 
             {canReviewConclusionReport ? (
-              <Link className={buttonClasses()} href="/reports/approval">
+              <Link className={buttonClasses()} href="/reports/conclusions">
                 Review Report
               </Link>
             ) : null}

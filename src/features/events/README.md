@@ -28,7 +28,7 @@ event PATCH, or direct conclusion endpoint. Structured conclusion reports are
 the canonical path:
 
 - Event leads submit through `/reports/conclusions`.
-- Admins review through `/reports/approval`.
+- Admins review through `/reports/conclusions`.
 - Submitted reports move events to `pending_conclusion`.
 - Approved reports close events and unlock scoring finalization.
 

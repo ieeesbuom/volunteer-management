@@ -42,7 +42,7 @@ export default async function EventDetailPage({ params }: PageProps) {
     redirect("/events");
   }
 
-  const { userEventRole } = await getEventUserContext(eventId, user);
+  const { userEventRole } = await getEventUserContext(eventId, user, event.reference);
 
   if (!isEventVisible(user, event, userEventRole)) {
     redirect("/events");

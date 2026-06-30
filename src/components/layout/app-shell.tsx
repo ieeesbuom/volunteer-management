@@ -50,12 +50,6 @@ export function AppShell({
       label: "Events",
     },
     {
-      href: "/reports",
-      icon: FileBarChart,
-      id: "reports",
-      label: "Reports",
-    },
-    {
       href: "/scoring",
       icon: Trophy,
       id: "scoring",
@@ -69,6 +63,12 @@ export function AppShell({
     },
     ...(user.isAdmin
       ? [
+          {
+            href: "/reports",
+            icon: FileBarChart,
+            id: "reports",
+            label: "Reports",
+          },
           {
             href: "/admin/users",
             icon: UsersRound,
@@ -99,7 +99,7 @@ export function AppShell({
 
   return (
     <main className="min-h-screen bg-background text-text-primary">
-      <header className="border-b border-border bg-surface">
+      <header className="sticky top-0 z-50 border-b border-border bg-surface">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 py-4 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>

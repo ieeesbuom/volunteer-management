@@ -183,11 +183,15 @@ export function ScoringDashboard({
   initialVolunteers = [],
   initialVolunteersEventId,
   user,
+  hallOfFame = [],
+  volunteerOfTheMonth = null,
 }: {
   initialEvents?: EventOption[];
   initialVolunteers?: VolunteerOption[];
   initialVolunteersEventId?: string;
   user: SessionUser;
+  hallOfFame?: { userId: string; name: string; term: any; pointsEarned: number; rank: number }[];
+  volunteerOfTheMonth?: { name: string; highlight: string; pointsEarned: number } | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -644,106 +648,178 @@ export function ScoringDashboard({
 
       {/* Tab Panels */}
       {currentTab === "leaderboard" && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div>
-                <CardTitle>IEEE SB UoM Leaderboard</CardTitle>
-                <CardDescription>
-                  Volunteers ranked by aggregated points from point ledger.
-                </CardDescription>
+        <div className="space-y-6">
+          {/* Recognition Grid */}
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="size-4 text-primary" aria-hidden="true" />
+                  Volunteer of the Month
+                </CardTitle>
+                <CardDescription>Current month based on approved conclusion dates</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {volunteerOfTheMonth ? (
+                  <div className="space-y-3">
+                    <p className="text-xl font-semibold text-text-primary">
+                      {volunteerOfTheMonth.name}
+                    </p>
+                    <p className="text-text-secondary">{volunteerOfTheMonth.highlight}</p>
+                    <Badge tone="success">{volunteerOfTheMonth.pointsEarned} points earned</Badge>
+                  </div>
+                ) : (
+                  <p className="text-text-secondary">
+                    No eligible points have been awarded for the current month.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="size-4 text-primary" aria-hidden="true" />
+                  Yearly Hall of Fame
+                </CardTitle>
+                <CardDescription>Current IEEE term ranking with Top Board exclusions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {hallOfFame.length > 0 ? (
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <table className="min-w-[520px] divide-y divide-border text-left text-sm">
+                      <thead className="bg-surface-muted text-text-secondary">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Rank</th>
+                          <th className="px-4 py-3 font-semibold">Volunteer</th>
+                          <th className="px-4 py-3 font-semibold">Term</th>
+                          <th className="px-4 py-3 font-semibold">Points</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border bg-surface">
+                        {hallOfFame.map((entry) => (
+                          <tr key={entry.userId}>
+                            <td className="px-4 py-3 font-medium text-text-primary">
+                              #{entry.rank}
+                            </td>
+                            <td className="px-4 py-3 text-text-primary">{entry.name}</td>
+                            <td className="px-4 py-3 text-text-secondary">{entry.term?.label ?? entry.term}</td>
+                            <td className="px-4 py-3">
+                              <Badge tone="primary">{entry.pointsEarned}</Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary">
+                    No eligible points have been awarded for the current IEEE term.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Full Leaderboard */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div>
+                  <CardTitle>IEEE SB UoM Leaderboard</CardTitle>
+                  <CardDescription>
+                    Volunteers ranked by aggregated points from point ledger.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={filterTerm}
+                    onChange={(e) => setFilterTerm(e.target.value)}
+                    className="px-3 py-1.5 border border-border rounded-md text-sm w-36 bg-surface"
+                  >
+                    <option value="2025">2025</option>
+                    <option value="2025/2026">2025/2026</option>
+                    <option value="2026">2026</option>
+                    <option value="2026/2027">2026/2027</option>
+                    <option value="2027">2027</option>
+                    <option value="2027/2028">2027/2028</option>
+                    <option value="2028">2028</option>
+                    <option value="2028/2029">2028/2029</option>
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Year"
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                    className="px-3 py-1.5 border border-border rounded-md text-sm w-28 bg-surface"
+                  />
+                  <select
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                    className="px-3 py-1.5 border border-border rounded-md text-sm bg-surface"
+                  >
+                    <option value="">Full Year</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                  <Button onClick={fetchLeaderboard} className="flex items-center gap-1">
+                    <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={filterTerm}
-                  onChange={(e) => setFilterTerm(e.target.value)}
-                  className="px-3 py-1.5 border border-border rounded-md text-sm w-36 bg-surface"
-                >
-                  <option value="2025">2025</option>
-                  <option value="2025/2026">2025/2026</option>
-                  <option value="2026">2026</option>
-                  <option value="2026/2027">2026/2027</option>
-                  <option value="2027">2027</option>
-                  <option value="2027/2028">2027/2028</option>
-                  <option value="2028">2028</option>
-                  <option value="2028/2029">2028/2029</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Year"
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  className="px-3 py-1.5 border border-border rounded-md text-sm w-28 bg-surface"
-                />
-                <select
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  className="px-3 py-1.5 border border-border rounded-md text-sm bg-surface"
-                >
-                  <option value="">Full Year</option>
-                  <option value="1">January</option>
-                  <option value="2">February</option>
-                  <option value="3">March</option>
-                  <option value="4">April</option>
-                  <option value="5">May</option>
-                  <option value="6">June</option>
-                  <option value="7">July</option>
-                  <option value="8">August</option>
-                  <option value="9">September</option>
-                  <option value="10">October</option>
-                  <option value="11">November</option>
-                  <option value="12">December</option>
-                </select>
-                <Button onClick={fetchLeaderboard} className="flex items-center gap-1">
-                  <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-6 text-text-secondary">Loading leaderboard...</div>
-            ) : leaderboard.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-border text-left text-sm">
-                  <thead className="text-text-secondary">
-                    <tr>
-                      <th className="py-2 pr-4 font-semibold">Rank</th>
-                      <th className="px-4 py-2 font-semibold">Volunteer Name</th>
-                      <th className="px-4 py-2 font-semibold text-right">Points</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {leaderboard.map((row, index) => (
-                      <tr
-                        key={row.userId}
-                        className={row.userId === user.authUser.id ? "bg-primary-soft/10" : ""}
-                      >
-                        <td className="py-3 pr-4 font-semibold">
-                          {index === 0 && "🥇 "}
-                          {index === 1 && "🥈 "}
-                          {index === 2 && "🥉 "}
-                          {index > 2 && `${index + 1}`}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-text-primary">
-                          {row.name} {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
-                          {row.points}
-                        </td>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-6 text-text-secondary">Loading leaderboard...</div>
+              ) : leaderboard.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-border text-left text-sm">
+                    <thead className="text-text-secondary">
+                      <tr>
+                        <th className="py-2 pr-4 font-semibold">Rank</th>
+                        <th className="px-4 py-2 font-semibold">Volunteer Name</th>
+                        <th className="px-4 py-2 font-semibold text-right">Points</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-center py-6 text-text-secondary">
-                No ledger entries found matching these filters.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {leaderboard.map((row) => (
+                        <tr
+                          key={row.userId}
+                          className="hover:bg-surface-muted transition-colors"
+                        >
+                          <td className="py-3 pr-4 font-medium text-text-primary text-base">
+                            #{row.points > 0 ? leaderboard.findIndex((r) => r.points === row.points) + 1 : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-text-primary text-base font-medium">
+                            {row.name} {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
+                            {row.points}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center py-6 text-text-secondary">
+                  No ledger entries found matching these filters.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {currentTab === "point-ledger" && (

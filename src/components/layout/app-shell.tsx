@@ -59,13 +59,13 @@ export function AppShell({
       href: "/scoring",
       icon: Trophy,
       id: "scoring",
-      label: "Scoring & Leaderboard",
+      label: "Leaderboard",
     },
     {
       href: "/volunteers/me",
       icon: UserRound,
       id: "volunteers",
-      label: "Volunteer Profile",
+      label: "Profile",
     },
     ...(user.isAdmin
       ? [
@@ -73,13 +73,13 @@ export function AppShell({
             href: "/admin/users",
             icon: UsersRound,
             id: "users",
-            label: "Access Control",
+            label: "Access",
           },
           {
             href: "/admin/settings",
             icon: Settings,
             id: "settings",
-            label: "System Settings",
+            label: "Settings",
           },
           {
             href: "/admin/recommendations",
@@ -91,7 +91,7 @@ export function AppShell({
             href: "/admin/notifications",
             icon: BellPlus,
             id: "notifications",
-            label: "Send Notification",
+            label: "Notifications",
           },
         ]
       : []),

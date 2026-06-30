@@ -5,11 +5,61 @@ import { Save } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import type { VolunteerProfileDetails } from "@/features/volunteers/types";
 
+const FACULTIES_AND_DEPARTMENTS: Record<string, string[]> = {
+  "Faculty of Engineering": [
+    "Department of Chemical and Process Engineering",
+    "Department of Civil Engineering",
+    "Department of Computer Science and Engineering",
+    "Department of Earth Resources Engineering",
+    "Department of Electrical Engineering",
+    "Department of Electronic and Telecommunication Engineering",
+    "Department of Materials Science and Engineering",
+    "Department of Mathematics",
+    "Department of Mechanical Engineering",
+    "Department of Textile and Apparel Engineering",
+    "Department of Transport Management and Logistics Engineering",
+  ],
+  "Faculty of Architecture": [
+    "Department of Architecture",
+    "Department of Building Economics",
+    "Department of Facilities Management",
+    "Department of Integrated Design",
+    "Department of Town and Country Planning",
+  ],
+  "Faculty of Information Technology": [
+    "Department of Computational Mathematics",
+    "Department of Information Technology",
+    "Department of Interdisciplinary Studies",
+  ],
+  "Faculty of Business": [
+    "Department of Decision Sciences",
+    "Department of Industrial Management",
+    "Department of Languages",
+    "Department of Management of Technology",
+  ],
+  "Faculty of Medicine": [
+    "Department of Anatomy",
+    "Department of Biochemistry and Clinical Chemistry",
+    "Department of Community Medicine and Family Medicine",
+    "Department of Medical Education",
+    "Department of Medical Technology",
+    "Department of Medicine and Mental Health",
+    "Department of Microbiology and Parasitology",
+    "Department of Obstetrics and Gynecology",
+    "Department of Pathology and Forensic Medicine",
+    "Department of Pediatrics and Neonatology",
+    "Department of Pharmacology",
+    "Department of Physiology",
+    "Department of Surgery and Anesthesia",
+  ],
+};
+
 export function ProfileDetailsForm({
   initialDetails,
 }: {
   initialDetails: VolunteerProfileDetails | null;
 }) {
+  const [isEditing, setIsEditing] = useState(!initialDetails);
   const [batchYear, setBatchYear] = useState(initialDetails?.batchYear ?? "");
   const [bio, setBio] = useState(initialDetails?.bio ?? "");
   const [department, setDepartment] = useState(initialDetails?.department ?? "");
@@ -22,6 +72,13 @@ export function ProfileDetailsForm({
     initialDetails?.universityIndex ?? "",
   );
   const [saving, setSaving] = useState(false);
+
+  const handleFacultyChange = (newFaculty: string) => {
+    setFaculty(newFaculty);
+    setDepartment("");
+  };
+
+  const availableDepartments = faculty ? (FACULTIES_AND_DEPARTMENTS[faculty] ?? []) : [];
 
   async function saveDetails(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,11 +107,56 @@ export function ProfileDetailsForm({
       }
 
       setStatus("Saved.");
+      setIsEditing(false);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Profile update failed.");
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isEditing) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <ReadOnlyField label="University Index" value={universityIndex} />
+          <ReadOnlyField label="Batch / Year" value={batchYear} />
+          <ReadOnlyField label="Faculty" value={faculty} />
+          <ReadOnlyField label="Department" value={department} />
+        </div>
+        {headline && <ReadOnlyField label="Headline" value={headline} />}
+        {linkedinUrl && (
+          <ReadOnlyField
+            label="LinkedIn Profile"
+            value={
+              <a
+                href={linkedinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium cursor-pointer"
+              >
+                {linkedinUrl}
+              </a>
+            }
+          />
+        )}
+        {skills && <ReadOnlyField label="Skills" value={skills} />}
+        {bio && <ReadOnlyField label="Bio" value={bio} />}
+
+        <div className="flex pt-2">
+          <button
+            onClick={() => {
+              setIsEditing(true);
+              setStatus("");
+            }}
+            className={buttonClasses({ variant: "secondary" })}
+            type="button"
+          >
+            Edit Profile
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -70,31 +172,52 @@ export function ProfileDetailsForm({
           />
         </Field>
         <Field label="Batch / Year">
-          <input
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-            maxLength={40}
+          <select
+            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
             onChange={(event) => setBatchYear(event.target.value)}
             required
             value={batchYear}
-          />
+          >
+            <option value="" disabled>Select Batch</option>
+            {["B21", "B22", "B23", "B24", "B25"].map((batch) => (
+              <option key={batch} value={batch}>
+                {batch}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Faculty">
-          <input
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-            maxLength={120}
-            onChange={(event) => setFaculty(event.target.value)}
+          <select
+            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
+            onChange={(event) => handleFacultyChange(event.target.value)}
             required
             value={faculty}
-          />
+          >
+            <option value="" disabled>Select Faculty</option>
+            {Object.keys(FACULTIES_AND_DEPARTMENTS).map((fac) => (
+              <option key={fac} value={fac}>
+                {fac}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Department">
-          <input
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-            maxLength={120}
+          <select
+            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
             onChange={(event) => setDepartment(event.target.value)}
             required
             value={department}
-          />
+            disabled={!faculty}
+          >
+            <option value="" disabled>
+              {faculty ? "Select Department" : "Select Faculty First"}
+            </option>
+            {availableDepartments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
       <Field label="Headline">
@@ -135,6 +258,26 @@ export function ProfileDetailsForm({
           <Save className="size-4" aria-hidden="true" />
           {saving ? "Saving" : "Save Profile"}
         </button>
+        {initialDetails && (
+          <button
+            type="button"
+            onClick={() => {
+              setUniversityIndex(initialDetails.universityIndex ?? "");
+              setBatchYear(initialDetails.batchYear ?? "");
+              setFaculty(initialDetails.faculty ?? "");
+              setDepartment(initialDetails.department ?? "");
+              setHeadline(initialDetails.headline ?? "");
+              setLinkedinUrl(initialDetails.linkedinUrl ?? "");
+              setSkills(initialDetails.skills ?? "");
+              setBio(initialDetails.bio ?? "");
+              setIsEditing(false);
+              setStatus("");
+            }}
+            className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
+          >
+            Cancel
+          </button>
+        )}
         {status ? <p className="text-sm text-text-secondary">{status}</p> : null}
       </div>
     </form>
@@ -153,5 +296,22 @@ function Field({
       <span className="text-sm font-medium text-text-secondary">{label}</span>
       {children}
     </label>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1 border-b border-border pb-2 last:border-0 last:pb-0">
+      <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        {label}
+      </span>
+      <div className="text-sm text-text-primary whitespace-pre-wrap">{value}</div>
+    </div>
   );
 }

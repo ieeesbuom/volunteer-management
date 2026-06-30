@@ -118,19 +118,6 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MailCheck className="size-4 text-primary" aria-hidden="true" />
-              Notification Preferences
-            </CardTitle>
-            <CardDescription>In-app and email delivery choices.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <NotificationPreferencesForm />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
               <CalendarDays className="size-4 text-primary" aria-hidden="true" />
               Event Responsibilities
             </CardTitle>

@@ -20,6 +20,7 @@ import { getVolunteerProfileDetails } from "@/features/volunteers/server/profile
 import { ProfileDetailsForm } from "@/features/volunteers/components/profile-details-form";
 import { RecommendationRequestsPanel } from "@/features/recommendations/components/recommendation-requests-panel";
 import { listRecommendationRequestsForVolunteer } from "@/features/recommendations/server/recommendations";
+import { NotificationPreferencesForm } from "@/features/notifications/components/notification-preferences-form";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,19 @@ export default async function MyVolunteerProfilePage() {
                 Verify your UoM email before requesting or writing recommendations.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MailCheck className="size-4 text-primary" aria-hidden="true" />
+              Notification Preferences
+            </CardTitle>
+            <CardDescription>In-app and email delivery choices.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <NotificationPreferencesForm />
           </CardContent>
         </Card>
       </div>

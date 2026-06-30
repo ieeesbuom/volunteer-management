@@ -49,24 +49,6 @@ export default async function DashboardPage() {
                 <MailCheck className="size-4" aria-hidden="true" />
                 {user.profile.uomVerified ? "Open Profile" : "Verify in Profile"}
               </Link>
-              {user.isAdmin ? (
-                <>
-                  <Link
-                    className={buttonClasses()}
-                    href="/admin/users"
-                  >
-                    <UsersRound className="size-4" aria-hidden="true" />
-                    Access Control
-                  </Link>
-                  <Link
-                    className={buttonClasses()}
-                    href="/admin/settings"
-                  >
-                    <Settings className="size-4" aria-hidden="true" />
-                    System Settings
-                  </Link>
-                </>
-              ) : null}
             </>
           }
         />

@@ -41,7 +41,7 @@ export default async function VolunteersPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Reporting"
-        title="Volunteer Profile Exports"
+        title="Exports"
         description="Export volunteer summaries as formal PDFs from profile, participation, recommendations, and points data."
       />
 

@@ -57,16 +57,26 @@ export async function getRoleAssignmentsForEvent(
 export async function getUserEventRoleAssignment(
   userId: string,
   eventId: string,
+  eventReference?: string,
 ): Promise<EventRoleAssignment | null> {
   const assignments = await getActiveEventRoleAssignments(userId);
-  return assignments.find((assignment) => assignment.eventId === eventId) ?? null;
+  // Match by eventId directly (Appwrite $id), or by reference string for legacy data
+  // where eventId was stored as the event reference instead of the document $id
+  return (
+    assignments.find(
+      (assignment) =>
+        assignment.eventId === eventId ||
+        (eventReference != null && assignment.eventId === eventReference),
+    ) ?? null
+  );
 }
 
 export async function getUserEventRole(
   userId: string,
   eventId: string,
+  eventReference?: string,
 ): Promise<EventRole | null> {
-  const assignment = await getUserEventRoleAssignment(userId, eventId);
+  const assignment = await getUserEventRoleAssignment(userId, eventId, eventReference);
   return assignment?.role ?? null;
 }
 
@@ -257,7 +267,17 @@ export async function getEventsForUser(
   const assignedEvents = await listEventsByIds(
     assignments.map((assignment) => assignment.eventId),
   );
-  const assignedEventsById = new Map(assignedEvents.map((event) => [event.$id, event]));
+
+  // Build lookup map keyed by both $id and reference to handle legacy data
+  // where eventId was stored as the event reference string instead of Appwrite $id
+  const assignedEventsById = new Map<string, typeof assignedEvents[0]>();
+  for (const event of assignedEvents) {
+    assignedEventsById.set(event.$id, event);
+    if (event.reference) {
+      assignedEventsById.set(event.reference, event);
+    }
+  }
+
   const eventIds = new Set<string>();
 
   const fromRoles = assignments.map((assignment) => {
@@ -275,7 +295,7 @@ export async function getEventsForUser(
     .filter((event) => !eventIds.has(event.$id))
     .map((event) => {
       const role =
-        assignments.find((assignment) => assignment.eventId === event.$id) ??
+        assignments.find((assignment) => assignment.eventId === event.$id || assignment.eventId === event.reference) ??
         ({
           $id: "",
           active: true,
@@ -295,6 +315,7 @@ export async function getEventsForUser(
       entry !== null,
   );
 }
+
 
 async function listEventsCreatedByUser(userId: string) {
   const env = getServerEnv();

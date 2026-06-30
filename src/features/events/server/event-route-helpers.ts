@@ -47,8 +47,8 @@ export function parseValidationBody<T>(schema: import("zod").ZodType<T>, data: u
   return { data: result.data };
 }
 
-export async function getEventUserContext(eventId: string, user: SessionUser) {
-  const userEventRole = await getUserEventRole(user.authUser.id, eventId);
+export async function getEventUserContext(eventId: string, user: SessionUser, eventReference?: string) {
+  const userEventRole = await getUserEventRole(user.authUser.id, eventId, eventReference);
 
   return { userEventRole };
 }
@@ -86,7 +86,7 @@ export async function requireVisibleEvent(eventId: string, user: SessionUser) {
     throw new NotFoundError("Event was not found.");
   }
 
-  const { userEventRole } = await getEventUserContext(eventId, user);
+  const { userEventRole } = await getEventUserContext(eventId, user, event.reference);
 
   if (!isEventVisible(user, event, userEventRole)) {
     throw new NotFoundError("Event was not found.");

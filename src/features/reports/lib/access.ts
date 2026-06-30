@@ -14,6 +14,9 @@ export function canAccessConclusionsTab(user: SessionUser) {
   return user.isAdmin || hasAnyEventLeadRole(user);
 }
 
-export function canExportVolunteerProfilePdf(user: Pick<SessionUser, "isAdmin">) {
-  return user.isAdmin;
+export function canExportVolunteerProfilePdf(
+  user: Pick<SessionUser, "isAdmin" | "authUser">,
+  targetUserId?: string,
+) {
+  return user.isAdmin || (targetUserId !== undefined && user.authUser.id === targetUserId);
 }

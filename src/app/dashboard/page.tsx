@@ -2,13 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   CalendarDays,
-  CheckCircle2,
   MailCheck,
   Settings,
   ShieldCheck,
   UserRound,
   UsersRound,
-  type LucideIcon,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
@@ -38,8 +36,8 @@ export default async function DashboardPage() {
     <AppShell active="dashboard" user={user}>
       <div className="space-y-6">
         <PageHeader
-          title="Access Overview"
-          description="Account identity, verification state, and Student Branch privileges."
+          title="Dashboard"
+          description="Your profile, access, responsibilities, and notification preferences."
           actions={
             <>
               <Link
@@ -73,82 +71,48 @@ export default async function DashboardPage() {
           }
         />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatusCard
-            description={user.profile.uomEmail ?? "Verification required before volunteering"}
-            icon={MailCheck}
-            label="UoM Email"
-            state={user.profile.uomVerified ? "Verified" : "Pending"}
-            tone={user.profile.uomVerified ? "success" : "warning"}
-            value={user.profile.uomVerified ? "Ready" : "Action required"}
-          />
-          <StatusCard
-            description={user.isAdmin ? "Global administration access" : "Standard account"}
-            icon={ShieldCheck}
-            label="Admin Status"
-            state={user.isAdmin ? "Enabled" : "Standard"}
-            tone={user.isAdmin ? "success" : "neutral"}
-            value={user.isAdmin ? "Administrator" : "Not Admin"}
-          />
-          <StatusCard
-            description={
-              user.sbRoles.length > 0
-                ? user.sbRoles.join(", ")
-                : "No Student Branch roles assigned"
-            }
-            icon={UsersRound}
-            label="SB Roles"
-            state={user.sbRoles.length > 0 ? "Assigned" : "None"}
-            tone={user.sbRoles.length > 0 ? "primary" : "neutral"}
-            value={String(user.sbRoles.length)}
-          />
-          <StatusCard
-            description={
-              user.eventRoles.length > 0
-                ? `${user.eventRoles.length} active event assignment${
-                    user.eventRoles.length === 1 ? "" : "s"
-                  }`
-                : "No event responsibilities assigned"
-            }
-            icon={CalendarDays}
-            label="Event Roles"
-            state={user.eventRoles.length > 0 ? "Assigned" : "None"}
-            tone={user.eventRoles.length > 0 ? "primary" : "neutral"}
-            value={String(user.eventRoles.length)}
-          />
-        </section>
-
-        <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+        <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound className="size-4 text-primary" aria-hidden="true" />
-                Account Details
+                Profile
               </CardTitle>
-              <CardDescription>Google identity and platform profile status.</CardDescription>
+              <CardDescription>Account identity and UoM verification.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+            <CardContent className="space-y-4 text-sm">
+              <div className="flex flex-wrap gap-2">
+                <Badge tone={user.profile.uomVerified ? "success" : "warning"}>
+                  {user.profile.uomVerified ? "UoM verified" : "UoM verification required"}
+                </Badge>
+                <Badge tone={user.profile.status === "ACTIVE" ? "success" : "warning"}>
+                  {user.profile.status}
+                </Badge>
+              </div>
               <InfoRow label="Name" value={user.authUser.name || "Not provided"} />
               <InfoRow label="Google email" value={user.authUser.email} />
-              <InfoRow label="Profile status" value={user.profile.status} />
+              <InfoRow
+                label="UoM email"
+                value={user.profile.uomEmail ?? "Not verified yet"}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
-                Access State
+                <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
+                Access
               </CardTitle>
-              <CardDescription>Current server-side authorization state.</CardDescription>
+              <CardDescription>Branch and admin privileges assigned to this account.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 <Badge tone={user.isAdmin ? "success" : "neutral"}>
-                  {user.isAdmin ? "Admin" : "Not Admin"}
+                  {user.isAdmin ? "Admin" : "Volunteer access"}
                 </Badge>
-                <Badge tone={user.profile.uomVerified ? "success" : "warning"}>
-                  {user.profile.uomVerified ? "UoM verified" : "UoM not verified"}
+                <Badge tone={user.eventRoles.length > 0 ? "primary" : "neutral"}>
+                  {user.eventRoles.length} event role{user.eventRoles.length === 1 ? "" : "s"}
                 </Badge>
               </div>
               <div>
@@ -165,10 +129,6 @@ export default async function DashboardPage() {
                   )}
                 </div>
               </div>
-              <InfoRow
-                label="Verified UoM email"
-                value={user.profile.uomEmail ?? "Not verified yet"}
-              />
             </CardContent>
           </Card>
         </div>
@@ -246,42 +206,6 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </AppShell>
-  );
-}
-
-function StatusCard({
-  description,
-  icon: Icon,
-  label,
-  state,
-  tone,
-  value,
-}: {
-  description: string;
-  icon: LucideIcon;
-  label: string;
-  state: string;
-  tone: "neutral" | "primary" | "success" | "warning";
-  value: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface-subtle text-primary">
-          <Icon className="size-5" aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-text-secondary">{label}</p>
-          <div className="mt-1 flex items-center gap-2">
-            <p className="text-xl font-semibold text-text-primary">{value}</p>
-            <Badge tone={tone}>{state}</Badge>
-          </div>
-          <p className="mt-1 break-words text-sm leading-5 text-text-secondary">
-            {description}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

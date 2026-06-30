@@ -18,10 +18,12 @@ export function ConclusionsPageContent({
   events,
   initialReport,
   initialReports,
+  showReportList = true,
 }: {
   events: ReportEvent[];
   initialReport: ConclusionReport | null;
   initialReports: ConclusionReport[];
+  showReportList?: boolean;
 }) {
   const [reports, setReports] = useState(initialReports);
   const draftEvent = events[0];
@@ -58,42 +60,44 @@ export function ConclusionsPageContent({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All conclusion reports</CardTitle>
-          <CardDescription>Existing conclusion reports stored in Appwrite.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="min-w-[760px] divide-y divide-border text-left text-sm">
-              <thead className="bg-surface-muted text-text-secondary">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Event</th>
-                  <th className="px-4 py-3 font-semibold">Submitted by</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Updated</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-surface">
-                {reports.map((report) => (
-                  <tr key={report.$id}>
-                    <td className="px-4 py-3 font-medium text-text-primary">
-                      {report.eventTitle}
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary">{report.submittedByName}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={reportStatusTone(report.status)}>{report.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      {new Date(report.updatedAt).toLocaleDateString()}
-                    </td>
+      {showReportList ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>All conclusion reports</CardTitle>
+            <CardDescription>Existing conclusion reports stored in Appwrite.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="min-w-[760px] divide-y divide-border text-left text-sm">
+                <thead className="bg-surface-muted text-text-secondary">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Event</th>
+                    <th className="px-4 py-3 font-semibold">Submitted by</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Updated</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody className="divide-y divide-border bg-surface">
+                  {reports.map((report) => (
+                    <tr key={report.$id}>
+                      <td className="px-4 py-3 font-medium text-text-primary">
+                        {report.eventTitle}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary">{report.submittedByName}</td>
+                      <td className="px-4 py-3">
+                        <Badge tone={reportStatusTone(report.status)}>{report.status}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary">
+                        {new Date(report.updatedAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
     </>
   );
 }

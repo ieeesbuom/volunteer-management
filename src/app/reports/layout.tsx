@@ -13,6 +13,10 @@ export default async function ReportsLayout({
     redirect("/login");
   }
 
+  if (!user.isAdmin) {
+    redirect("/dashboard");
+  }
+
   return (
     <AppShell active="reports" user={user}>
       {children}

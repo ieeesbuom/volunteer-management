@@ -7,21 +7,5 @@ import { getEventsForUser } from "@/features/events/server/event-roles.server";
 export const dynamic = "force-dynamic";
 
 export default async function MyEventsPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  if (!user.isAdmin && !user.profile.uomVerified) {
-    redirect("/verify-uom");
-  }
-
-  const userEvents = await getEventsForUser(user.authUser.id);
-
-  return (
-    <AppShell active="my-events" user={user}>
-      <MyEvents events={userEvents} />
-    </AppShell>
-  );
+  redirect("/events?tab=my");
 }

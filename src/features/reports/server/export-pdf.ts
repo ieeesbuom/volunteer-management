@@ -56,7 +56,7 @@ export async function exportVolunteerProfilePdfAction(userId: string) {
   const user = await requireAuth();
   const profile = await assertVolunteerProfileExportable(userId);
 
-  if (!canExportVolunteerProfilePdf(user)) {
+  if (!canExportVolunteerProfilePdf(user, userId)) {
     throw new Error("You do not have access to export this volunteer profile.");
   }
 

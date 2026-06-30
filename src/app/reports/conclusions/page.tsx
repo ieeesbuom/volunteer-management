@@ -1,5 +1,14 @@
 import { redirect } from "next/navigation";
+import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ConclusionApprovalPanel } from "@/features/reports/components/conclusion-approval-panel";
 import { ConclusionsPageContent } from "@/features/reports/components/conclusions-page-content";
 import { ReportsNav } from "@/features/reports/components/reports-nav";
 import { canAccessConclusionsTab } from "@/features/reports/lib/access";
@@ -48,7 +57,11 @@ export default async function ConclusionsPage({
       <PageHeader
         eyebrow="Reporting"
         title="Conclusion Reports"
-        description="Structured text-only event conclusion forms backed by Appwrite records."
+        description={
+          user.isAdmin
+            ? "Create, review, approve, and export event conclusion reports."
+            : "Create and submit structured event conclusion reports."
+        }
       />
 
       <ReportsNav
@@ -60,7 +73,25 @@ export default async function ConclusionsPage({
         events={orderedEvents}
         initialReport={draftReport}
         initialReports={data.reports}
+        showReportList={!user.isAdmin}
       />
+
+      {user.isAdmin ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="size-4 text-primary" aria-hidden="true" />
+              Review and export
+            </CardTitle>
+            <CardDescription>
+              Approve or reject submitted reports, then export approved reports as PDF.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ConclusionApprovalPanel initialReports={data.reports} />
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

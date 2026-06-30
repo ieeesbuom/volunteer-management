@@ -6,7 +6,6 @@ import {
   Award,
   ClipboardList,
   FileBarChart,
-  FileText,
   LayoutGrid,
   UsersRound,
 } from "lucide-react";
@@ -27,19 +26,13 @@ const recognitionItem = {
 const volunteersItem = {
   href: "/reports/volunteers",
   icon: UsersRound,
-  label: "Volunteer PDFs",
+  label: "Exports",
 } as const;
 
 const conclusionsItem = {
   href: "/reports/conclusions",
   icon: ClipboardList,
-  label: "Conclusions",
-} as const;
-
-const adminApprovalItem = {
-  href: "/reports/approval",
-  icon: FileText,
-  label: "Admin approval",
+  label: "Conclusion Reports",
 } as const;
 
 type ReportsNavProps = {
@@ -51,7 +44,7 @@ export function ReportsNav({ canAccessConclusions, isAdmin }: ReportsNavProps) {
   const pathname = usePathname();
 
   const items = isAdmin
-    ? [overviewItem, recognitionItem, volunteersItem, conclusionsItem, adminApprovalItem]
+    ? [overviewItem, recognitionItem, conclusionsItem, volunteersItem]
     : canAccessConclusions
       ? [recognitionItem, conclusionsItem]
       : [recognitionItem];

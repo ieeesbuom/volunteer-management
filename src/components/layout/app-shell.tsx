@@ -49,16 +49,6 @@ export function AppShell({
       id: "events",
       label: "Events",
     },
-    ...(user.profile.uomVerified || user.isAdmin
-      ? [
-          {
-            href: "/my-events",
-            icon: CalendarDays,
-            id: "my-events",
-            label: "My Events",
-          },
-        ]
-      : []),
     {
       href: "/reports",
       icon: FileBarChart,

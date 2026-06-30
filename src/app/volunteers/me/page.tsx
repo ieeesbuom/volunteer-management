@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ExportActions } from "@/features/reports/components/export-actions";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { VerificationPanel } from "@/features/access-control/components/verification-panel";
@@ -45,10 +46,13 @@ export default async function MyVolunteerProfilePage() {
           description="Manage your verification, public profile details, and recommendation requests."
           actions={
             canManageVolunteerProfile ? (
-              <Link className={buttonClasses()} href={`/volunteers/${user.authUser.id}`}>
-                <Eye className="size-4" aria-hidden="true" />
-                View Profile
-              </Link>
+              <div className="flex items-center gap-2">
+                <ExportActions kind="volunteer" userId={user.authUser.id} />
+                <Link className={buttonClasses()} href={`/volunteers/${user.authUser.id}`}>
+                  <Eye className="size-4" aria-hidden="true" />
+                  View Profile
+                </Link>
+              </div>
             ) : null
           }
         />

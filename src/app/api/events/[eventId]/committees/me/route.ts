@@ -20,8 +20,8 @@ export async function GET(_request: Request, context: RouteContext) {
   const { eventId } = await context.params;
 
   try {
-    await requireVisibleEvent(eventId, user!);
-    const assignment = await getUserEventRoleAssignment(user!.authUser.id, eventId);
+    const { event } = await requireVisibleEvent(eventId, user!);
+    const assignment = await getUserEventRoleAssignment(user!.authUser.id, eventId, event.reference);
     return NextResponse.json({ assignment, committee: assignment });
   } catch (error) {
     return jsonError(

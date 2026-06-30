@@ -95,8 +95,23 @@ describe("reports access", () => {
     ).toBe(false);
   });
 
-  it("limits volunteer profile PDF exports to admins", () => {
-    expect(canExportVolunteerProfilePdf(createUser({ isAdmin: true }))).toBe(true);
-    expect(canExportVolunteerProfilePdf(createUser())).toBe(false);
+  it("limits volunteer profile PDF exports to admins or the user themselves", () => {
+    const admin = createUser({ isAdmin: true });
+    const user1 = createUser();
+    const user2 = createUser({
+      authUser: { id: "user-2", email: "user2@example.com", name: "User 2" },
+      profile: {
+        $id: "profile-2",
+        authUserId: "user-2",
+        googleEmail: "user2@example.com",
+        status: "ACTIVE",
+        uomEmail: "user2@uom.lk",
+        uomVerified: true,
+      },
+    });
+
+    expect(canExportVolunteerProfilePdf(admin, "user-1")).toBe(true);
+    expect(canExportVolunteerProfilePdf(user1, "user-1")).toBe(true);
+    expect(canExportVolunteerProfilePdf(user2, "user-1")).toBe(false);
   });
 });

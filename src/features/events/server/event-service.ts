@@ -82,7 +82,12 @@ export type GetEventsResult = {
 
 async function getUserAssignedEventIds(userId: string) {
   const assignments = await getActiveEventRoleAssignments(userId);
+  // Include both $id-based and reference-based eventIds to handle legacy data
   return new Set(assignments.map((assignment) => assignment.eventId));
+}
+
+function eventMatchesAssignedIds(event: Event, assignedIds: Set<string>) {
+  return assignedIds.has(event.$id) || (Boolean(event.reference) && assignedIds.has(event.reference));
 }
 
 function isEventVisibleToQuery({
@@ -108,7 +113,7 @@ function isEventVisibleToQuery({
     return false;
   }
 
-  return event.created_by === userId || userAssignedEventIds.has(event.$id);
+  return event.created_by === userId || eventMatchesAssignedIds(event, userAssignedEventIds);
 }
 
 export async function getEvents(options: GetEventsOptions = {}): Promise<GetEventsResult> {
@@ -183,7 +188,9 @@ export async function listEventsByIds(eventIds: string[]): Promise<Event[]> {
 
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const result = await tables.listRows(
+
+  // First try to find events by their Appwrite document $id
+  const byIdResult = await tables.listRows(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     APPWRITE_TABLES.events,
     [Query.equal("$id", uniqueEventIds), Query.limit(Math.min(uniqueEventIds.length, 500))],
@@ -191,8 +198,30 @@ export async function listEventsByIds(eventIds: string[]): Promise<Event[]> {
     false,
   );
 
-  return result.rows.map((row) => toEvent(row as AppRow));
+  const foundEvents = byIdResult.rows.map((row) => toEvent(row as AppRow));
+  const foundIds = new Set(foundEvents.map((e) => e.$id));
+
+  // For any IDs that didn't match a document $id, try looking up by reference field
+  // This handles legacy data where eventId was stored as the event reference string
+  const missingIds = uniqueEventIds.filter((id) => !foundIds.has(id));
+
+  if (missingIds.length === 0) {
+    return foundEvents;
+  }
+
+  const byRefResult = await tables.listRows(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.events,
+    [Query.equal("reference", missingIds), Query.limit(Math.min(missingIds.length, 500))],
+    undefined,
+    false,
+  );
+
+  const refEvents = byRefResult.rows.map((row) => toEvent(row as AppRow));
+
+  return [...foundEvents, ...refEvents];
 }
+
 
 export async function assertEventVisibleToUser({
   event,

@@ -3,7 +3,6 @@ import {
   ArrowRight,
   CalendarDays,
   ClipboardList,
-  FileText,
   Trophy,
   UsersRound,
 } from "lucide-react";
@@ -152,21 +151,17 @@ export default async function ReportsOverviewPage() {
       </div>
 
       {user.isAdmin || canAccessConclusions ? (
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2">
           {canAccessConclusions ? (
             <QuickLinkCard
-              description="Create and submit structured text conclusion reports."
+              description={
+                user.isAdmin
+                  ? `Create, review, approve, and export reports. ${pendingApproval} awaiting approval, ${approvedReports} approved.`
+                  : "Create and submit structured text conclusion reports."
+              }
               href="/reports/conclusions"
               icon={ClipboardList}
-              title="Conclusion reports"
-            />
-          ) : null}
-          {user.isAdmin ? (
-            <QuickLinkCard
-              description={`Review submitted reports. ${pendingApproval} awaiting approval, ${approvedReports} approved.`}
-              href="/reports/approval"
-              icon={FileText}
-              title="Admin approval"
+              title="Conclusion Reports"
             />
           ) : null}
           {user.isAdmin ? (
@@ -174,7 +169,7 @@ export default async function ReportsOverviewPage() {
               description="Export identity, roles, participation, recommendations, and points."
               href="/reports/volunteers"
               icon={UsersRound}
-              title="Volunteer PDFs"
+              title="Exports"
             />
           ) : null}
         </section>

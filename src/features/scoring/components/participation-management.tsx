@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ClipboardCheck, Loader2, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,14 @@ export function ParticipationManagement({
                   return (
                     <tr key={entry.userId}>
                       <td className="py-3 pr-4">
-                        <p className="font-medium text-text-primary">{entry.name}</p>
+                        <p className="font-medium text-text-primary">
+                          <Link
+                            href={`/volunteers/${entry.userId}`}
+                            className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                          >
+                            {entry.name}
+                          </Link>
+                        </p>
                         <p className="mt-1 text-xs text-text-muted">
                           {entry.uomEmail || entry.googleEmail || "Profile unavailable"}
                         </p>

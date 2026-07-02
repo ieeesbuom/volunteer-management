@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RecommendationWithRespondent } from "@/features/recommendations/types";
@@ -58,7 +59,17 @@ export function RecommendationList({
             <p className="text-sm leading-6 text-text-primary">{recommendation.text}</p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-text-muted">
-                From {displayRespondent(recommendation)}
+                From{" "}
+                {recommendation.respondent ? (
+                  <Link
+                    href={`/volunteers/${recommendation.respondentId}`}
+                    className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                  >
+                    {displayRespondent(recommendation)}
+                  </Link>
+                ) : (
+                  "Unknown volunteer"
+                )}
               </p>
               {canReport ? (
                 reportedIds.includes(recommendation.$id) ? (

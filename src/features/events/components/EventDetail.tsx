@@ -423,7 +423,16 @@ export function EventDetail({
                       <tr key={assignment.$id}>
                         <td className="py-3 pr-4">
                           <p className="font-medium text-text-primary">
-                            {volunteer?.name || volunteer?.googleEmail || "Volunteer"}
+                            {volunteer ? (
+                              <Link
+                                href={`/volunteers/${assignment.userId}`}
+                                className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                              >
+                                {volunteer.name}
+                              </Link>
+                            ) : (
+                              "Volunteer"
+                            )}
                           </p>
                           <p className="mt-1 text-xs text-text-muted">
                             {volunteer?.uomEmail || volunteer?.googleEmail || "Profile unavailable"}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, startTransition, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Trophy,
   Award,
@@ -754,7 +755,13 @@ export function ScoringDashboard({
                               #{row.points > 0 ? leaderboard.findIndex((r) => r.points === row.points) + 1 : "-"}
                             </td>
                             <td className="px-4 py-3 text-text-primary text-base font-medium">
-                              {row.name} {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
+                              <Link
+                                href={`/volunteers/${row.userId}`}
+                                className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                              >
+                                {row.name}
+                              </Link>{" "}
+                              {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
                             </td>
                             <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
                               {row.points}

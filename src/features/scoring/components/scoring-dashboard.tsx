@@ -193,7 +193,7 @@ export function ScoringDashboard({
   initialVolunteers?: VolunteerOption[];
   initialVolunteersEventId?: string;
   user: SessionUser;
-  hallOfFame?: { userId: string; name: string; term: any; pointsEarned: number; rank: number }[];
+  hallOfFame?: { userId: string; name: string; term: { label: string }; pointsEarned: number; rank: number }[];
   volunteerOfTheMonth?: { name: string; highlight: string; pointsEarned: number } | null;
 }) {
   const router = useRouter();
@@ -207,11 +207,6 @@ export function ScoringDashboard({
   
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Reset page when leaderboard changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [leaderboard]);
 
   const totalPages = Math.max(1, Math.ceil(leaderboard.length / ITEMS_PER_PAGE));
   const paginatedLeaderboard = useMemo(() => {
@@ -417,6 +412,7 @@ export function ScoringDashboard({
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setLeaderboard(data.leaderboard || []);
+      setCurrentPage(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load leaderboard.");
     } finally {
@@ -860,7 +856,7 @@ export function ScoringDashboard({
                               #{entry.rank}
                             </td>
                             <td className="px-4 py-3 text-text-primary">{entry.name}</td>
-                            <td className="px-4 py-3 text-text-secondary">{entry.term?.label ?? entry.term}</td>
+                            <td className="px-4 py-3 text-text-secondary">{entry.term?.label ?? 'Unknown'}</td>
                             <td className="px-4 py-3">
                               <Badge tone="primary">{entry.pointsEarned}</Badge>
                             </td>

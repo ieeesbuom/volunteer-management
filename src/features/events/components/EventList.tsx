@@ -17,7 +17,7 @@ import {
 } from "@/features/events/lib/event-ui";
 import type { Event } from "@/features/events/types";
 
-import { useState, useEffect } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import type { EventRoleAssignment } from "@/features/access-control/types";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
@@ -47,20 +47,11 @@ export function EventList({
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Use state with a fallback to avoid SSR mismatches
-  const [activeTab, setActiveTabState] = useState<"all" | "my">("all");
-
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "my" && showMyEventsTab) {
-      setActiveTabState("my");
-    } else {
-      setActiveTabState("all");
-    }
-  }, [searchParams, showMyEventsTab]);
+  // Derive activeTab from URL search parameters to avoid setState in effect
+  const tabParam = searchParams.get("tab");
+  const activeTab = (tabParam === "my" && showMyEventsTab) ? "my" : "all";
 
   const handleTabChange = (tab: "all" | "my") => {
-    setActiveTabState(tab);
     const params = new URLSearchParams(searchParams.toString());
     if (tab === "all") {
       params.delete("tab");
@@ -69,8 +60,6 @@ export function EventList({
     }
     router.replace(`/events?${params.toString()}`);
   };
-
-  const currentEvents = activeTab === "all" ? allEvents : [];
 
   return (
     <div className="space-y-6">

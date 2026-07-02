@@ -12,7 +12,19 @@ export const EVENT_STATUSES = [
 ] as const;
 
 /** Canonical IEEE year terms from Core System Settings. */
-export const IEEE_TERMS = ["2024/2025", "2025/2026", "2026/2027"] as const;
+export const IEEE_TERMS = [
+  "25/26",
+  "26/27",
+  "27/28",
+  "28/29",
+  "29/30",
+  "30/31",
+  "31/32",
+  "32/33",
+  "33/34",
+  "34/35",
+  "35/36",
+] as const;
 
 export const EVENT_YEAR_MIN = 2000;
 export const EVENT_YEAR_MAX = 2100;

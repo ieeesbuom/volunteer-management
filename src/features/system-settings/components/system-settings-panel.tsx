@@ -23,6 +23,7 @@ import {
   getSuggestedTermRange,
   isActiveTopBoardExclusion,
 } from "@/features/system-settings/lib/rules";
+import { deriveTermFromDate } from "@/features/scoring/lib/helpers";
 import type { Profile } from "@/features/access-control/types";
 import type {
   AuditLog,
@@ -33,7 +34,7 @@ import type {
   TopBoardExclusion,
 } from "@/features/system-settings/types";
 
-type PanelTab = "audit" | "exclusions" | "permissions" | "terms";
+type PanelTab = "audit" | "exclusions" | "permissions";
 type NoticeStatus = "error" | "idle" | "success";
 type TermFormState = {
   endDate: string;
@@ -500,11 +501,10 @@ export function SystemSettingsPanel({
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-3 md:grid-cols-4">
-        <SummaryTile label="IEEE terms" value={String(terms.length)} />
+      <section className="grid gap-3 md:grid-cols-3">
         <SummaryTile
           label="Active term"
-          value={activeTermId ? terms.find((term) => term.$id === activeTermId)?.label ?? "Set" : "None"}
+          value={deriveTermFromDate(new Date().toISOString())}
         />
         <SummaryTile
           label="Top Board exclusions"
@@ -517,27 +517,9 @@ export function SystemSettingsPanel({
         <TabButton active={tab === "permissions"} icon={ShieldCheck} label="Permissions" onClick={() => openTab("permissions")} />
         <TabButton active={tab === "exclusions"} icon={UserMinus} label="Top Board Exclusions" onClick={() => openTab("exclusions")} />
         <TabButton active={tab === "audit"} icon={History} label="Audit" onClick={() => openTab("audit")} />
-        <TabButton active={tab === "terms"} icon={CalendarRange} label="Terms" onClick={() => openTab("terms")} />
       </div>
 
       {message ? <Notice message={message} status={status} /> : null}
-
-      {tab === "terms" ? (
-        <TermsPanel
-          activeTermId={activeTermId}
-          editingTermId={editingTermId}
-          pendingAction={pendingAction}
-          requestActivate={(term) => setConfirmation({ kind: "activate-term", term })}
-          requestClose={(term) => setConfirmation({ kind: "close-term", term })}
-          resetTermForm={resetTermForm}
-          setEditingTermId={setEditingTermId}
-          setTermForm={setTermForm}
-          submitTerm={submitTerm}
-          termForm={termForm}
-          terms={terms}
-          useSuggestedTermDates={useSuggestedTermDates}
-        />
-      ) : null}
 
       {tab === "exclusions" ? (
         <TopBoardExclusionsPanel

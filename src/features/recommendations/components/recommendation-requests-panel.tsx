@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,16 @@ export function RecommendationRequestsPanel({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-text-primary">
-                    {displayName(request.requester)}
+                    {request.requester ? (
+                      <Link
+                        href={`/volunteers/${request.requesterId}`}
+                        className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {displayName(request.requester)}
+                      </Link>
+                    ) : (
+                      "Unknown volunteer"
+                    )}
                   </p>
                   <p className="mt-1 text-sm text-text-secondary">
                     {request.message || "No message provided."}
@@ -156,7 +166,18 @@ export function RecommendationRequestsPanel({
                 className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3 text-sm"
                 key={request.$id}
               >
-                <span className="text-text-primary">{displayName(request.respondent)}</span>
+                <span className="text-text-primary">
+                  {request.respondent ? (
+                    <Link
+                      href={`/volunteers/${request.respondentId}`}
+                      className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {displayName(request.respondent)}
+                    </Link>
+                  ) : (
+                    "Unknown volunteer"
+                  )}
+                </span>
                 <Badge tone={statusTone[request.status]}>{request.status}</Badge>
               </div>
             ))}

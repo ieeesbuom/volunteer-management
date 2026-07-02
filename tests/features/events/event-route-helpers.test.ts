@@ -20,7 +20,7 @@ function createEventFixture(overrides: Partial<Event> = {}): Event {
     reference: "MF-4",
     start_date: "2026-06-01T00:00:00.000Z",
     status: "closed",
-    term: "2025/2026",
+    term: "25/26",
     title: "Closed Event",
     updated_at: "2026-01-01T00:00:00.000Z",
     year: 2026,

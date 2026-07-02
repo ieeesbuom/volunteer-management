@@ -249,7 +249,7 @@ function seedEvent(eventId = "event-1", eventTitle = "IEEE Day") {
     reference: eventId,
     start_date: "2026-06-01T09:00:00.000Z",
     status: "ongoing",
-    term: "2025/2026",
+    term: "25/26",
     title: eventTitle,
     updated_at: "2026-01-01T00:00:00.000Z",
     year: 2026,

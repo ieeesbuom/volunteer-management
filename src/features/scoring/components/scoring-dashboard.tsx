@@ -21,6 +21,8 @@ import {
   listDetailedReviews,
   listAllActiveEvents,
 } from "../server/actions";
+import { deriveTermFromDate } from "@/features/scoring/lib/helpers";
+import { IEEE_TERMS } from "@/lib/config";
 import type {
   PointLedgerEntry,
   GradeRequest,
@@ -201,6 +203,21 @@ export function ScoringDashboard({
   const [leaderboard, setLeaderboard] = useState<
     { userId: string; name: string; points: number }[]
   >([]);
+  
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when leaderboard changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [leaderboard]);
+
+  const totalPages = Math.max(1, Math.ceil(leaderboard.length / ITEMS_PER_PAGE));
+  const paginatedLeaderboard = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return leaderboard.slice(start, start + ITEMS_PER_PAGE);
+  }, [leaderboard, currentPage]);
+
   const [ledger, setLedger] = useState<PointLedgerEntry[]>([]);
 
   const [allEvents, setAllEvents] = useState<EventOption[]>(initialEvents);
@@ -328,8 +345,8 @@ export function ScoringDashboard({
   const [auditPage, setAuditPage] = useState(0);
 
   // Filters for Leaderboard
-  const [filterTerm, setFilterTerm] = useState("2026");
-  const [filterYear, setFilterYear] = useState("2026");
+  const [filterTerm, setFilterTerm] = useState(() => deriveTermFromDate(new Date().toISOString()));
+  const [filterYear, setFilterYear] = useState(() => String(new Date().getUTCFullYear()));
   const [filterMonth, setFilterMonth] = useState("");
 
   const [reqEventId, setReqEventId] = useState("");
@@ -343,10 +360,19 @@ export function ScoringDashboard({
   const [overReason, setOverReason] = useState("");
 
   const [exUserId, setExUserId] = useState("");
-  const [exTerm, setExTerm] = useState("2026");
-  const [exYear, setExYear] = useState(2026);
+  const [exTerm, setExTerm] = useState(() => deriveTermFromDate(new Date().toISOString()));
+  const [exYear, setExYear] = useState(() => new Date().getUTCFullYear());
   const [exExcluded, setExExcluded] = useState(true);
   const [exReason, setExReason] = useState("");
+
+  const visibleTerms = useMemo(() => {
+    const currentTerm = deriveTermFromDate(new Date().toISOString());
+    const currentStartYear = parseInt(currentTerm.split("/")[0]);
+    return IEEE_TERMS.filter((term) => {
+      const termStartYear = parseInt(term.split("/")[0]);
+      return termStartYear <= currentStartYear;
+    });
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -649,7 +675,131 @@ export function ScoringDashboard({
       {/* Tab Panels */}
       {currentTab === "leaderboard" && (
         <div className="space-y-6">
-          {/* Recognition Grid */}
+          {/* Full Leaderboard (Now First) */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row justify-between gap-4">
+                <div>
+                  <CardTitle>IEEE SB UoM Leaderboard</CardTitle>
+                  <CardDescription>
+                    Volunteers ranked by aggregated points from point ledger.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={filterTerm}
+                    onChange={(e) => setFilterTerm(e.target.value)}
+                    className="px-3 py-1.5 border border-border rounded-md text-sm w-36 bg-surface cursor-pointer"
+                  >
+                    {visibleTerms.map((term) => (
+                      <option key={term} value={term}>
+                        {term}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Year"
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                    className="px-3 py-1.5 border border-border rounded-md text-sm w-28 bg-surface"
+                  />
+                  <select
+                    value={filterMonth}
+                    onChange={(e) => setFilterMonth(e.target.value)}
+                    className="px-3 py-1.5 border border-border rounded-md text-sm bg-surface"
+                  >
+                    <option value="">Full Year</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                  <Button onClick={fetchLeaderboard} className="flex items-center gap-1">
+                    <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-6 text-text-secondary">Loading leaderboard...</div>
+              ) : paginatedLeaderboard.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border text-left text-sm">
+                      <thead className="text-text-secondary">
+                        <tr>
+                          <th className="py-2 pr-4 font-semibold">Rank</th>
+                          <th className="px-4 py-2 font-semibold">Volunteer Name</th>
+                          <th className="px-4 py-2 font-semibold text-right">Points</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {paginatedLeaderboard.map((row) => (
+                          <tr
+                            key={row.userId}
+                            className="hover:bg-surface-muted transition-colors"
+                          >
+                            <td className="py-3 pr-4 font-medium text-text-primary text-base">
+                              #{row.points > 0 ? leaderboard.findIndex((r) => r.points === row.points) + 1 : "-"}
+                            </td>
+                            <td className="px-4 py-3 text-text-primary text-base font-medium">
+                              {row.name} {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
+                              {row.points}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm">
+                      <span className="text-text-secondary">
+                        Showing Page <span className="font-medium text-text-primary">{currentPage}</span> of{" "}
+                        <span className="font-medium text-text-primary">{totalPages}</span>
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Back
+                        </button>
+                        <button
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-center py-6 text-text-secondary">
+                  No ledger entries found matching these filters.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recognition Grid (Now Second) */}
           <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
             <Card>
               <CardHeader>
@@ -720,105 +870,6 @@ export function ScoringDashboard({
               </CardContent>
             </Card>
           </div>
-
-          {/* Full Leaderboard */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between gap-4">
-                <div>
-                  <CardTitle>IEEE SB UoM Leaderboard</CardTitle>
-                  <CardDescription>
-                    Volunteers ranked by aggregated points from point ledger.
-                  </CardDescription>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={filterTerm}
-                    onChange={(e) => setFilterTerm(e.target.value)}
-                    className="px-3 py-1.5 border border-border rounded-md text-sm w-36 bg-surface"
-                  >
-                    <option value="2025">2025</option>
-                    <option value="2025/2026">2025/2026</option>
-                    <option value="2026">2026</option>
-                    <option value="2026/2027">2026/2027</option>
-                    <option value="2027">2027</option>
-                    <option value="2027/2028">2027/2028</option>
-                    <option value="2028">2028</option>
-                    <option value="2028/2029">2028/2029</option>
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Year"
-                    value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value)}
-                    className="px-3 py-1.5 border border-border rounded-md text-sm w-28 bg-surface"
-                  />
-                  <select
-                    value={filterMonth}
-                    onChange={(e) => setFilterMonth(e.target.value)}
-                    className="px-3 py-1.5 border border-border rounded-md text-sm bg-surface"
-                  >
-                    <option value="">Full Year</option>
-                    <option value="1">January</option>
-                    <option value="2">February</option>
-                    <option value="3">March</option>
-                    <option value="4">April</option>
-                    <option value="5">May</option>
-                    <option value="6">June</option>
-                    <option value="7">July</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
-                  </select>
-                  <Button onClick={fetchLeaderboard} className="flex items-center gap-1">
-                    <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-6 text-text-secondary">Loading leaderboard...</div>
-              ) : leaderboard.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-left text-sm">
-                    <thead className="text-text-secondary">
-                      <tr>
-                        <th className="py-2 pr-4 font-semibold">Rank</th>
-                        <th className="px-4 py-2 font-semibold">Volunteer Name</th>
-                        <th className="px-4 py-2 font-semibold text-right">Points</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {leaderboard.map((row) => (
-                        <tr
-                          key={row.userId}
-                          className="hover:bg-surface-muted transition-colors"
-                        >
-                          <td className="py-3 pr-4 font-medium text-text-primary text-base">
-                            #{row.points > 0 ? leaderboard.findIndex((r) => r.points === row.points) + 1 : "-"}
-                          </td>
-                          <td className="px-4 py-3 text-text-primary text-base font-medium">
-                            {row.name} {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
-                            {row.points}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-center py-6 text-text-secondary">
-                  No ledger entries found matching these filters.
-                </p>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -1472,16 +1523,13 @@ export function ScoringDashboard({
                     <select
                       value={exTerm}
                       onChange={(e) => setExTerm(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface cursor-pointer"
                     >
-                      <option value="2025">2025</option>
-                      <option value="2025/2026">2025/2026</option>
-                      <option value="2026">2026</option>
-                      <option value="2026/2027">2026/2027</option>
-                      <option value="2027">2027</option>
-                      <option value="2027/2028">2027/2028</option>
-                      <option value="2028">2028</option>
-                      <option value="2028/2029">2028/2029</option>
+                      {visibleTerms.map((term) => (
+                        <option key={term} value={term}>
+                          {term}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>

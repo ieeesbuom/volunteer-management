@@ -47,7 +47,8 @@ const CURRENT_RECOGNITION_SNAPSHOT_KEY = "recognition:current";
 
 function parseIeeeTerm(label: string): IeeeTerm {
   const [start, end] = label.split("/");
-  const startYear = Number(start);
+  const startYear =
+    start && start.length === 2 ? Number(`20${start}`) : Number(start);
   const endYear =
     end && end.length === 2 ? Number(`20${end}`) : Number(end ?? startYear + 1);
 

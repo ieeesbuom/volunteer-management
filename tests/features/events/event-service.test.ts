@@ -59,7 +59,7 @@ function createEventFixture(overrides: Partial<Event> = {}): Event {
     reference: "MF-4",
     start_date: "2026-06-01T00:00:00.000Z",
     status: "draft",
-    term: "2025/2026",
+    term: "25/26",
     title: "MoraForesight 4.0",
     updated_at: "2026-01-01T00:00:00.000Z",
     year: 2026,
@@ -315,7 +315,7 @@ describe("event service operations", () => {
       {
         reference: "MF-5",
         start_date: "2026-06-01T00:00:00.000Z",
-        term: "2025/2026",
+        term: "25/26",
         title: "New Event",
         year: 2026,
       },
@@ -344,7 +344,7 @@ describe("event service operations", () => {
       {
         reference: "MF-6",
         start_date: "2026-06-01T00:00:00.000Z",
-        term: "2025/2026",
+        term: "25/26",
         title: "Admin Event",
         year: 2026,
       },
@@ -371,7 +371,7 @@ describe("event service operations", () => {
         {
           reference: "MF-7",
           start_date: "2026-06-01T00:00:00.000Z",
-          term: "2025/2026",
+          term: "25/26",
           title: "Rollback Event",
           year: 2026,
         },
@@ -422,7 +422,7 @@ describe("event service operations", () => {
         {
           reference: "MF-4",
           start_date: "2026-06-01T00:00:00.000Z",
-          term: "2025/2026",
+          term: "25/26",
           title: "Duplicate",
           year: 2026,
         },
@@ -450,7 +450,7 @@ describe("create event validation", () => {
       end_date: "2026-05-01T00:00:00.000Z",
       reference: "MF-8",
       start_date: "2026-06-01T00:00:00.000Z",
-      term: "2025/2026",
+      term: "25/26",
       title: "Invalid Dates",
       year: 2026,
     });

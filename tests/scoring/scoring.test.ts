@@ -78,16 +78,16 @@ describe("Scoring Pure Helper Functions", () => {
       {
         $id: "1",
         userId: "user-1",
-        term: "2026/2027",
+        term: "26/27",
         year: 2026,
         excludedFromTopBoard: true,
         setBy: "admin",
       },
     ];
 
-    expect(isEligibleForTopBoard("user-1", "2026/2027", 2026, config)).toBe(false);
-    expect(isEligibleForTopBoard("user-2", "2026/2027", 2026, config)).toBe(true);
-    expect(isEligibleForTopBoard("user-1", "2027/2028", 2027, config)).toBe(true);
+    expect(isEligibleForTopBoard("user-1", "26/27", 2026, config)).toBe(false);
+    expect(isEligibleForTopBoard("user-2", "26/27", 2026, config)).toBe(true);
+    expect(isEligibleForTopBoard("user-1", "27/28", 2027, config)).toBe(true);
   });
 
   it("filterLedgerByMonth returns correct entries for Volunteer of the Month", () => {
@@ -98,7 +98,7 @@ describe("Scoring Pure Helper Functions", () => {
         eventId: "event-1",
         points: 5,
         conclusionApprovalDate: "2026-06-01T12:00:00.000Z",
-        term: "2026/2027",
+        term: "26/27",
         source: "grade" as const,
         createdBy: "admin",
         createdAt: "2026-06-01T12:00:00.000Z",
@@ -109,7 +109,7 @@ describe("Scoring Pure Helper Functions", () => {
         eventId: "event-2",
         points: 10,
         conclusionApprovalDate: "2026-07-01T12:00:00.000Z",
-        term: "2026/2027",
+        term: "26/27",
         source: "role" as const,
         createdBy: "admin",
         createdAt: "2026-07-01T12:00:00.000Z",
@@ -133,7 +133,7 @@ describe("Scoring Pure Helper Functions", () => {
         eventId: "event-1",
         points: 5,
         conclusionApprovalDate: "2026-06-01T12:00:00.000Z",
-        term: "2026/2027",
+        term: "26/27",
         source: "grade" as const,
         createdBy: "admin",
         createdAt: "2026-06-01T12:00:00.000Z",
@@ -144,14 +144,14 @@ describe("Scoring Pure Helper Functions", () => {
         eventId: "event-2",
         points: 1,
         conclusionApprovalDate: "2027-01-15T12:00:00.000Z",
-        term: "2026/2027",
+        term: "26/27",
         source: "role" as const,
         createdBy: "admin",
         createdAt: "2027-01-15T12:00:00.000Z",
       },
     ];
 
-    const entries2026 = filterLedgerByTerm(ledger, "2026/2027");
+    const entries2026 = filterLedgerByTerm(ledger, "26/27");
     expect(entries2026.length).toBe(2);
   });
 
@@ -163,7 +163,7 @@ describe("Scoring Pure Helper Functions", () => {
         eventId: "event-1",
         points: 4,
         conclusionApprovalDate: "2026-06-01T12:00:00.000Z",
-        term: "2026/2027",
+        term: "26/27",
         source: "grade" as const,
         createdBy: "admin",
         createdAt: "2026-06-01T12:00:00.000Z",
@@ -174,7 +174,7 @@ describe("Scoring Pure Helper Functions", () => {
         eventId: "event-2",
         points: 2,
         conclusionApprovalDate: "2026-06-01T12:00:00.000Z",
-        term: "2026/2027",
+        term: "26/27",
         source: "role" as const,
         createdBy: "admin",
         createdAt: "2026-06-01T12:00:00.000Z",
@@ -432,7 +432,7 @@ describe("Scoring Server Actions & Access Control", () => {
       if (table === "point_ledger") {
         return Promise.resolve({
           total: 1,
-          rows: [{ $id: "ledger-1", userId: "volunteer-1", eventId: "event-1", points: 7, source: "grade", conclusionApprovalDate: "2026-06-15T10:00:00.000Z", term: "2026/2027" }],
+          rows: [{ $id: "ledger-1", userId: "volunteer-1", eventId: "event-1", points: 7, source: "grade", conclusionApprovalDate: "2026-06-15T10:00:00.000Z", term: "26/27" }],
         });
       }
 
@@ -558,9 +558,9 @@ describe("Scoring Server Actions & Access Control", () => {
           total: 2,
           rows: [
             // Already has 5 points from grade
-            { $id: "l1", userId: "volunteer-1", eventId: "event-1", points: 5, source: "grade", conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "2026/2027" },
+            { $id: "l1", userId: "volunteer-1", eventId: "event-1", points: 5, source: "grade", conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "26/27" },
             // Already has 10 points from role
-            { $id: "l2", userId: "volunteer-1", eventId: "event-1", points: 10, source: "role", conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "2026/2027" },
+            { $id: "l2", userId: "volunteer-1", eventId: "event-1", points: 10, source: "role", conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "26/27" },
           ],
         });
       }
@@ -1124,10 +1124,10 @@ describe("Scoring Extra Requirements Tests", () => {
         return Promise.resolve({
           total: 4,
           rows: [
-            { $id: "l1", userId: "volunteer-1", eventId: "event-1", points: 15, conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "2026/2027", source: "role", createdBy: "admin", createdAt: "2026-06-15T00:00:00.000Z" },
-            { $id: "l2", userId: "volunteer-2", eventId: "event-2", points: 12, conclusionApprovalDate: "2026-06-20T00:00:00.000Z", term: "2026/2027", source: "role", createdBy: "admin", createdAt: "2026-06-20T00:00:00.000Z" },
-            { $id: "l3", userId: "volunteer-1", eventId: "event-3", points: 8, conclusionApprovalDate: "2026-07-01T00:00:00.000Z", term: "2026/2027", source: "grade", createdBy: "admin", createdAt: "2026-07-01T00:00:00.000Z" },
-            { $id: "l4", userId: "volunteer-2", eventId: "event-4", points: 5, conclusionApprovalDate: "2026-07-02T00:00:00.000Z", term: "2026/2027", source: "grade", createdBy: "admin", createdAt: "2026-07-02T00:00:00.000Z" },
+            { $id: "l1", userId: "volunteer-1", eventId: "event-1", points: 15, conclusionApprovalDate: "2026-10-15T00:00:00.000Z", term: "26/27", source: "role", createdBy: "admin", createdAt: "2026-10-15T00:00:00.000Z" },
+            { $id: "l2", userId: "volunteer-2", eventId: "event-2", points: 12, conclusionApprovalDate: "2026-10-20T00:00:00.000Z", term: "26/27", source: "role", createdBy: "admin", createdAt: "2026-10-20T00:00:00.000Z" },
+            { $id: "l3", userId: "volunteer-1", eventId: "event-3", points: 8, conclusionApprovalDate: "2026-11-01T00:00:00.000Z", term: "26/27", source: "grade", createdBy: "admin", createdAt: "2026-11-01T00:00:00.000Z" },
+            { $id: "l4", userId: "volunteer-2", eventId: "event-4", points: 5, conclusionApprovalDate: "2026-11-02T00:00:00.000Z", term: "26/27", source: "grade", createdBy: "admin", createdAt: "2026-11-02T00:00:00.000Z" },
           ],
         });
       }
@@ -1152,16 +1152,16 @@ describe("Scoring Extra Requirements Tests", () => {
       if (table === "ieee_terms") {
         return Promise.resolve({
           total: 1,
-          rows: [{ $id: "term-2026", label: "2026/27" }],
+          rows: [{ $id: "term-2026", label: "26/27" }],
         });
       }
       return Promise.resolve({ total: 0, rows: [] });
     });
-
-    await expect(getLeaderboard({ month: 6, year: 2026 })).resolves.toEqual([
+ 
+    await expect(getLeaderboard({ month: 10, year: 2026 })).resolves.toEqual([
       { userId: "volunteer-2", name: "Eligible Volunteer", points: 12 },
     ]);
-    await expect(getLeaderboard({ term: "2026/2027" })).resolves.toEqual([
+    await expect(getLeaderboard({ term: "26/27" })).resolves.toEqual([
       { userId: "volunteer-2", name: "Eligible Volunteer", points: 17 },
     ]);
   });

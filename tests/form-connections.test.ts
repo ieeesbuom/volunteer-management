@@ -36,7 +36,7 @@ describe("form connections", () => {
         reference: "EVT-1",
         start_date: "2026-06-01T00:00:00.000Z",
         status: "published",
-        term: "2026/2027",
+        term: "26/27",
         title: "MoraForesight",
         updated_at: "2026-06-01T00:00:00.000Z",
         year: 2026,

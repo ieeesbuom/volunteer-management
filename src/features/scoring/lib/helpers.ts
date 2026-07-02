@@ -53,9 +53,13 @@ export function filterLedgerByMonth(
 export function deriveTermFromDate(dateStr: string): string {
   const date = new Date(dateStr);
   const year = date.getUTCFullYear();
-  return date.getUTCMonth() < 3
-    ? `${year - 1}/${year}`
-    : `${year}/${year + 1}`;
+  // October (month index 9) is the start of the new term.
+  // Months Jan (0) to Sep (8) belong to the term starting in the previous year.
+  const startYear = date.getUTCMonth() < 9 ? year - 1 : year;
+  const safeStartYear = Math.max(2025, startYear);
+  const yy = safeStartYear % 100;
+  const nextYy = (safeStartYear + 1) % 100;
+  return `${yy}/${nextYy}`;
 }
 
 /**

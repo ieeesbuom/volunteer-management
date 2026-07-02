@@ -4,7 +4,7 @@ import { z } from "zod";
 export const IsoDateSchema = z.string().datetime();
 
 // Term validator
-export const TermSchema = z.string().regex(/^\d{4}(\/\d{4})?$/);
+export const TermSchema = z.string().regex(/^\d{2}\/\d{2}$|^\d{4}\/\d{4}$/);
 
 // Year validator
 export const YearSchema = z.number().int().min(1900).max(2100);

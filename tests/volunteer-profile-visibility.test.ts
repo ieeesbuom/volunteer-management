@@ -86,7 +86,7 @@ describe("volunteer profile visibility", () => {
       headline: "Volunteer",
       linkedinUrl: "https://www.linkedin.com/in/test",
       skills: "Leadership",
-      universityIndex: "220000A",
+      universityIndex: "240000A",
       updatedAt: "2026-01-01T00:00:00.000Z",
       userId: "user-1",
     });

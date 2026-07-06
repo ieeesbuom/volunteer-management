@@ -36,6 +36,7 @@ export default async function EventsPage() {
         allEvents={allEvents}
         myEvents={myEvents}
         showMyEventsTab={showMyEventsTab}
+        user={user}
       />
     </AppShell>
   );

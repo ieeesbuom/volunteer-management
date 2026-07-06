@@ -71,7 +71,7 @@ function profileDetails(overrides: Partial<VolunteerProfileDetails> = {}): Volun
     headline: "Logistics lead",
     linkedinUrl: "https://www.linkedin.com/in/test",
     skills: "Planning, mentoring",
-    universityIndex: "220000A",
+    universityIndex: "240000A",
     updatedAt: "2026-01-01T00:00:00.000Z",
     userId: "user-2",
     ...overrides,
@@ -233,7 +233,7 @@ describe("volunteer profile page smoke tests", () => {
     const html = await htmlFrom(VolunteerProfilePage(routeParams("user-2")));
 
     expect(html).toContain("target@uom.lk");
-    expect(html).toContain("220000A");
+    expect(html).toContain("240000A");
     expect(html).toContain("Chair");
     expect(html).toContain("Tech Week");
     expect(html).toContain("Thoughtful and reliable.");

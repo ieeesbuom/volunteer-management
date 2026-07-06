@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Save } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import type { VolunteerProfileDetails } from "@/features/volunteers/types";
+import { volunteerProfileDetailsSchema } from "@/features/volunteers/lib/profile-details";
 
 const FACULTIES_AND_DEPARTMENTS: Record<string, string[]> = {
   "Faculty of Engineering": [
@@ -72,6 +73,7 @@ export function ProfileDetailsForm({
     initialDetails?.universityIndex ?? "",
   );
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleFacultyChange = (newFaculty: string) => {
     setFaculty(newFaculty);
@@ -84,19 +86,35 @@ export function ProfileDetailsForm({
     event.preventDefault();
     setSaving(true);
     setStatus("");
+    setFieldErrors({});
+
+    const validation = volunteerProfileDetailsSchema.safeParse({
+      batchYear,
+      bio,
+      department,
+      faculty,
+      headline,
+      linkedinUrl,
+      skills,
+      universityIndex,
+    });
+
+    if (!validation.success) {
+      setSaving(false);
+      const errors: Record<string, string> = {};
+      for (const issue of validation.error.issues) {
+        const path = issue.path[0];
+        if (typeof path === "string") {
+          errors[path] = issue.message;
+        }
+      }
+      setFieldErrors(errors);
+      return;
+    }
 
     try {
       const response = await fetch("/api/volunteers/me", {
-        body: JSON.stringify({
-          batchYear,
-          bio,
-          department,
-          faculty,
-          headline,
-          linkedinUrl,
-          skills,
-          universityIndex,
-        }),
+        body: JSON.stringify(validation.data),
         headers: { "Content-Type": "application/json" },
         method: "PUT",
       });
@@ -162,7 +180,7 @@ export function ProfileDetailsForm({
   return (
     <form className="space-y-4" onSubmit={saveDetails}>
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="University Index">
+        <Field label="University Index" error={fieldErrors.universityIndex}>
           <input
             className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
             maxLength={40}
@@ -171,7 +189,7 @@ export function ProfileDetailsForm({
             value={universityIndex}
           />
         </Field>
-        <Field label="Batch / Year">
+        <Field label="Batch / Year" error={fieldErrors.batchYear}>
           <select
             className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
             onChange={(event) => setBatchYear(event.target.value)}
@@ -186,7 +204,7 @@ export function ProfileDetailsForm({
             ))}
           </select>
         </Field>
-        <Field label="Faculty">
+        <Field label="Faculty" error={fieldErrors.faculty}>
           <select
             className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
             onChange={(event) => handleFacultyChange(event.target.value)}
@@ -201,7 +219,7 @@ export function ProfileDetailsForm({
             ))}
           </select>
         </Field>
-        <Field label="Department">
+        <Field label="Department" error={fieldErrors.department}>
           <select
             className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
             onChange={(event) => setDepartment(event.target.value)}
@@ -220,7 +238,7 @@ export function ProfileDetailsForm({
           </select>
         </Field>
       </div>
-      <Field label="Headline">
+      <Field label="Headline" error={fieldErrors.headline}>
         <input
           className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
           maxLength={160}
@@ -228,7 +246,7 @@ export function ProfileDetailsForm({
           value={headline}
         />
       </Field>
-      <Field label="LinkedIn URL">
+      <Field label="LinkedIn URL" error={fieldErrors.linkedinUrl}>
         <input
           className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
           maxLength={240}
@@ -237,7 +255,7 @@ export function ProfileDetailsForm({
           value={linkedinUrl}
         />
       </Field>
-      <Field label="Skills">
+      <Field label="Skills" error={fieldErrors.skills}>
         <textarea
           className="min-h-24 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-primary"
           maxLength={500}
@@ -245,7 +263,7 @@ export function ProfileDetailsForm({
           value={skills}
         />
       </Field>
-      <Field label="Bio">
+      <Field label="Bio" error={fieldErrors.bio}>
         <textarea
           className="min-h-36 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-primary"
           maxLength={1200}
@@ -272,13 +290,24 @@ export function ProfileDetailsForm({
               setBio(initialDetails.bio ?? "");
               setIsEditing(false);
               setStatus("");
+              setFieldErrors({});
             }}
             className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
           >
             Cancel
           </button>
         )}
-        {status ? <p className="text-sm text-text-secondary">{status}</p> : null}
+        {status ? (
+          <p
+            className={`text-sm ${
+              status === "Saved."
+                ? "text-success font-medium"
+                : "rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-danger"
+            }`}
+          >
+            {status}
+          </p>
+        ) : null}
       </div>
     </form>
   );
@@ -286,16 +315,21 @@ export function ProfileDetailsForm({
 
 function Field({
   children,
+  error,
   label,
 }: {
   children: React.ReactNode;
+  error?: string;
   label: string;
 }) {
   return (
-    <label className="block space-y-2">
-      <span className="text-sm font-medium text-text-secondary">{label}</span>
-      {children}
-    </label>
+    <div className="space-y-2">
+      <label className="block space-y-2">
+        <span className="text-sm font-medium text-text-secondary">{label}</span>
+        {children}
+      </label>
+      {error && <span className="mt-1 block text-xs text-danger">{error}</span>}
+    </div>
   );
 }
 

@@ -26,7 +26,7 @@ const validDetails = {
   department: "Computer Science",
   faculty: "Engineering",
   linkedinUrl: "https://www.linkedin.com/in/test",
-  universityIndex: "220000A",
+  universityIndex: "240000A",
 };
 
 function putRequest(body: unknown) {
@@ -82,7 +82,7 @@ describe("/api/volunteers/me", () => {
       department: "Computer Science",
       faculty: "Engineering",
       linkedinUrl: "https://www.linkedin.com/in/test",
-      universityIndex: "220000A",
+      universityIndex: "240000A",
       updatedAt: "2026-01-01T00:00:00.000Z",
       userId: "user-1",
     });
@@ -92,7 +92,7 @@ describe("/api/volunteers/me", () => {
     expect(response.status).toBe(200);
     expect(upsertDetailsMock).toHaveBeenCalledTimes(1);
     expect(upsertDetailsMock.mock.calls[0]?.[0]).toMatchObject({
-      details: expect.objectContaining({ universityIndex: "220000A" }),
+      details: expect.objectContaining({ universityIndex: "240000A" }),
       user,
     });
   });

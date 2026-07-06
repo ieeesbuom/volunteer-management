@@ -19,7 +19,7 @@ import type { Event } from "@/features/events/types";
 
 
 import { useRouter, useSearchParams } from "next/navigation";
-import type { EventRoleAssignment } from "@/features/access-control/types";
+import type { EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 
 type UserEvent = {
@@ -38,12 +38,16 @@ export function EventList({
   allEvents,
   myEvents,
   showMyEventsTab,
+  user,
 }: Readonly<{
   canCreate: boolean;
   allEvents: Event[];
   myEvents: UserEvent[];
   showMyEventsTab: boolean;
+  user?: SessionUser;
 }>) {
+  const isAdmin = user?.isAdmin ?? false;
+  const userRoles = user?.eventRoles ?? [];
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -136,7 +140,9 @@ export function EventList({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="font-semibold text-text-primary">{event.title}</h3>
-                      <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
+                      {isAdmin || userRoles.some((r) => r.eventId === event.$id && r.role === "Chair") ? (
+                        <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
+                      ) : null}
                     </div>
                     <Badge
                       className={getEventStatusBadgeClassName(event.status)}
@@ -184,7 +190,9 @@ export function EventList({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="font-semibold text-text-primary">{event.title}</h3>
-                      <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
+                      {isAdmin || role.role === "Chair" ? (
+                        <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
+                      ) : null}
                     </div>
                     <Badge tone="primary">{formatRoleLabel(role)}</Badge>
                   </div>

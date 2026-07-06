@@ -201,6 +201,7 @@ export function EventDetail({
   const volunteersByUserId = new Map(
     initialVolunteers.map((volunteer) => [volunteer.userId, volunteer]),
   );
+  const isPrivileged = isAdmin || userEventRole === "Chair";
   const canChangeStatus =
     (isAdmin || userEventRole === "Chair") && statusTransitions.length > 0;
   const currentStatusIndex = EVENT_STATUSES.indexOf(event.status);
@@ -215,7 +216,11 @@ export function EventDetail({
     <div className="space-y-6">
       <PageHeader
         title={event.title}
-        description={`${event.reference} · ${event.term} · ${event.year}`}
+        description={
+          isPrivileged
+            ? `${event.reference} · ${event.term} · ${event.year}`
+            : `${event.term} · ${event.year}`
+        }
         actions={
           <Link className={buttonClasses()} href="/events">
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -320,43 +325,45 @@ export function EventDetail({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Lifecycle</CardTitle>
-          <CardDescription>Event progression from draft through closure.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ol className="grid gap-3 md:grid-cols-6">
-            {EVENT_STATUSES.map((status, index) => {
-              const isComplete = index < currentStatusIndex;
-              const isCurrent = status === event.status;
+      {isPrivileged ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Lifecycle</CardTitle>
+            <CardDescription>Event progression from draft through closure.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="grid gap-3 md:grid-cols-6">
+              {EVENT_STATUSES.map((status, index) => {
+                const isComplete = index < currentStatusIndex;
+                const isCurrent = status === event.status;
 
-              return (
-                <li
-                  className={cn(
-                    "rounded-md border px-3 py-3 text-center text-xs font-medium",
-                    isCurrent
-                      ? "border-primary/30 bg-primary-soft text-primary"
-                      : isComplete
-                        ? "border-success/25 bg-success-soft text-success"
-                        : "border-border bg-surface-subtle text-text-muted",
-                  )}
-                  key={status}
-                >
-                  <span className="mb-2 flex justify-center">
-                    {isComplete ? (
-                      <Check className="size-4" aria-hidden="true" />
-                    ) : (
-                      <span className="size-4 rounded-full border border-current" />
+                return (
+                  <li
+                    className={cn(
+                      "rounded-md border px-3 py-3 text-center text-xs font-medium",
+                      isCurrent
+                        ? "border-primary/30 bg-primary-soft text-primary"
+                        : isComplete
+                          ? "border-success/25 bg-success-soft text-success"
+                          : "border-border bg-surface-subtle text-text-muted",
                     )}
-                  </span>
-                  {LIFECYCLE_LABELS[status]}
-                </li>
-              );
-            })}
-          </ol>
-        </CardContent>
-      </Card>
+                    key={status}
+                  >
+                    <span className="mb-2 flex justify-center">
+                      {isComplete ? (
+                        <Check className="size-4" aria-hidden="true" />
+                      ) : (
+                        <span className="size-4 rounded-full border border-current" />
+                      )}
+                    </span>
+                    {LIFECYCLE_LABELS[status]}
+                  </li>
+                );
+              })}
+            </ol>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <CommitteeManagement
         canManage={permissions.canManageCommittee}
@@ -477,37 +484,39 @@ export function EventDetail({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ClipboardList className="size-4 text-primary" aria-hidden="true" />
-            Conclusion Status
-          </CardTitle>
-          <CardDescription>Post-event conclusion workflow state.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
-            {formatConclusionStatus(event.conclusion_status)}
-          </Badge>
+      {isPrivileged ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="size-4 text-primary" aria-hidden="true" />
+              Conclusion Status
+            </CardTitle>
+            <CardDescription>Post-event conclusion workflow state.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
+              {formatConclusionStatus(event.conclusion_status)}
+            </Badge>
 
-          <div className="flex flex-wrap gap-2">
-            {canOpenConclusionReport ? (
-              <Link
-                className={buttonClasses({ variant: "primary" })}
-                href={`/reports/conclusions?eventId=${event.$id}`}
-              >
-                Open Report Form
-              </Link>
-            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {canOpenConclusionReport ? (
+                <Link
+                  className={buttonClasses({ variant: "primary" })}
+                  href={`/reports/conclusions?eventId=${event.$id}`}
+                >
+                  Open Report Form
+                </Link>
+              ) : null}
 
-            {canReviewConclusionReport ? (
-              <Link className={buttonClasses()} href="/reports/conclusions">
-                Review Report
-              </Link>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
+              {canReviewConclusionReport ? (
+                <Link className={buttonClasses()} href="/reports/conclusions">
+                  Review Report
+                </Link>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
       {error ? (

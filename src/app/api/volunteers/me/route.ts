@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { volunteerProfileDetailsSchema } from "@/features/volunteers/lib/profile-details";
 import { requireUomVerifiedVolunteer } from "@/features/access-control/server/current-user";
 import {
@@ -32,6 +33,10 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ details });
   } catch (error) {
+    if (error instanceof ZodError) {
+      const message = error.issues.map((e) => e.message).join(" ");
+      return jsonError(message, 400);
+    }
     return jsonError(
       error instanceof Error ? error.message : "Volunteer profile update failed.",
       routeErrorStatus(error),

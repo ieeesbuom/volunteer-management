@@ -34,7 +34,26 @@ export const volunteerProfileDetailsSchema = z.object({
       message: "LinkedIn URL must be an https://linkedin.com URL.",
     }),
   skills: z.string().trim().max(500).optional().default(""),
-  universityIndex: z.string().trim().min(1, "University index is required.").max(40),
-});
+  universityIndex: z
+    .string()
+    .trim()
+    .min(1, "University index is required.")
+    .regex(
+      /^\d{5,6}[A-Za-z]$/,
+      "University index must be 5-6 digits followed by an English letter (e.g., 245013Z)."
+    )
+    .max(40),
+}).refine(
+  (data) => {
+    const batchDigitsMatch = data.batchYear.match(/\d{2}$/);
+    if (!batchDigitsMatch) return true;
+    const batchDigits = batchDigitsMatch[0];
+    return data.universityIndex.startsWith(batchDigits);
+  },
+  {
+    message: "University index must start with the selected batch digits.",
+    path: ["universityIndex"],
+  }
+);
 
 export type VolunteerProfileDetailsInput = z.infer<typeof volunteerProfileDetailsSchema>;

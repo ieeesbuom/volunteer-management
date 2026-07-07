@@ -10,7 +10,7 @@ import { ValidationError } from "@/server/errors";
 export function assertIeeeTerm(term: string) {
   if (!IEEE_TERMS.includes(term as (typeof IEEE_TERMS)[number])) {
     throw new ValidationError(
-      `term must be one of the configured IEEE terms: ${IEEE_TERMS.join(", ")}`,
+      `Term must be one of the configured IEEE terms: ${IEEE_TERMS.join(", ")}`,
     );
   }
 }
@@ -18,7 +18,7 @@ export function assertIeeeTerm(term: string) {
 export function assertEventYear(year: number) {
   if (!Number.isInteger(year) || year < EVENT_YEAR_MIN || year > EVENT_YEAR_MAX) {
     throw new ValidationError(
-      `year must be an integer between ${EVENT_YEAR_MIN} and ${EVENT_YEAR_MAX}`,
+      `Year must be an integer between ${EVENT_YEAR_MIN} and ${EVENT_YEAR_MAX}`,
     );
   }
 }
@@ -31,7 +31,7 @@ export function assertEventDateRange({
   start_date: string;
 }) {
   if (end_date && new Date(end_date) <= new Date(start_date)) {
-    throw new ValidationError("end_date must be after start_date");
+    throw new ValidationError("End date must be after start date.");
   }
 }
 

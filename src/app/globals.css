@@ -87,11 +87,12 @@ input[type="button"],
 input[type="reset"],
 input[type="checkbox"],
 input[type="radio"] {
-  cursor: pointer;
+  cursor: pointer !important;
 }
 
-/* Ensure elements inside links also inherit or show the pointer cursor */
-a * {
-  cursor: pointer;
+/* Ensure elements inside links and buttons also inherit or show the pointer cursor */
+a *,
+button * {
+  cursor: pointer !important;
 }
 

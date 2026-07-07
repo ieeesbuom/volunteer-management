@@ -30,7 +30,12 @@ export function canManageStructuralCommittees({
   isAdmin: boolean;
   userEventRole: EventRole | null;
 }) {
-  return isAdmin || userEventRole === "Chair";
+  return (
+    isAdmin ||
+    userEventRole === "Chair" ||
+    userEventRole === "Vice Chair" ||
+    userEventRole === "Committee Lead"
+  );
 }
 
 export function canAssignCommitteeRole({

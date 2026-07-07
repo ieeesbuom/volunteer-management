@@ -117,7 +117,7 @@ const dateRangeRefinement = {
 
     return true;
   },
-  message: "end_date must be after start_date" as const,
+  message: "End date must be after start date." as const,
   path: ["end_date"] as const,
 };
 

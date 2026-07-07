@@ -77,15 +77,15 @@ describe("volunteer profile details", () => {
       }).universityIndex
     ).toBe("245013Z");
 
-    // Valid 5 digits + letter (special case from prompt)
-    expect(
+    // Invalid: 5 digits + letter (must be exactly 6 digits now)
+    expect(() =>
       volunteerProfileDetailsSchema.parse({
         batchYear: "2024",
         department: "Computer Science",
         faculty: "Engineering",
         universityIndex: "24317B",
-      }).universityIndex
-    ).toBe("24317B");
+      })
+    ).toThrow("University index must be 6 digits followed by an English letter");
 
     // Invalid: missing letter
     expect(() =>
@@ -95,7 +95,7 @@ describe("volunteer profile details", () => {
         faculty: "Engineering",
         universityIndex: "245013",
       })
-    ).toThrow("University index must be 5-6 digits followed by an English letter");
+    ).toThrow("University index must be 6 digits followed by an English letter");
 
     // Invalid: too many digits
     expect(() =>
@@ -105,7 +105,7 @@ describe("volunteer profile details", () => {
         faculty: "Engineering",
         universityIndex: "2450134A",
       })
-    ).toThrow("University index must be 5-6 digits followed by an English letter");
+    ).toThrow("University index must be 6 digits followed by an English letter");
 
     // Invalid: mismatched batch year
     expect(() =>

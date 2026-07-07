@@ -130,7 +130,7 @@ export function NotificationBell({
       <button
         aria-expanded={isOpen}
         aria-label="Notifications"
-        className="relative inline-flex size-10 items-center justify-center rounded-md border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="relative inline-flex size-10 items-center justify-center rounded-md border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer"
         onClick={toggleOpen}
         type="button"
       >
@@ -207,7 +207,7 @@ export function NotificationDropdown({
           </Button>
           <button
             aria-label="Refresh notifications"
-            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
+            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
             disabled={isRefreshing}
             onClick={() => void onRefresh()}
             type="button"
@@ -313,7 +313,7 @@ function NotificationListItem({
         <span>{new Date(notification.createdAt).toLocaleString()}</span>
         {!notification.readAt ? (
           <button
-            className="font-medium text-primary hover:text-primary-hover"
+            className="font-medium text-primary hover:text-primary-hover cursor-pointer"
             disabled={pending}
             onClick={() => onMarkRead(notification.id)}
             type="button"

@@ -525,16 +525,21 @@ export function EventDetail({
         </p>
       ) : null}
 
-      {showAssignModal ? (
-        <AssignRoleModal
-          committeeNames={initialCommittees.map((committee) => committee.name)}
-          currentUserIsAdmin={isAdmin}
-          eventId={event.$id}
-          onClose={() => setShowAssignModal(false)}
-          onSuccess={refreshAssignments}
-          volunteerOptions={initialVolunteers}
-        />
-      ) : null}
+      {showAssignModal ? (() => {
+        const generalCommittee = initialCommittees.find((c) => c.name === "General");
+        const generalMemberUserIds = new Set(generalCommittee?.members.map((m) => m.user_id) ?? []);
+        const generalVolunteers = initialVolunteers.filter((v) => generalMemberUserIds.has(v.userId));
+        return (
+          <AssignRoleModal
+            committeeNames={initialCommittees.map((committee) => committee.name)}
+            currentUserIsAdmin={isAdmin}
+            eventId={event.$id}
+            onClose={() => setShowAssignModal(false)}
+            onSuccess={refreshAssignments}
+            volunteerOptions={generalVolunteers}
+          />
+        );
+      })() : null}
 
       {showDeleteConfirm ? (
         <ConfirmationDialog

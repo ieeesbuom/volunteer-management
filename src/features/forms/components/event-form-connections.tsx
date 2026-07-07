@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Link2, Loader2, Plus } from "lucide-react";
+import { ExternalLink, Link2, Loader2, Plus, Check, Clipboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,19 +45,24 @@ export function EventFormConnections({
   const [connections, setConnections] = useState(initialConnections);
   const [showForm, setShowForm] = useState(initialConnections.length === 0 && canManage);
   const [title, setTitle] = useState("");
-  const [provider, setProvider] = useState<FormConnectionProvider>("google_forms");
-  const [purpose, setPurpose] = useState<FormConnectionPurpose>("registration");
   const [formUrl, setFormUrl] = useState("");
-  const [externalFormId, setExternalFormId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const registrationConnections = connections.filter(
-    (connection) =>
-      connection.status === "active" &&
-      connection.purpose === "registration" &&
-      connection.formUrl,
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const activeConnections = connections.filter(
+    (connection) => connection.status === "active" && connection.formUrl,
   ) as Array<FormConnection & { formUrl: string }>;
+
+  function handleCopy(id: string, url: string) {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(id);
+      setTimeout(() => {
+        setCopiedId(null);
+      }, 2000);
+    });
+  }
 
   async function submitConnection(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,11 +70,29 @@ export function EventFormConnections({
     setError("");
     setMessage("");
 
+    // Auto-detect provider based on URL
+    let provider: FormConnectionProvider = "other";
+    if (formUrl.includes("docs.google.com/forms") || formUrl.includes("forms.gle")) {
+      provider = "google_forms";
+    }
+
+    // Auto-detect purpose based on title keywords
+    let purpose: FormConnectionPurpose = "other";
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes("register") || titleLower.includes("registration") || titleLower.includes("sign up")) {
+      purpose = "registration";
+    } else if (titleLower.includes("feedback") || titleLower.includes("survey")) {
+      purpose = "feedback";
+    } else if (titleLower.includes("attendance")) {
+      purpose = "attendance";
+    } else if (titleLower.includes("grade") || titleLower.includes("grading") || titleLower.includes("score")) {
+      purpose = "grading";
+    }
+
     try {
       const response = await fetch("/api/forms/connections", {
         body: JSON.stringify({
           eventId,
-          externalFormId: externalFormId || undefined,
           formUrl: formUrl || undefined,
           provider,
           purpose,
@@ -90,9 +113,6 @@ export function EventFormConnections({
       setConnections((current) => [payload.connection!, ...current]);
       setTitle("");
       setFormUrl("");
-      setExternalFormId("");
-      setPurpose("registration");
-      setProvider("google_forms");
       setShowForm(false);
       setMessage("Form connection saved.");
     } catch (caught) {
@@ -103,195 +123,204 @@ export function EventFormConnections({
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b border-border bg-surface-subtle/50 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Link2 className="size-4 text-primary" aria-hidden="true" />
+            <CardTitle className="flex items-center gap-2 text-lg font-bold">
+              <Link2 className="size-5 text-primary" aria-hidden="true" />
               Event Forms
             </CardTitle>
             <CardDescription>
-              Google Forms and external links connected to this event.
+              Quick access links for volunteers and organizers.
             </CardDescription>
           </div>
           {canManage ? (
-            <Button onClick={() => setShowForm((value) => !value)} type="button">
-              <Plus className="size-4" aria-hidden="true" />
-              {showForm ? "Close" : "Add Form"}
+            <Button
+              onClick={() => setShowForm((value) => !value)}
+              type="button"
+              variant={showForm ? "outline" : "primary"}
+              className="cursor-pointer"
+            >
+              <Plus className={cn("size-4 transition-transform", showForm && "rotate-45")} aria-hidden="true" />
+              {showForm ? "Cancel" : "Add Form Link"}
             </Button>
           ) : null}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {registrationConnections.length > 0 ? (
-          <div className="rounded-md border border-primary/20 bg-primary-soft/10 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-text-primary">OC Registration</p>
-                <p className="text-xs text-text-secondary">
-                  Registration form connected for this event.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {registrationConnections.map((connection) => (
-                  <a
-                    className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover"
-                    href={connection.formUrl}
-                    key={connection.id}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {connection.title || "Open Registration"}
-                    <ExternalLink className="size-4" aria-hidden="true" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : null}
+      <CardContent className="p-6 space-y-6">
+        {/* Active Forms Grid/List */}
+        {activeConnections.length > 0 ? (
+          <div className="space-y-4">
+            <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Active Event Links</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {activeConnections.map((connection) => (
+                <div
+                  key={connection.id}
+                  className="group relative flex flex-col justify-between rounded-xl border border-border bg-surface p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="inline-flex items-center rounded-full bg-primary-soft/40 px-2.5 py-0.5 text-xs font-medium text-primary capitalize">
+                        {formatPurpose(connection.purpose)}
+                      </span>
+                      <span className="text-xs text-text-muted">
+                        {formatProvider(connection.provider)}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-text-primary text-base line-clamp-1 group-hover:text-primary transition-colors">
+                      {connection.title}
+                    </h4>
+                  </div>
 
-        {showForm ? (
-          <form className="grid gap-4 rounded-md border border-border bg-surface-subtle p-4 md:grid-cols-2" onSubmit={submitConnection}>
-            <label className="block text-sm font-medium text-text-secondary">
-              Title
-              <input
-                className={cn(eventInputClasses, "mt-1")}
-                maxLength={160}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-                value={title}
-              />
-            </label>
-            <label className="block text-sm font-medium text-text-secondary">
-              Provider
-              <select
-                className={cn(eventInputClasses, "mt-1")}
-                onChange={(event) => setProvider(event.target.value as FormConnectionProvider)}
-                value={provider}
-              >
-                {PROVIDERS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-medium text-text-secondary">
-              Purpose
-              <select
-                className={cn(eventInputClasses, "mt-1")}
-                onChange={(event) => setPurpose(event.target.value as FormConnectionPurpose)}
-                value={purpose}
-              >
-                {PURPOSES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-medium text-text-secondary">
-              Form URL
-              <input
-                className={cn(eventInputClasses, "mt-1")}
-                maxLength={1024}
-                onChange={(event) => setFormUrl(event.target.value)}
-                placeholder="https://forms.gle/..."
-                type="url"
-                value={formUrl}
-              />
-            </label>
-            <label className="block text-sm font-medium text-text-secondary md:col-span-2">
-              Provider form reference
-              <input
-                className={cn(eventInputClasses, "mt-1")}
-                maxLength={256}
-                onChange={(event) => setExternalFormId(event.target.value)}
-                placeholder="Optional provider reference"
-                value={externalFormId}
-              />
-            </label>
-            <div className="flex justify-end md:col-span-2">
-              <Button disabled={submitting || (!formUrl && !externalFormId)} type="submit" variant="primary">
-                {submitting ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Plus className="size-4" aria-hidden="true" />
-                )}
-                Save Form
-              </Button>
-            </div>
-          </form>
-        ) : null}
+                  <div className="mt-5 flex gap-2">
+                    <a
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover cursor-pointer"
+                      href={connection.formUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Fill Form
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                    </a>
 
-        {connections.length > 0 ? (
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="min-w-[720px] divide-y divide-border text-left text-sm">
-              <thead className="bg-surface-muted text-text-secondary">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Form</th>
-                  <th className="px-4 py-3 font-semibold">Purpose</th>
-                  <th className="px-4 py-3 font-semibold">Provider</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Link</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-surface">
-                {connections.map((connection) => (
-                  <tr key={connection.id}>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-text-primary">{connection.title}</p>
-                      {connection.externalFormId ? (
-                        <p className="mt-1 text-xs text-text-muted">
-                          {connection.externalFormId}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      {formatPurpose(connection.purpose)}
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      {formatProvider(connection.provider)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={connection.status === "active" ? "success" : "warning"}>
-                        {connection.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {connection.formUrl ? (
-                        <a
-                          className="inline-flex items-center gap-2 text-primary hover:underline"
-                          href={connection.formUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          Open
-                          <ExternalLink className="size-4" aria-hidden="true" />
-                        </a>
+                    <button
+                      onClick={() => handleCopy(connection.id, connection.formUrl)}
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-surface-subtle p-2.5 text-text-secondary hover:bg-surface hover:text-primary transition cursor-pointer"
+                      title="Copy form link"
+                    >
+                      {copiedId === connection.id ? (
+                        <Check className="size-4 text-success" aria-hidden="true" />
                       ) : (
-                        <span className="text-xs text-text-muted">No URL</span>
+                        <Clipboard className="size-4" aria-hidden="true" />
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-text-secondary">
-            No forms are connected to this event.
-          </p>
-        )}
+        ) : !showForm ? (
+          /* Illustrative Empty State */
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-10 px-4 text-center">
+            <div className="rounded-full bg-surface-subtle p-4 mb-4">
+              <Link2 className="size-8 text-text-muted" aria-hidden="true" />
+            </div>
+            <h4 className="font-semibold text-text-primary text-base mb-1">No forms linked yet</h4>
+            <p className="text-sm text-text-secondary max-w-sm mb-4">
+              Volunteers will see direct links here once they are added by the event chair or admin.
+            </p>
+            {canManage ? (
+              <Button onClick={() => setShowForm(true)} variant="outline" className="cursor-pointer">
+                <Plus className="size-4" aria-hidden="true" />
+                Add First Form
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Add Form connection panel */}
+        {showForm ? (
+          <div className="rounded-xl border border-border bg-surface-subtle/30 p-5 shadow-inner">
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Add Form Link</h3>
+            <form className="space-y-4" onSubmit={submitConnection}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-text-secondary">
+                  Form Title
+                  <input
+                    className={cn(eventInputClasses, "mt-1.5 font-normal")}
+                    maxLength={160}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="e.g. Delegates Registration, Feedback Survey"
+                    required
+                    value={title}
+                  />
+                </label>
+                <label className="block text-sm font-semibold text-text-secondary">
+                  Form URL
+                  <input
+                    className={cn(eventInputClasses, "mt-1.5 font-normal")}
+                    maxLength={1024}
+                    onChange={(event) => setFormUrl(event.target.value)}
+                    placeholder="https://forms.gle/..."
+                    required
+                    type="url"
+                    value={formUrl}
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button disabled={submitting || !title || !formUrl} type="submit" variant="primary" className="cursor-pointer w-full sm:w-auto">
+                  {submitting ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Plus className="size-4" aria-hidden="true" />
+                  )}
+                  Save Form Link
+                </Button>
+              </div>
+            </form>
+          </div>
+        ) : null}
+
+        {/* Form Management Log/Table (Only for Admins/Chairs to audit, kept minimal) */}
+        {canManage && connections.length > 0 ? (
+          <div className="pt-4 border-t border-border">
+            <details className="group cursor-pointer">
+              <summary className="text-xs font-semibold text-text-secondary group-hover:text-primary transition-colors flex items-center gap-1.5 select-none cursor-pointer">
+                <span>Manage Forms ({connections.length})</span>
+              </summary>
+              <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+                <table className="min-w-full divide-y divide-border text-left text-sm">
+                  <thead className="bg-surface-muted text-text-secondary">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Form Title</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                      <th className="px-4 py-3 font-semibold">Provider</th>
+                      <th className="px-4 py-3 font-semibold">Purpose</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border bg-surface">
+                    {connections.map((connection) => (
+                      <tr key={connection.id} className="hover:bg-surface-subtle/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <a
+                            href={connection.formUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-primary hover:underline cursor-pointer"
+                          >
+                            {connection.title}
+                          </a>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge tone={connection.status === "active" ? "success" : "warning"}>
+                            {connection.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary capitalize">
+                          {formatProvider(connection.provider)}
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary capitalize">
+                          {formatPurpose(connection.purpose)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        ) : null}
 
         {message ? (
-          <p className="rounded-md border border-success/25 bg-success-soft px-3 py-2 text-sm text-success">
+          <p className="rounded-lg border border-success/25 bg-success-soft px-3 py-2 text-sm text-success">
             {message}
           </p>
         ) : null}
         {error ? (
-          <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
+          <p className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}
           </p>
         ) : null}

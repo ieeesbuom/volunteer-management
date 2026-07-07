@@ -39,7 +39,9 @@ export function CommitteeManagement({
   const [committees, setCommittees] = useState<CommitteeWithMembers[]>(initialCommittees);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [memberUserId, setMemberUserId] = useState<Record<string, string>>({});
+  const [editingCommitteeId, setEditingCommitteeId] = useState<string | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const volunteersByUserId = new Map(
@@ -71,6 +73,78 @@ export function CommitteeManagement({
 
     setCommittees(nextCommittees);
   }, [eventId]);
+
+  const startEditingMembers = useCallback((committee: CommitteeWithMembers) => {
+    setEditingCommitteeId(committee.$id);
+    setSelectedUserIds(new Set(committee.members.map((m) => m.user_id)));
+    setSearchQuery("");
+  }, []);
+
+  const sortedVolunteers = (committee: CommitteeWithMembers) => {
+    const filtered = volunteerOptions.filter((v) => {
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) return true;
+      return (
+        (v.name || "").toLowerCase().includes(query) ||
+        (v.googleEmail || "").toLowerCase().includes(query) ||
+        (v.uomEmail || "").toLowerCase().includes(query)
+      );
+    });
+
+    return [...filtered].sort((a, b) => {
+      const aSelected = selectedUserIds.has(a.userId);
+      const bSelected = selectedUserIds.has(b.userId);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  };
+
+  async function handleSaveMembers(committeeId: string) {
+    const committee = committees.find((c) => c.$id === committeeId);
+    if (!committee) return;
+
+    setPendingAction(`save-members:${committeeId}`);
+    setError("");
+
+    const initialUserIds = new Set(committee.members.map((m) => m.user_id));
+    const toAdd = Array.from(selectedUserIds).filter((userId) => !initialUserIds.has(userId));
+    const toRemove = committee.members.filter((member) => !selectedUserIds.has(member.user_id));
+
+    try {
+      const addPromises = toAdd.map((userId) =>
+        fetch(`/api/events/${eventId}/committees/${committeeId}/members`, {
+          body: JSON.stringify({ user_id: userId }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        }).then(async (res) => {
+          if (!res.ok) {
+            const payload = await res.json();
+            throw new Error(payload.error ?? "Failed to add member.");
+          }
+        })
+      );
+
+      const removePromises = toRemove.map((member) =>
+        fetch(`/api/events/${eventId}/committees/${committeeId}/members/${member.$id}`, {
+          method: "DELETE",
+        }).then(async (res) => {
+          if (!res.ok) {
+            const payload = await res.json();
+            throw new Error(payload.error ?? "Failed to remove member.");
+          }
+        })
+      );
+
+      await Promise.all([...addPromises, ...removePromises]);
+      setEditingCommitteeId(null);
+      await refreshCommittees();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to update committee members.");
+    } finally {
+      setPendingAction(null);
+    }
+  }
 
   async function handleCreateCommittee(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,41 +196,6 @@ export function CommitteeManagement({
       await refreshCommittees();
     } catch {
       setError("Could not delete committee.");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function handleAddMember(committeeId: string) {
-    const userId = memberUserId[committeeId]?.trim();
-
-    if (!userId) {
-      return;
-    }
-
-    setPendingAction(`member:${committeeId}`);
-    setError("");
-
-    try {
-      const response = await fetch(
-        `/api/events/${eventId}/committees/${committeeId}/members`,
-        {
-          body: JSON.stringify({ user_id: userId }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-      );
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setError(payload.error ?? "Could not add committee member.");
-        return;
-      }
-
-      setMemberUserId((current) => ({ ...current, [committeeId]: "" }));
-      await refreshCommittees();
-    } catch {
-      setError("Could not add committee member.");
     } finally {
       setPendingAction(null);
     }
@@ -222,7 +261,7 @@ export function CommitteeManagement({
                 />
               </label>
             </div>
-            <Button disabled={pendingAction === "create-committee"} type="submit" variant="primary">
+            <Button disabled={pendingAction === "create-committee"} type="submit" variant="primary" className="cursor-pointer">
               <Plus className="size-4" aria-hidden="true" />
               {pendingAction === "create-committee" ? "Creating..." : "Create Committee"}
             </Button>
@@ -248,6 +287,7 @@ export function CommitteeManagement({
                       onClick={() => handleDeleteCommittee(committee.$id)}
                       type="button"
                       variant="ghost"
+                      className="cursor-pointer"
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                       Delete
@@ -256,8 +296,110 @@ export function CommitteeManagement({
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  <h4 className="text-sm font-medium text-text-secondary">Members</h4>
-                  {committee.members.length > 0 ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-medium text-text-secondary">Members</h4>
+                    {canManage && editingCommitteeId !== committee.$id ? (
+                      <Button
+                        onClick={() => startEditingMembers(committee)}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="cursor-pointer text-xs"
+                      >
+                        <UserPlus className="size-3.5" aria-hidden="true" />
+                        Manage Members
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {editingCommitteeId === committee.$id ? (
+                    <div className="mt-2 rounded-lg border border-primary/20 bg-primary-soft/5 p-4 space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="text-sm font-semibold text-text-primary">Manage Committee Members</h4>
+                        <span className="text-xs text-text-secondary font-medium">
+                          Selected: {selectedUserIds.size} volunteers
+                        </span>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Search volunteers by name or email..."
+                        className={cn(eventInputClasses, "w-full text-sm font-normal")}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+
+                      <div className="max-h-60 overflow-y-auto rounded-md border border-border bg-surface divide-y divide-border">
+                        {sortedVolunteers(committee).length > 0 ? (
+                          sortedVolunteers(committee).map((volunteer) => {
+                            const isSelected = selectedUserIds.has(volunteer.userId);
+                            return (
+                              <label
+                                key={volunteer.userId}
+                                className={cn(
+                                  "flex items-center gap-3 px-3 py-2 text-sm select-none cursor-pointer hover:bg-surface-subtle/50 transition-colors",
+                                  isSelected && "bg-primary-soft/10"
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-border text-primary focus:ring-primary cursor-pointer size-4"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    setSelectedUserIds((current) => {
+                                      const next = new Set(current);
+                                      if (next.has(volunteer.userId)) {
+                                        next.delete(volunteer.userId);
+                                      } else {
+                                        next.add(volunteer.userId);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium text-text-primary truncate">{volunteer.name || "Volunteer"}</p>
+                                  <p className="text-xs text-text-secondary truncate">{volunteer.uomEmail || volunteer.googleEmail}</p>
+                                </div>
+                              </label>
+                            );
+                          })
+                        ) : (
+                          <div className="p-4 text-center text-sm text-text-muted">
+                            No volunteers found matching &quot;{searchQuery}&quot;
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          disabled={pendingAction === `save-members:${committee.$id}`}
+                          onClick={() => setEditingCommitteeId(null)}
+                          type="button"
+                          variant="outline"
+                          className="cursor-pointer"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          disabled={pendingAction === `save-members:${committee.$id}`}
+                          onClick={() => handleSaveMembers(committee.$id)}
+                          type="button"
+                          variant="primary"
+                          className="cursor-pointer"
+                        >
+                          {pendingAction === `save-members:${committee.$id}` ? (
+                            <>
+                              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Changes"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : committee.members.length > 0 ? (
                     <ul className="space-y-2 text-sm">
                       {committee.members.map((member) => {
                         const volunteer = volunteersByUserId.get(member.user_id);
@@ -278,6 +420,7 @@ export function CommitteeManagement({
                                 onClick={() => handleRemoveMember(committee.$id, member.$id)}
                                 type="button"
                                 variant="ghost"
+                                className="cursor-pointer text-xs"
                               >
                                 Remove
                               </Button>
@@ -289,52 +432,6 @@ export function CommitteeManagement({
                   ) : (
                     <p className="text-sm text-text-muted">No members yet.</p>
                   )}
-
-                  {canManage ? (
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                      <label className="block flex-1 text-sm font-medium text-text-secondary">
-                        Volunteer
-                        <select
-                          className={cn(eventInputClasses, "mt-1")}
-                          onChange={(event) =>
-                            setMemberUserId((current) => ({
-                              ...current,
-                              [committee.$id]: event.target.value,
-                            }))
-                          }
-                          value={memberUserId[committee.$id] ?? ""}
-                        >
-                          <option value="">Select volunteer</option>
-                          {volunteerOptions.map((volunteer) => (
-                            <option key={volunteer.userId} value={volunteer.userId}>
-                              {volunteer.name || volunteer.googleEmail}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <Button
-                        disabled={
-                          pendingAction === `member:${committee.$id}` ||
-                          !memberUserId[committee.$id]
-                        }
-                        onClick={() => handleAddMember(committee.$id)}
-                        type="button"
-                        variant="primary"
-                      >
-                        {pendingAction === `member:${committee.$id}` ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                            Adding...
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="size-4" aria-hidden="true" />
-                            Add Member
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  ) : null}
                 </div>
               </div>
             ))}
@@ -350,3 +447,4 @@ export function CommitteeManagement({
     </Card>
   );
 }
+

@@ -457,7 +457,7 @@ describe("create event validation", () => {
 
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
-      expect(parsed.error.issues[0]?.message).toBe("end_date must be after start_date");
+      expect(parsed.error.issues[0]?.message).toBe("End date must be after start date.");
     }
   });
 });

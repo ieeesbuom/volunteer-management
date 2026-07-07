@@ -10,8 +10,8 @@ import {
   eventTextareaClasses,
 } from "@/features/events/lib/event-ui";
 import { CreateEventInputSchema } from "@/features/events/types";
-import { IEEE_TERMS } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { deriveTermFromDate } from "@/features/scoring/lib/helpers";
 
 type FormState = {
   title: string;
@@ -35,7 +35,15 @@ const initialFormState: FormState = {
 
 export function CreateEventForm() {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(initialFormState);
+  const [form, setForm] = useState<FormState>(() => ({
+    title: "",
+    reference: "",
+    description: "",
+    term: deriveTermFromDate(new Date().toISOString()),
+    year: String(new Date().getFullYear()),
+    start_date: "",
+    end_date: "",
+  }));
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -50,10 +58,24 @@ export function CreateEventForm() {
     setError("");
     setFieldErrors({});
 
+    const slugifiedReference = form.title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    if (!slugifiedReference) {
+      setFieldErrors({ title: "Title must contain alphanumeric characters to generate a reference code." });
+      setError("Please correct the highlighted fields.");
+      setSubmitting(false);
+      return;
+    }
+
     const year = Number.parseInt(form.year, 10);
     const payload = {
       title: form.title,
-      reference: form.reference,
+      reference: slugifiedReference,
       description: form.description || undefined,
       term: form.term,
       year: Number.isNaN(year) ? form.year : year,
@@ -101,7 +123,7 @@ export function CreateEventForm() {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div>
         <Field
           error={fieldErrors.title}
           id="title"
@@ -109,15 +131,6 @@ export function CreateEventForm() {
           onChange={(value) => updateField("title", value)}
           required
           value={form.title}
-        />
-        <Field
-          error={fieldErrors.reference}
-          id="reference"
-          label="Reference code"
-          onChange={(value) => updateField("reference", value)}
-          placeholder="event-reference"
-          required
-          value={form.reference}
         />
       </div>
 
@@ -134,27 +147,7 @@ export function CreateEventForm() {
         ) : null}
       </label>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block text-sm font-medium text-text-secondary" htmlFor="term">
-          IEEE Term
-          <select
-            className={cn(eventInputClasses, "mt-1")}
-            id="term"
-            onChange={(event) => updateField("term", event.target.value)}
-            required
-            value={form.term}
-          >
-            <option value="">Select term</option>
-            {IEEE_TERMS.map((term) => (
-              <option key={term} value={term}>
-                {term}
-              </option>
-            ))}
-          </select>
-          {fieldErrors.term ? (
-            <span className="mt-1 block text-xs text-danger">{fieldErrors.term}</span>
-          ) : null}
-        </label>
+      <div>
         <Field
           error={fieldErrors.year}
           id="year"

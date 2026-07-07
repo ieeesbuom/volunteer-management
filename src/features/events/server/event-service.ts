@@ -301,14 +301,27 @@ export async function createEvent(
   });
 
   try {
-    await createCommittee(
-      {
-        description: "Default committee created with the event.",
-        event_id: event.$id,
-        name: "General",
-      },
-      createdByUserId,
-    );
+    const defaultCommittees = [
+      { name: "General", description: "Default committee for event leadership (Chairs, Vice Chairs, and Leads)." },
+      { name: "Finance Committee", description: "Responsible for budgeting, tracking expenses, and sponsor funding." },
+      { name: "Delegates Committee", description: "Responsible for participant registrations and delegate relations." },
+      { name: "Logistics Committee", description: "Responsible for venue, refreshments, equipment, and on-day setup." },
+      { name: "Publicity Committee", description: "Responsible for promotions, marketing, and media outreach." },
+      { name: "Design Committee", description: "Responsible for graphics, branding, flyers, and digital artwork." },
+      { name: "Programme Committee", description: "Responsible for the event schedule, speakers, agenda, and activities." },
+      { name: "Editorial Committee", description: "Responsible for copy writing, reports, content review, and publications." }
+    ];
+
+    for (const def of defaultCommittees) {
+      await createCommittee(
+        {
+          description: def.description,
+          event_id: event.$id,
+          name: def.name,
+        },
+        createdByUserId,
+      );
+    }
 
     if (!isAdmin) {
       await assignAccessControlEventRole({

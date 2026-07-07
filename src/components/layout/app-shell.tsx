@@ -129,7 +129,7 @@ export function AppShell({
               </div>
               <form action="/api/auth/logout" method="post">
                 <button
-                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
                   type="submit"
                 >
                   <LogOut className="size-4" aria-hidden="true" />

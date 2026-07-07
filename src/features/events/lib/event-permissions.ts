@@ -60,15 +60,19 @@ export function getEventPermissions(
     return ADMIN_PERMISSIONS;
   }
 
-  if (userEventRole === "Chair") {
+  if (
+    userEventRole === "Chair" ||
+    userEventRole === "Vice Chair" ||
+    userEventRole === "Committee Lead"
+  ) {
     return {
       canApproveConclusion: false,
-      canAssignRoles: true,
+      canAssignRoles: userEventRole === "Chair",
       canDelete: false,
-      canEdit: EDITABLE_STATUSES.includes(event.status),
+      canEdit: userEventRole === "Chair" && EDITABLE_STATUSES.includes(event.status),
       canManageCommittee: true,
       canPublish: false,
-      canSubmitConclusion: event.status === "ongoing",
+      canSubmitConclusion: userEventRole === "Chair" && event.status === "ongoing",
     };
   }
 

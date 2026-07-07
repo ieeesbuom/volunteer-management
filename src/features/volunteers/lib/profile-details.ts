@@ -39,8 +39,8 @@ export const volunteerProfileDetailsSchema = z.object({
     .trim()
     .min(1, "University index is required.")
     .regex(
-      /^\d{5,6}[A-Za-z]$/,
-      "University index must be 5-6 digits followed by an English letter (e.g., 245013Z)."
+      /^\d{6}[A-Za-z]$/,
+      "University index must be 6 digits followed by an English letter (e.g., 245013Z)."
     )
     .max(40),
 }).refine(

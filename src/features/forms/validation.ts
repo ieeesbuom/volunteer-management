@@ -22,32 +22,34 @@ export const formConnectionProviderSchema = z.enum(FORM_CONNECTION_PROVIDERS);
 export const formConnectionPurposeSchema = z.enum(FORM_CONNECTION_PURPOSES);
 export const formConnectionStatusSchema = z.enum(FORM_CONNECTION_STATUSES);
 
-export const createFormConnectionSchema = z
-  .object({
-    eventId: z.string().trim().min(1).max(128),
-    externalFormId: optionalTrimmedString(256).refine(
-      (value) => !value || /^[A-Za-z0-9_-]+$/.test(value),
-      {
-        message:
-          "External form IDs must be stable references, not URLs, secrets, or embedded form data.",
-      },
-    ),
-    formUrl: z
-      .string()
-      .trim()
-      .url()
-      .max(1024)
-      .optional()
-      .transform((value) => value || undefined)
-      .refine((value) => !value || !hasSecretLikeSearchParam(value), {
-        message: "Form URLs must not contain secret, token, password, or API key query parameters.",
-      }),
-    metadata: safeJsonObjectSchema.optional(),
-    provider: formConnectionProviderSchema,
-    purpose: formConnectionPurposeSchema,
-    status: formConnectionStatusSchema.default("active"),
-    title: z.string().trim().min(1).max(160),
-  })
+export const baseFormConnectionObjectSchema = z.object({
+  eventId: z.string().trim().min(1).max(128),
+  externalFormId: optionalTrimmedString(256).refine(
+    (value) => !value || /^[A-Za-z0-9_-]+$/.test(value),
+    {
+      message:
+        "External form IDs must be stable references, not URLs, secrets, or embedded form data.",
+    },
+  ),
+  formUrl: z
+    .string()
+    .trim()
+    .url()
+    .max(1024)
+    .optional()
+    .transform((value) => value || undefined)
+    .refine((value) => !value || !hasSecretLikeSearchParam(value), {
+      message: "Form URLs must not contain secret, token, password, or API key query parameters.",
+    }),
+  metadata: safeJsonObjectSchema.optional(),
+  provider: formConnectionProviderSchema,
+  purpose: formConnectionPurposeSchema,
+  status: formConnectionStatusSchema.optional(),
+  title: z.string().trim().min(1).max(160),
+});
+
+export const createFormConnectionSchema = baseFormConnectionObjectSchema
+  .extend({ status: formConnectionStatusSchema.default("active") })
   .strict()
   .refine((value) => value.externalFormId || value.formUrl, {
     message: "Provide an external form ID or form URL.",
@@ -65,6 +67,26 @@ export const createFormConnectionSchema = z
           "Form URLs must be HTTPS URLs approved for the selected provider.",
         path: ["formUrl"],
       });
+    }
+  });
+
+export const updateFormConnectionSchema = baseFormConnectionObjectSchema
+  .partial()
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.formUrl) {
+      return;
+    }
+
+    if (value.formUrl && value.provider) {
+      if (!isProviderApprovedFormUrl(value.formUrl, value.provider)) {
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Form URLs must be HTTPS URLs approved for the selected provider.",
+          path: ["formUrl"],
+        });
+      }
     }
   });
 

@@ -716,7 +716,7 @@ describe("Scoring Server Actions & Access Control", () => {
         role: "Chair",
         userId: "volunteer-1",
       })
-    ).rejects.toThrow("Volunteer already has an active role 'Committee Lead' in event 'event-1'.");
+    ).rejects.toThrow("Volunteer already has an active role 'Committee Lead' in event 'Event One'.");
   });
 });
 

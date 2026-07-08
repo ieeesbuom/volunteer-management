@@ -369,7 +369,7 @@ export async function assignEventRole({
   );
 
   if (duplicate) {
-    throw new Error(`Volunteer already has an active role '${duplicate.role}' in event '${normalizedEventId}'.`);
+    throw new Error(`Volunteer already has an active role '${duplicate.role}' in event '${normalizedEventTitle}'.`);
   }
 
   const rowId = eventRoleRowId({

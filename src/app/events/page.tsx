@@ -26,8 +26,8 @@ export default async function EventsPage() {
     userId: user.authUser.id,
   });
 
-  const myEvents = await getEventsForUser(user.authUser.id);
-  const showMyEventsTab = user.isAdmin || user.profile.uomVerified;
+  const myEvents = user.isAdmin ? [] : await getEventsForUser(user.authUser.id);
+  const showMyEventsTab = !user.isAdmin && user.profile.uomVerified;
 
   return (
     <AppShell active="events" user={user}>

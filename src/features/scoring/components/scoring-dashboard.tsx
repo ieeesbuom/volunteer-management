@@ -9,6 +9,7 @@ import {
   BookOpen,
   Sliders,
   AlertCircle,
+  AlertTriangle,
   Plus,
   RefreshCw,
 } from "lucide-react";
@@ -373,6 +374,31 @@ export function ScoringDashboard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [requestToApprove, setRequestToApprove] = useState<GradeRequest | null>(null);
+  const [requestToReject, setRequestToReject] = useState<GradeRequest | null>(null);
+
+  const handleApproveRequest = async (req: GradeRequest) => {
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/scoring/grades", {
+        method: "POST",
+        body: JSON.stringify({ gradeRequestId: req.$id }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setSuccess("Extra score approved and points awarded!");
+      await fetchGradeRequests();
+      if (derivedRole === "Admin") {
+        await fetchDetailedReviews();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to approve extra score.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch volunteers list on mount
   useEffect(() => {
@@ -1152,29 +1178,16 @@ export function ScoringDashboard({
                                 <div className="flex gap-2">
                                   <Button
                                     variant="primary"
-                                    onClick={async () => {
-                                      setError(null);
-                                      setSuccess(null);
-                                      try {
-                                        const res = await fetch("/api/scoring/grades", {
-                                          method: "POST",
-                                          body: JSON.stringify({ gradeRequestId: req.$id }),
-                                        });
-                                        const data = await res.json();
-                                        if (data.error) throw new Error(data.error);
-                                        setSuccess("Extra score approved and points awarded!");
-                                        fetchGradeRequests();
-                                      } catch (err) {
-                                        setError(err instanceof Error ? err.message : "Failed to approve extra score.");
-                                      }
-                                    }}
+                                    className="cursor-pointer"
+                                    onClick={() => setRequestToApprove(req)}
                                   >
                                     Approve (Finalize)
                                   </Button>
                                   {derivedRole === "Admin" ? (
                                     <Button
                                       variant="secondary"
-                                      onClick={() => handleDeleteRequest(req.$id)}
+                                      className="cursor-pointer"
+                                      onClick={() => setRequestToReject(req)}
                                     >
                                       Reject (Delete)
                                     </Button>
@@ -1580,6 +1593,86 @@ export function ScoringDashboard({
           </Card>
         </div>
       )}
+
+      {requestToApprove ? (() => {
+        const targetVolName = requestToApprove.targetUserName ?? volunteerLabel(requestToApprove.targetUserId);
+        return (
+          <ConfirmationDialog
+            confirmLabel="Approve Request"
+            description={`Are you sure you want to approve the extra score request of ${requestToApprove.pointsRequested} points for ${targetVolName}? This will finalize the points and award them to the volunteer.`}
+            isBusy={loading}
+            onCancel={() => setRequestToApprove(null)}
+            onConfirm={async () => {
+              await handleApproveRequest(requestToApprove);
+              setRequestToApprove(null);
+            }}
+            title="Approve Extra Score?"
+          />
+        );
+      })() : null}
+
+      {requestToReject ? (() => {
+        const targetVolName = requestToReject.targetUserName ?? volunteerLabel(requestToReject.targetUserId);
+        return (
+          <ConfirmationDialog
+            confirmLabel="Reject & Delete"
+            description={`Are you sure you want to reject and delete the extra score request for ${targetVolName}?`}
+            isBusy={loading}
+            onCancel={() => setRequestToReject(null)}
+            onConfirm={async () => {
+              await handleDeleteRequest(requestToReject.$id);
+              setRequestToReject(null);
+            }}
+            title="Reject & Delete Request?"
+          />
+        );
+      })() : null}
+    </div>
+  );
+}
+
+function ConfirmationDialog({
+  confirmLabel,
+  description,
+  isBusy,
+  onCancel,
+  onConfirm,
+  title,
+}: {
+  confirmLabel: string;
+  description: string;
+  isBusy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+  title: string;
+}) {
+  return (
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      role="dialog"
+    >
+      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
+        <div className="border-b border-border px-5 py-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
+              <AlertTriangle className="size-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+          <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost" className="cursor-pointer">
+            Cancel
+          </Button>
+          <Button disabled={isBusy} onClick={onConfirm} type="button" variant="primary" className="cursor-pointer">
+            {isBusy ? "Processing..." : confirmLabel}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

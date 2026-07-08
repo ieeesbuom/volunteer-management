@@ -28,7 +28,6 @@ import {
 import { CommitteeManagement } from "@/features/events/components/CommitteeManagement";
 import { AssignRoleModal } from "@/features/events/components/AssignRoleModal";
 import { EventFormConnections } from "@/features/forms/components/event-form-connections";
-import { ParticipationManagement } from "@/features/scoring/components/participation-management";
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
 import {
   formatConclusionStatus,
@@ -42,7 +41,6 @@ import {
 import type { Committee, CommitteeMember, Event, EventPermissions, EventRole, EventStatus } from "@/features/events/types";
 import type { FormConnection } from "@/features/forms/types";
 import { EVENT_STATUSES } from "@/features/events/types";
-import type { ParticipationRoster } from "@/features/scoring/types";
 import { cn } from "@/lib/utils";
 
 const LIFECYCLE_LABELS: Record<EventStatus, string> = {
@@ -74,7 +72,6 @@ export function EventDetail({
   initialCommittees,
   initialEvent,
   initialFormConnections,
-  initialParticipationRoster,
   initialPermissions,
   initialVolunteers,
   isAdmin,
@@ -86,7 +83,6 @@ export function EventDetail({
   initialCommittees: Array<Committee & { members: CommitteeMember[] }>;
   initialEvent: Event;
   initialFormConnections: FormConnection[];
-  initialParticipationRoster: ParticipationRoster;
   initialPermissions: EventPermissions;
   initialVolunteers: EventVolunteerIdentity[];
   isAdmin: boolean;
@@ -95,12 +91,14 @@ export function EventDetail({
   const router = useRouter();
   const [event, setEvent] = useState(initialEvent);
   const [assignments, setAssignments] = useState(initialAssignments);
+  const [committees, setCommittees] = useState(initialCommittees);
   const [permissions] = useState(initialPermissions);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<EventStatus | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<EventStatus | "">("");
   const [removeTarget, setRemoveTarget] = useState<EventRoleAssignment | null>(null);
 
@@ -113,18 +111,14 @@ export function EventDetail({
     }
   }, [event.$id]);
 
-  async function handleStatusChange() {
-    if (!selectedStatus) {
-      return;
-    }
-
+  async function handleStatusChange(toStatus: EventStatus) {
     setPendingAction("status");
     setError("");
     setMessage("Updating event status...");
 
     try {
       const response = await fetch(`/api/events/${event.$id}/status`, {
-        body: JSON.stringify({ status: selectedStatus }),
+        body: JSON.stringify({ status: toStatus }),
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
       });
@@ -304,9 +298,10 @@ export function EventDetail({
             </label>
             <Button
               disabled={!selectedStatus || pendingAction === "status"}
-              onClick={handleStatusChange}
+              onClick={() => selectedStatus && setPendingStatusChange(selectedStatus as EventStatus)}
               type="button"
               variant="primary"
+              className="cursor-pointer"
             >
               {pendingAction === "status" ? "Updating..." : "Update Status"}
             </Button>
@@ -370,6 +365,7 @@ export function EventDetail({
         eventId={event.$id}
         initialCommittees={initialCommittees}
         volunteerOptions={initialVolunteers}
+        onCommitteesChange={setCommittees}
       />
 
       <EventFormConnections
@@ -377,11 +373,6 @@ export function EventDetail({
         eventId={event.$id}
         initialConnections={initialFormConnections}
       />
-
-      {initialParticipationRoster.records.length > 0 ||
-      initialParticipationRoster.canManage ? (
-        <ParticipationManagement initialRoster={initialParticipationRoster} />
-      ) : null}
 
       <Card>
         <CardHeader>
@@ -526,12 +517,12 @@ export function EventDetail({
       ) : null}
 
       {showAssignModal ? (() => {
-        const generalCommittee = initialCommittees.find((c) => c.name === "General");
+        const generalCommittee = committees.find((c) => c.name === "General");
         const generalMemberUserIds = new Set(generalCommittee?.members.map((m) => m.user_id) ?? []);
         const generalVolunteers = initialVolunteers.filter((v) => generalMemberUserIds.has(v.userId));
         return (
           <AssignRoleModal
-            committeeNames={initialCommittees.map((committee) => committee.name)}
+            committeeNames={committees.map((committee) => committee.name)}
             currentUserIsAdmin={isAdmin}
             eventId={event.$id}
             onClose={() => setShowAssignModal(false)}
@@ -562,6 +553,27 @@ export function EventDetail({
           title="Remove Committee Member"
         />
       ) : null}
+
+      {pendingStatusChange ? (() => {
+        const isRevert = EVENT_STATUSES.indexOf(pendingStatusChange) < EVENT_STATUSES.indexOf(event.status);
+        return (
+          <ConfirmationDialog
+            confirmLabel={isRevert ? "Yes, Revert Status" : "Yes, Update Status"}
+            description={
+              isRevert
+                ? `This will revert the event back from "${formatEventStatus(event.status)}" to "${formatEventStatus(pendingStatusChange)}". This is a backward change — are you sure?`
+                : `This will advance the event from "${formatEventStatus(event.status)}" to "${formatEventStatus(pendingStatusChange)}". This action will notify all registered volunteers.`
+            }
+            isBusy={pendingAction === "status"}
+            onCancel={() => setPendingStatusChange(null)}
+            onConfirm={async () => {
+              await handleStatusChange(pendingStatusChange);
+              setPendingStatusChange(null);
+            }}
+            title={isRevert ? `Revert to "${formatEventStatus(pendingStatusChange)}"?` : `Change to "${formatEventStatus(pendingStatusChange)}"?`}
+          />
+        );
+      })() : null}
     </div>
   );
 }

@@ -16,7 +16,6 @@ import {
 import { getRoleAssignmentsForEvent } from "@/features/events/server/event-roles.server";
 import { getEventById } from "@/features/events/server/event-service";
 import { listFormConnectionsForCurrentUser } from "@/features/forms/server/form-connection-service";
-import { listEventParticipationRoster } from "@/features/scoring/server/participation";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +48,7 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   const permissions = getPermissionsForUser(user, event, userEventRole);
-  const [assignments, committees, formConnections, participationRoster, profiles] = await Promise.all([
+  const [assignments, committees, formConnections, profiles] = await Promise.all([
     getRoleAssignmentsForEvent(eventId),
     listCommitteesForEvent(eventId).then(async (items) => {
       const members = await listCommitteeMembersForCommittees(
@@ -68,12 +67,6 @@ export default async function EventDetailPage({ params }: PageProps) {
       }));
     }),
     listFormConnectionsForCurrentUser(eventId).catch(() => []),
-    listEventParticipationRoster({ eventId, user }).catch(() => ({
-      canManage: false,
-      eventId,
-      eventTitle: event.title,
-      records: [],
-    })),
     listProfiles(),
   ]);
   const volunteerOptions = profiles
@@ -100,7 +93,6 @@ export default async function EventDetailPage({ params }: PageProps) {
         initialCommittees={committees}
         initialEvent={event}
         initialFormConnections={formConnections}
-        initialParticipationRoster={participationRoster}
         initialPermissions={permissions}
         initialVolunteers={volunteerOptions}
         isAdmin={user.isAdmin}

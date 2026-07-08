@@ -33,4 +33,14 @@ describe("operational status transitions", () => {
     expect(transitions).not.toContain("pending_conclusion");
     expect(transitions).not.toContain("closed");
   });
+
+  it("allows admins to revert ongoing back to published", () => {
+    const adminTransitions = getOperationalStatusTransitions("ongoing", { isAdmin: true });
+    expect(adminTransitions).toContain("published");
+  });
+
+  it("does not allow non-admins to revert ongoing to published", () => {
+    const nonAdminTransitions = getOperationalStatusTransitions("ongoing", { isAdmin: false });
+    expect(nonAdminTransitions).not.toContain("published");
+  });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,11 +30,13 @@ export function CommitteeManagement({
   eventId,
   initialCommittees,
   volunteerOptions,
+  onCommitteesChange,
 }: Readonly<{
   canManage: boolean;
   eventId: string;
   initialCommittees: CommitteeWithMembers[];
   volunteerOptions: CommitteeVolunteerOption[];
+  onCommitteesChange?: (committees: CommitteeWithMembers[]) => void;
 }>) {
   const [committees, setCommittees] = useState<CommitteeWithMembers[]>(initialCommittees);
   const [name, setName] = useState("");
@@ -42,6 +44,12 @@ export function CommitteeManagement({
   const [editingCommitteeId, setEditingCommitteeId] = useState<string | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [committeeToDelete, setCommitteeToDelete] = useState<Committee | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<{
+    committeeId: string;
+    memberId: string;
+    volunteerName: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const volunteersByUserId = new Map(
@@ -72,7 +80,8 @@ export function CommitteeManagement({
     );
 
     setCommittees(nextCommittees);
-  }, [eventId]);
+    onCommitteesChange?.(nextCommittees);
+  }, [eventId, onCommitteesChange]);
 
   const startEditingMembers = useCallback((committee: CommitteeWithMembers) => {
     setEditingCommitteeId(committee.$id);
@@ -284,7 +293,7 @@ export function CommitteeManagement({
                   {canManage ? (
                     <Button
                       disabled={pendingAction === committee.$id}
-                      onClick={() => handleDeleteCommittee(committee.$id)}
+                      onClick={() => setCommitteeToDelete(committee)}
                       type="button"
                       variant="ghost"
                       className="cursor-pointer"
@@ -417,7 +426,13 @@ export function CommitteeManagement({
                             {canManage ? (
                               <Button
                                 disabled={pendingAction === member.$id}
-                                onClick={() => handleRemoveMember(committee.$id, member.$id)}
+                                onClick={() =>
+                                  setMemberToRemove({
+                                    committeeId: committee.$id,
+                                    memberId: member.$id,
+                                    volunteerName: volunteer?.name || volunteer?.googleEmail || "Volunteer",
+                                  })
+                                }
                                 type="button"
                                 variant="ghost"
                                 className="cursor-pointer text-xs"
@@ -444,7 +459,81 @@ export function CommitteeManagement({
           </p>
         ) : null}
       </CardContent>
+
+      {committeeToDelete ? (
+        <ConfirmationDialog
+          confirmLabel="Delete Committee"
+          description={`Are you sure you want to delete the "${committeeToDelete.name}" committee? All its member associations will be permanently removed.`}
+          isBusy={pendingAction === committeeToDelete.$id}
+          onCancel={() => setCommitteeToDelete(null)}
+          onConfirm={async () => {
+            await handleDeleteCommittee(committeeToDelete.$id);
+            setCommitteeToDelete(null);
+          }}
+          title="Delete Committee?"
+        />
+      ) : null}
+
+      {memberToRemove ? (
+        <ConfirmationDialog
+          confirmLabel="Remove Member"
+          description={`Are you sure you want to remove ${memberToRemove.volunteerName} from this committee?`}
+          isBusy={pendingAction === memberToRemove.memberId}
+          onCancel={() => setMemberToRemove(null)}
+          onConfirm={async () => {
+            await handleRemoveMember(memberToRemove.committeeId, memberToRemove.memberId);
+            setMemberToRemove(null);
+          }}
+          title="Remove Committee Member?"
+        />
+      ) : null}
     </Card>
+  );
+}
+
+function ConfirmationDialog({
+  confirmLabel,
+  description,
+  isBusy,
+  onCancel,
+  onConfirm,
+  title,
+}: {
+  confirmLabel: string;
+  description: string;
+  isBusy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+  title: string;
+}) {
+  return (
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      role="dialog"
+    >
+      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
+        <div className="border-b border-border px-5 py-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
+              <AlertTriangle className="size-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+          <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost" className="cursor-pointer">
+            Cancel
+          </Button>
+          <Button disabled={isBusy} onClick={onConfirm} type="button" variant="primary" className="cursor-pointer">
+            {isBusy ? "Processing..." : confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

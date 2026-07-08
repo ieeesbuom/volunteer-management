@@ -22,6 +22,12 @@ export type FormConnectionRepository = {
     },
   ): Promise<FormConnection>;
   list(options?: { eventId?: string; limit?: number }): Promise<FormConnection[]>;
+  get(id: string): Promise<FormConnection | null>;
+  update(
+    id: string,
+    input: Partial<CreateFormConnectionInput> & { updatedAt: string },
+  ): Promise<FormConnection>;
+  delete(id: string): Promise<void>;
 };
 
 export function toFormConnection(row: AppRow): FormConnection {
@@ -92,6 +98,69 @@ export function createAppwriteFormConnectionRepository(): FormConnectionReposito
       );
 
       return result.rows.map((row) => toFormConnection(row as AppRow));
+    },
+
+    async get(id) {
+      const env = getServerEnv();
+      const { tables } = getAppwriteAdminServices();
+      try {
+        const row = await tables.getRow(
+          env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+          APPWRITE_TABLES.formConnections,
+          id,
+        );
+        return toFormConnection(row as AppRow);
+      } catch {
+        return null;
+      }
+    },
+
+    async update(id, input) {
+      const env = getServerEnv();
+      const { tables } = getAppwriteAdminServices();
+      const updateData: Record<string, any> = {
+        updatedAt: input.updatedAt,
+      };
+
+      if (input.formUrl !== undefined) {
+        updateData.formUrl = input.formUrl ?? "";
+      }
+      if (input.externalFormId !== undefined) {
+        updateData.externalFormId = input.externalFormId ?? "";
+      }
+      if (input.provider !== undefined) {
+        updateData.provider = input.provider;
+      }
+      if (input.purpose !== undefined) {
+        updateData.purpose = input.purpose;
+      }
+      if (input.status !== undefined) {
+        updateData.status = input.status;
+      }
+      if (input.title !== undefined) {
+        updateData.title = input.title;
+      }
+      if (input.metadata !== undefined) {
+        updateData.metadata = serializeSafeJson(input.metadata);
+      }
+
+      const row = await tables.updateRow<AppRow>(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.formConnections,
+        id,
+        updateData,
+      );
+      return toFormConnection(row);
+    },
+
+    async delete(id) {
+      const env = getServerEnv();
+      const { tables } = getAppwriteAdminServices();
+      await tables.deleteRow(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.formConnections,
+        id,
+      );
     },
   };
 }

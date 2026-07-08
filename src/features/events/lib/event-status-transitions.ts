@@ -23,6 +23,7 @@ const LEGAL_FORWARD_TRANSITIONS: Record<EventStatus, EventStatus | null> = {
 };
 
 const ADMIN_BACKWARD_TRANSITIONS: Partial<Record<EventStatus, EventStatus>> = {
+  ongoing: "published",
   planning: "draft",
   published: "planning",
 };

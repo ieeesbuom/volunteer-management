@@ -15,7 +15,7 @@ import {
   canListFormConnectionsForEvent,
 } from "../src/features/forms/server/permissions";
 import { createFormConnectionService } from "../src/features/forms/server/form-connection-service";
-import { createFormConnectionSchema } from "../src/features/forms/validation";
+import { createFormConnectionSchema, updateFormConnectionSchema } from "../src/features/forms/validation";
 import type { FormConnectionRepository } from "../src/features/forms/server/form-connection-repository";
 import type {
   CreateFormConnectionInput,
@@ -175,6 +175,56 @@ describe("form connections", () => {
     ).toThrow("stable references");
   });
 
+  it("validates updates with updateFormConnectionSchema supporting partial payloads", () => {
+    const valid = updateFormConnectionSchema.parse({
+      title: "Updated Title",
+    });
+    expect(valid.title).toBe("Updated Title");
+
+    const validUrl = updateFormConnectionSchema.parse({
+      formUrl: "https://docs.google.com/forms/d/example/viewform",
+      provider: "google_forms",
+    });
+    expect(validUrl.formUrl).toBe("https://docs.google.com/forms/d/example/viewform");
+
+    expect(() =>
+      updateFormConnectionSchema.parse({
+        formUrl: "https://example.com/invalid-provider-url",
+        provider: "google_forms",
+      }),
+    ).toThrow("selected provider");
+  });
+
+  it("updates status and metadata without deleting other fields like formUrl", async () => {
+    const repository = createFakeFormConnectionRepository();
+    const service = createFormConnectionService({
+      now: fixedNow,
+      repository,
+    });
+
+    const conn = await service.createFormConnection({
+      input: {
+        eventId: "event-1",
+        formUrl: "https://docs.google.com/forms/d/example/viewform",
+        provider: "google_forms",
+        purpose: "registration",
+        title: "Registration form",
+      },
+      user: fakeUser({ isAdmin: true }),
+    });
+
+    const updated = await service.updateFormConnection({
+      id: conn.id,
+      input: {
+        status: "disabled",
+      },
+      user: fakeUser({ isAdmin: true }),
+    });
+
+    expect(updated.status).toBe("disabled");
+    expect(updated.formUrl).toBe("https://docs.google.com/forms/d/example/viewform");
+  });
+
   it("keeps all-event listing conservative for non-admins", async () => {
     const user = fakeUser({ isAdmin: false });
     const service = createFormConnectionService({
@@ -269,6 +319,23 @@ function createFakeFormConnectionRepository(): FormConnectionRepository {
       return options.eventId
         ? connections.filter((connection) => connection.eventId === options.eventId)
         : connections;
+    },
+    async get(id) {
+      return connections.find((c) => c.id === id) ?? null;
+    },
+    async update(id, input) {
+      const index = connections.findIndex((c) => c.id === id);
+      if (index === -1) throw new Error("Not found");
+      const updated = {
+        ...connections[index],
+        ...input,
+      };
+      connections[index] = updated;
+      return updated;
+    },
+    async delete(id) {
+      const index = connections.findIndex((c) => c.id === id);
+      if (index !== -1) connections.splice(index, 1);
     },
   };
 }

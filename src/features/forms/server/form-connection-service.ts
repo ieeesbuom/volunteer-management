@@ -59,6 +59,49 @@ export function createFormConnectionService({
 
       return repository.list({ eventId });
     },
+
+    async updateFormConnection({
+      id,
+      input,
+      user,
+    }: {
+      id: string;
+      input: Partial<CreateFormConnectionInput>;
+      user: SessionUser;
+    }) {
+      const existing = await repository.get(id);
+      if (!existing) {
+        throw new Error("Form connection not found.");
+      }
+
+      if (!(await canManageFormConnectionsForEvent(user, existing.eventId))) {
+        throw new Error("Event form connection permission is required.");
+      }
+
+      return repository.update(id, {
+        ...input,
+        updatedAt: now().toISOString(),
+      });
+    },
+
+    async deleteFormConnection({
+      id,
+      user,
+    }: {
+      id: string;
+      user: SessionUser;
+    }) {
+      const existing = await repository.get(id);
+      if (!existing) {
+        throw new Error("Form connection not found.");
+      }
+
+      if (!(await canManageFormConnectionsForEvent(user, existing.eventId))) {
+        throw new Error("Event form connection permission is required.");
+      }
+
+      return repository.delete(id);
+    },
   };
 }
 
@@ -86,5 +129,31 @@ export async function listFormConnectionsForCurrentUser(eventId?: string) {
   return createAppwriteFormConnectionService().listFormConnections({
     eventId,
     user,
+  });
+}
+
+export async function updateFormConnectionForCurrentUser(
+  id: string,
+  input: Partial<CreateFormConnectionInput>,
+  user?: SessionUser,
+) {
+  const currentUser = user ?? (await requireAuth());
+
+  return createAppwriteFormConnectionService().updateFormConnection({
+    id,
+    input,
+    user: currentUser,
+  });
+}
+
+export async function deleteFormConnectionForCurrentUser(
+  id: string,
+  user?: SessionUser,
+) {
+  const currentUser = user ?? (await requireAuth());
+
+  return createAppwriteFormConnectionService().deleteFormConnection({
+    id,
+    user: currentUser,
   });
 }

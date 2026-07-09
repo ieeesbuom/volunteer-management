@@ -177,6 +177,7 @@ describe("notification routes", () => {
       jsonRequest("https://app.test/api/admin/roles/assign", {
         role: "SB Member",
         userId: "user-a",
+        term: "25/26",
       }),
     );
 

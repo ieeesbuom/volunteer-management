@@ -73,6 +73,7 @@ export type RoleAssignment = {
   $id: string;
   userId: string;
   role: SbRole;
+  term: string;
   assignedBy: string;
   assignedAt: string;
   revokedAt?: string;

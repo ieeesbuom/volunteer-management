@@ -8,6 +8,7 @@ import { jsonError, routeErrorStatus } from "@/server/errors";
 const roleSchema = z.object({
   role: z.string(),
   userId: z.string().min(1),
+  term: z.string().min(1),
 });
 
 export async function POST(request: Request) {
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
       actorUserId: admin.authUser.id,
       role: parseSbRole(body.role),
       userId: body.userId,
+      term: body.term,
     });
     const notification = await notifyRoleAssignmentWorkflow({
       actorUserId: admin.authUser.id,

@@ -2,6 +2,7 @@ import "server-only";
 
 import { canVolunteer, hasSbRole } from "@/features/access-control/lib/rules";
 import type { SessionUser } from "@/features/access-control/types";
+import { EXCOM_ROLES } from "@/lib/config";
 import {
   getEventPermissions,
   isEventVisibleToUser,
@@ -29,7 +30,7 @@ export function canCreateEvent(user: SessionUser) {
     return true;
   }
 
-  return hasSbRole(user, ["ExCom", "SB Lead"]) && canVolunteer(user.profile);
+  return hasSbRole(user, [...EXCOM_ROLES, "SB Lead"]) && canVolunteer(user.profile);
 }
 
 export function parseValidationBody<T>(schema: import("zod").ZodType<T>, data: unknown) {

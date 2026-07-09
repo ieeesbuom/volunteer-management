@@ -25,9 +25,9 @@ describe("auth rules", () => {
   });
 
   it("lets Admin pass SB role checks and normal users match assigned roles", () => {
-    expect(hasSbRole({ isAdmin: true, sbRoles: [] }, "ExCom")).toBe(true);
+    expect(hasSbRole({ isAdmin: true, sbRoles: [] }, "Chairperson")).toBe(true);
     expect(hasSbRole({ isAdmin: false, sbRoles: ["SB Lead"] }, "SB Lead")).toBe(true);
-    expect(hasSbRole({ isAdmin: false, sbRoles: ["SB Member"] }, "ExCom")).toBe(false);
+    expect(hasSbRole({ isAdmin: false, sbRoles: ["SB Member"] }, "Chairperson")).toBe(false);
   });
 
   it("validates and ranks event-scoped roles", () => {

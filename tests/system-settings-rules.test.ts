@@ -235,7 +235,14 @@ describe("system settings rules", () => {
     expect(overview.adminEmail).toBe("admin@example.com");
     expect(overview.adminSource).toBe("ADMIN_EMAIL");
     expect(overview.sbRoles.map((role) => role.role)).toEqual([
-      "ExCom",
+      "Chairperson",
+      "Vice Chairperson",
+      "Secretary",
+      "Assistant Secretary",
+      "Treasurer",
+      "Assistant Treasurer",
+      "Editor",
+      "Webmaster",
       "SB Lead",
       "SB Member",
     ]);

@@ -29,7 +29,22 @@ export const IEEE_TERMS = [
 export const EVENT_YEAR_MIN = 2000;
 export const EVENT_YEAR_MAX = 2100;
 
-export const SB_ROLES = ["ExCom", "SB Lead", "SB Member"] as const;
+export const EXCOM_ROLES = [
+  "Chairperson",
+  "Vice Chairperson",
+  "Secretary",
+  "Assistant Secretary",
+  "Treasurer",
+  "Assistant Treasurer",
+  "Editor",
+  "Webmaster",
+] as const;
+
+export const SB_ROLES = [
+  ...EXCOM_ROLES,
+  "SB Lead",
+  "SB Member",
+] as const;
 
 export const EVENT_ROLES = [
   "Chair",

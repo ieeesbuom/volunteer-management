@@ -19,5 +19,8 @@ export async function listAdminUsers() {
     sbRoles: roles
       .filter((assignment) => assignment.userId === profile.authUserId)
       .map((assignment) => assignment.role),
+    sbRoleAssignments: roles.filter(
+      (assignment) => assignment.userId === profile.authUserId,
+    ),
   }));
 }

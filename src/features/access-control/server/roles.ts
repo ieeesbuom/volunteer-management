@@ -21,8 +21,9 @@ import type { EventRole, EventRoleAssignment, RoleAssignment, SbRole } from "@/f
 
 type AppRow = Models.Row & Record<string, unknown>;
 
-function roleRowId(userId: string, role: SbRole) {
-  return `${userId}_${role.toLowerCase().replaceAll(" ", "_")}`;
+function roleRowId(userId: string, role: SbRole, term: string) {
+  const cleanTerm = term.replaceAll("/", "_");
+  return `${userId}_${role.toLowerCase().replaceAll(" ", "_")}_${cleanTerm}`;
 }
 
 function eventRoleRowId({
@@ -106,6 +107,7 @@ export function toRoleAssignment(row: AppRow): RoleAssignment {
     revokedAt:
       typeof row.revokedAt === "string" && row.revokedAt ? row.revokedAt : undefined,
     role: String(row.role) as SbRole,
+    term: String(row.term),
     userId: String(row.userId),
   };
 }
@@ -156,10 +158,20 @@ export function parseEventRole(role: string) {
 export async function getActiveSbRoles(userId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
+  const { listIeeeTerms } = await import("@/features/system-settings/server/settings");
+  const terms = await listIeeeTerms();
+  const activeTerm = terms.find((t) => t.active);
+  const activeTermLabel = activeTerm ? activeTerm.label : "25/26";
+
   const result = await tables.listRows(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     APPWRITE_TABLES.sbRoleAssignments,
-    [Query.equal("userId", userId), Query.equal("active", true), Query.limit(25)],
+    [
+      Query.equal("userId", userId),
+      Query.equal("active", true),
+      Query.equal("term", activeTermLabel),
+      Query.limit(25),
+    ],
     undefined,
     false,
   );
@@ -257,14 +269,16 @@ export async function assignSbRole({
   actorUserId,
   role,
   userId,
+  term,
 }: {
   actorUserId: string;
   role: SbRole;
   userId: string;
+  term: string;
 }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const rowId = roleRowId(userId, role);
+  const rowId = roleRowId(userId, role, term);
   const assignedAt = new Date().toISOString();
 
   await requireRoleAssignableProfile(userId);
@@ -302,6 +316,7 @@ export async function assignSbRole({
         assignedAt,
         assignedBy: actorUserId,
         role,
+        term,
         userId,
       },
     );
@@ -310,7 +325,7 @@ export async function assignSbRole({
   await writeAuditLog({
     action: "SB_ROLE_ASSIGNED",
     actorUserId,
-    metadata: { role },
+    metadata: { role, term },
     targetId: userId,
     targetType: "profile",
   });
@@ -455,14 +470,16 @@ export async function revokeSbRole({
   actorUserId,
   role,
   userId,
+  term,
 }: {
   actorUserId: string;
   role: SbRole;
   userId: string;
+  term: string;
 }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const rowId = roleRowId(userId, role);
+  const rowId = roleRowId(userId, role, term);
   const row = await tables.updateRow<AppRow>(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     APPWRITE_TABLES.sbRoleAssignments,
@@ -476,7 +493,7 @@ export async function revokeSbRole({
   await writeAuditLog({
     action: "SB_ROLE_REVOKED",
     actorUserId,
-    metadata: { role },
+    metadata: { role, term },
     targetId: userId,
     targetType: "profile",
   });

@@ -285,7 +285,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
-      sbRoles: ["ExCom"],
+      sbRoles: ["Chairperson"],
       eventRoles: [],
     });
 
@@ -387,7 +387,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
-      sbRoles: ["ExCom"],
+      sbRoles: ["Chairperson"],
       eventRoles: [],
     });
 
@@ -979,7 +979,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
-      sbRoles: ["ExCom"],
+      sbRoles: ["Chairperson"],
       eventRoles: [],
     });
     mockTables.listRows.mockImplementation((db: string, table: string) => {
@@ -1100,7 +1100,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
-      sbRoles: ["ExCom"],
+      sbRoles: ["Chairperson"],
       eventRoles: [],
     });
 
@@ -1116,7 +1116,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
-      sbRoles: ["ExCom"],
+      sbRoles: ["Chairperson"],
       eventRoles: [],
     });
     mockTables.listRows.mockImplementation((db: string, table: string) => {

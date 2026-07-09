@@ -7,6 +7,7 @@ import { parseSbRole, revokeSbRole } from "@/features/access-control/server/role
 const roleSchema = z.object({
   role: z.string(),
   userId: z.string().min(1),
+  term: z.string().min(1),
 });
 
 export async function POST(request: Request) {
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
       actorUserId: admin.authUser.id,
       role: parseSbRole(body.role),
       userId: body.userId,
+      term: body.term,
     });
 
     return NextResponse.json({ assignment });

@@ -167,7 +167,7 @@ describe("event API routes", () => {
 
     it("returns 200 for verified ExCom users", async () => {
       mockGetCurrentUser.mockResolvedValueOnce(
-        createSessionUser({ sbRoles: ["ExCom"] }),
+        createSessionUser({ sbRoles: ["Chairperson"] }),
       );
       const { GET } = await import("@/app/api/events/route");
 
@@ -213,7 +213,7 @@ describe("event API routes", () => {
     it("returns 201 for verified ExCom creators", async () => {
       const createdEvent = createEventFixture({ title: "Created Event" });
       mockGetCurrentUser.mockResolvedValueOnce(
-        createSessionUser({ sbRoles: ["ExCom"] }),
+        createSessionUser({ sbRoles: ["Chairperson"] }),
       );
       mockCreateEvent.mockResolvedValueOnce(createdEvent);
       const { POST } = await import("@/app/api/events/route");
@@ -302,7 +302,7 @@ describe("event API routes", () => {
   describe("DELETE /api/events/[eventId]", () => {
     it("returns 403 for non-admin users", async () => {
       mockGetCurrentUser.mockResolvedValueOnce(
-        createSessionUser({ sbRoles: ["ExCom"] }),
+        createSessionUser({ sbRoles: ["Chairperson"] }),
       );
       const { DELETE } = await import("@/app/api/events/[eventId]/route");
 

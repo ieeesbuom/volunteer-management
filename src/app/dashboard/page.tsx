@@ -22,6 +22,8 @@ import {
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { NotificationPreferencesForm } from "@/features/notifications/components/notification-preferences-form";
+import { listEventsByIds } from "@/features/events/server/event-service";
+import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,32 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const formRepo = createAppwriteFormConnectionRepository();
+  const allConnections = await formRepo.list({ limit: 100 });
+  const activeRegistrations = allConnections.filter(
+    (conn) => conn.status === "active" && conn.purpose === "registration" && conn.formUrl
+  );
+
+  const assignedEventIds = new Set(user.eventRoles.map((r) => r.eventId));
+  const openOpportunities = activeRegistrations.filter(
+    (conn) => !assignedEventIds.has(conn.eventId)
+  );
+
+  const opportunityEvents = openOpportunities.length > 0
+    ? await listEventsByIds(openOpportunities.map((o) => o.eventId))
+    : [];
+
+  const eventsMap = new Map(opportunityEvents.map((e) => [e.$id, e]));
+  const allowedStatuses = ["planning", "published", "ongoing"];
+  const opportunityList = openOpportunities
+    .map((conn) => ({ conn, event: eventsMap.get(conn.eventId) }))
+    .filter(({ event }) => {
+      if (!event) return false;
+      if (!allowedStatuses.includes(event.status)) return false;
+      if (event.reference && assignedEventIds.has(event.reference)) return false;
+      return true;
+    });
 
   return (
     <AppShell active="dashboard" user={user}>
@@ -114,6 +142,65 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {opportunityList.length > 0 && (
+          <Card className="border-primary/20 bg-gradient-to-br from-surface to-primary-soft/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary font-bold">
+                <UsersRound className="size-5 text-primary" aria-hidden="true" />
+                Open Volunteer Opportunities
+              </CardTitle>
+              <CardDescription>
+                New events looking for volunteers. Register to join the team!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {opportunityList.map(({ conn, event }) => (
+                  <div
+                    key={conn.id}
+                    className="flex flex-col justify-between p-4 rounded-lg border border-border bg-surface hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold text-text-primary text-base">
+                          {event?.title}
+                        </h4>
+                        <Badge tone="success" className="shrink-0">
+                          Registration Open
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-text-secondary line-clamp-2">
+                        {event?.description || "Join as a volunteer to help organize this event."}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs text-text-muted mt-2">
+                        <span>Term: {event?.term}</span>
+                        <span>•</span>
+                        <span>Year: {event?.year}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                      <span className="text-xs text-text-muted">
+                        Form: {conn.title}
+                      </span>
+                      <a
+                        href={conn.formUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonClasses({
+                          variant: "primary",
+                          className: "cursor-pointer h-9 px-4 text-xs font-semibold",
+                        })}
+                      >
+                        Register to Volunteer
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

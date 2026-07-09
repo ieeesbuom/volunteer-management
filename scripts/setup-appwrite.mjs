@@ -198,7 +198,8 @@ const tableDefinitions = [
     name: "SB Role Assignments",
     columns: [
       ["string", "userId", 64, true],
-      ["enum", "role", ["ExCom", "SB Lead", "SB Member"], true],
+      ["enum", "role", ["Chairperson", "Vice Chairperson", "Secretary", "Assistant Secretary", "Treasurer", "Assistant Treasurer", "Editor", "Webmaster", "SB Lead", "SB Member"], true],
+      ["string", "term", 32, true],
       ["string", "assignedBy", 64, true],
       ["datetime", "assignedAt", true],
       ["datetime", "revokedAt", false],
@@ -207,6 +208,7 @@ const tableDefinitions = [
     indexes: [
       ["sb_roles_user_idx", ["userId"]],
       ["sb_roles_role_idx", ["role"]],
+      ["sb_roles_term_idx", ["term"]],
       ["sb_roles_active_idx", ["active"]],
       ["sb_roles_user_active_idx", ["userId", "active"]],
     ],

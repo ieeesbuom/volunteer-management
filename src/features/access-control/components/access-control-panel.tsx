@@ -3,9 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
-  CalendarDays,
   Check,
-  ClipboardCheck,
   RefreshCw,
   Search,
   ShieldMinus,
@@ -14,90 +12,47 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { EVENT_ROLES, SB_ROLES } from "@/lib/config";
-import {
-  getEventRoleDisplayName,
-  normalizeEventReference,
-  requiresCommitteeName,
-} from "@/features/access-control/lib/rules";
+import { IEEE_TERMS, SB_ROLES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type {
-  EventRole,
   EventRoleAssignment,
   Profile,
+  RoleAssignment,
   SbRole,
 } from "@/features/access-control/types";
 
 type AdminUser = Profile & {
   eventRoles: EventRoleAssignment[];
   sbRoles: SbRole[];
+  sbRoleAssignments: RoleAssignment[];
 };
 
-type AccessControlEventOption = {
-  id: string;
-  label: string;
-  title: string;
-};
 
-type EventRoleFormState = {
-  committeeName: string;
-  eventId: string;
-  eventTitle: string;
-  role: EventRole;
+type Confirmation = {
+  kind: "sb-role";
+  role: SbRole;
   userId: string;
+  userName: string;
+  variant: "assign" | "revoke";
 };
 
-type Confirmation =
-  | {
-      kind: "sb-role";
-      role: SbRole;
-      userId: string;
-      userName: string;
-      variant: "assign" | "revoke";
-    }
-  | {
-      kind: "event-role-assign";
-      payload: EventRoleFormState;
-      roleDisplayName: string;
-      userName: string;
-    }
-  | {
-      assignmentId: string;
-      committeeName?: string;
-      eventTitle: string;
-      kind: "event-role-revoke";
-      role: EventRole;
-      roleDisplayName: string;
-      userName: string;
-    };
-
-type PanelMode = "branch" | "events";
 type NoticeStatus = "error" | "idle" | "success";
 
 const inputClasses =
   "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
 
 export function AccessControlPanel({
-  eventOptions,
   initialUsers,
 }: {
-  eventOptions: AccessControlEventOption[];
   initialUsers: AdminUser[];
 }) {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [message, setMessage] = useState("");
-  const [mode, setMode] = useState<PanelMode>("branch");
   const [query, setQuery] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [status, setStatus] = useState<NoticeStatus>("idle");
   const [users, setUsers] = useState(initialUsers);
-  const [eventRoleForm, setEventRoleForm] = useState<EventRoleFormState>({
-    committeeName: "",
-    eventId: eventOptions[0]?.id ?? "",
-    eventTitle: eventOptions[0]?.title ?? "",
-    role: "Chair",
-    userId: initialUsers.find((user) => user.uomVerified)?.authUserId ?? "",
-  });
+  const [selectedTerm, setSelectedTerm] = useState<string>(IEEE_TERMS[0]);
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -111,64 +66,14 @@ export function AccessControlPanel({
         user.name,
         user.googleEmail,
         user.uomEmail,
-        ...user.eventRoles.map((assignment) => assignment.eventTitle),
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
     );
   }, [query, users]);
 
-  const eventAssignments = useMemo(
-    () =>
-      users.flatMap((user) =>
-        user.eventRoles.map((assignment) => ({
-          ...assignment,
-          userName: user.name || user.googleEmail,
-          userEmail: user.googleEmail,
-          userVerified: user.uomVerified,
-        })),
-      ),
-    [users],
-  );
-  const filteredEventAssignments = useMemo(
-    () =>
-      filteredUsers.flatMap((user) =>
-        user.eventRoles.map((assignment) => ({
-          ...assignment,
-          userName: user.name || user.googleEmail,
-          userEmail: user.googleEmail,
-          userVerified: user.uomVerified,
-        })),
-      ),
-    [filteredUsers],
-  );
-  const eventChairCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-
-    for (const assignment of eventAssignments) {
-      if (assignment.role !== "Chair") {
-        continue;
-      }
-
-      const eventKey = normalizeEventReference(assignment.eventId).toLowerCase();
-      counts.set(eventKey, (counts.get(eventKey) ?? 0) + 1);
-    }
-
-    return counts;
-  }, [eventAssignments]);
-  const verifiedUsers = useMemo(
-    () => users.filter((user) => user.uomVerified),
-    [users],
-  );
-  const selectedEventUserId =
-    verifiedUsers.find((user) => user.authUserId === eventRoleForm.userId)?.authUserId ??
-    verifiedUsers[0]?.authUserId ??
-    "";
-
   const verifiedCount = users.filter((user) => user.uomVerified).length;
   const sbRoleAssignedCount = users.filter((user) => user.sbRoles.length > 0).length;
-  const eventRoleAssignedCount = eventAssignments.length;
-  const committeeRequired = requiresCommitteeName(eventRoleForm.role);
 
   async function refreshUsers(nextMessage = "User list refreshed.") {
     setStatus("idle");
@@ -207,50 +112,6 @@ export function AccessControlPanel({
     });
   }
 
-  function requestEventRoleAssignment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const user = users.find((profile) => profile.authUserId === selectedEventUserId);
-
-    if (!user || !user.uomVerified) {
-      setStatus("error");
-      setMessage("Only UoM verified profiles can receive event responsibilities.");
-      return;
-    }
-
-    setConfirmation({
-      kind: "event-role-assign",
-      payload: { ...eventRoleForm, userId: selectedEventUserId },
-      roleDisplayName: getEventRoleDisplayName(eventRoleForm.role, {
-        chairCount:
-          eventRoleForm.role === "Chair"
-            ? (eventChairCounts.get(
-                normalizeEventReference(eventRoleForm.eventId).toLowerCase(),
-              ) ?? 0) + 1
-            : 0,
-      }),
-      userName: user?.name || user?.googleEmail || "Volunteer",
-    });
-  }
-
-  function requestEventRoleRevoke(
-    assignment: EventRoleAssignment & { userName: string },
-  ) {
-    setConfirmation({
-      assignmentId: assignment.$id,
-      committeeName: assignment.committeeName,
-      eventTitle: assignment.eventTitle,
-      kind: "event-role-revoke",
-      role: assignment.role,
-      roleDisplayName: getEventRoleDisplayName(assignment.role, {
-        chairCount:
-          eventChairCounts.get(
-            normalizeEventReference(assignment.eventId).toLowerCase(),
-          ) ?? 0,
-      }),
-      userName: assignment.userName,
-    });
-  }
-
   async function runConfirmedAction() {
     if (!confirmation) {
       return;
@@ -259,21 +120,11 @@ export function AccessControlPanel({
     const current = confirmation;
     setConfirmation(null);
 
-    if (current.kind === "sb-role") {
-      await updateSbRole({
-        role: current.role,
-        userId: current.userId,
-        variant: current.variant,
-      });
-      return;
-    }
-
-    if (current.kind === "event-role-assign") {
-      await assignEventRole(current.payload);
-      return;
-    }
-
-    await revokeEventRole(current.assignmentId);
+    await updateSbRole({
+      role: current.role,
+      userId: current.userId,
+      variant: current.variant,
+    });
   }
 
   async function updateSbRole({
@@ -291,7 +142,7 @@ export function AccessControlPanel({
     setMessage(`${variant === "assign" ? "Assigning" : "Revoking"} ${role}...`);
     try {
       const response = await fetch(`/api/admin/roles/${variant}`, {
-        body: JSON.stringify({ role, userId }),
+        body: JSON.stringify({ role, userId, term: selectedTerm }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -309,99 +160,43 @@ export function AccessControlPanel({
     }
   }
 
-  async function assignEventRole(payload: EventRoleFormState) {
-    setPendingAction("event-role:assign");
-    setStatus("idle");
-    setMessage("Assigning event responsibility...");
-    try {
-      const response = await fetch("/api/admin/event-roles/assign", {
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      });
-      const responsePayload = await response.json();
-
-      if (!response.ok) {
-        setStatus("error");
-        setMessage(responsePayload.error ?? "Event role assignment failed.");
-        return;
-      }
-
-      setEventRoleForm((current) => ({
-        ...current,
-        committeeName: "",
-      }));
-      await refreshUsers("Event responsibility assigned.");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function revokeEventRole(assignmentId: string) {
-    setPendingAction(`event-role:${assignmentId}`);
-    setStatus("idle");
-    setMessage("Revoking event responsibility...");
-    try {
-      const response = await fetch("/api/admin/event-roles/revoke", {
-        body: JSON.stringify({ assignmentId }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setStatus("error");
-        setMessage(payload.error ?? "Event role revoke failed.");
-        return;
-      }
-
-      await refreshUsers("Event responsibility revoked.");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   return (
     <div className="space-y-5">
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-3">
         <SummaryTile label="Total profiles" value={String(users.length)} />
         <SummaryTile label="UoM verified" value={String(verifiedCount)} />
         <SummaryTile label="SB role holders" value={String(sbRoleAssignedCount)} />
-        <SummaryTile label="Event roles" value={String(eventRoleAssignedCount)} />
       </section>
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="inline-flex w-fit rounded-md border border-border bg-surface p-1">
-          <button
-            className={modeButtonClasses(mode === "branch")}
-            onClick={() => setMode("branch")}
-            type="button"
-          >
-            <UserCheck className="size-4" aria-hidden="true" />
-            Branch roles
-          </button>
-          <button
-            className={modeButtonClasses(mode === "events")}
-            onClick={() => setMode("events")}
-            type="button"
-          >
-            <CalendarDays className="size-4" aria-hidden="true" />
-            Event responsibilities
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative w-full lg:w-80">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted"
-              aria-hidden="true"
-            />
-            <input
-              className="h-10 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search profiles or events"
-              value={query}
-            />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center w-full justify-between">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full lg:w-80">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted"
+                aria-hidden="true"
+              />
+              <input
+                className="h-10 w-full rounded-md border border-border bg-surface pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search profiles..."
+                value={query}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
+              Term:
+              <select
+                className="h-10 rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
+              >
+                {IEEE_TERMS.map((term) => (
+                  <option key={term} value={term}>
+                    {term}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <Button onClick={() => refreshUsers()} type="button">
             <RefreshCw className="size-4" aria-hidden="true" />
@@ -412,27 +207,12 @@ export function AccessControlPanel({
 
       {message ? <Notice message={message} status={status} /> : null}
 
-      {mode === "branch" ? (
-        <BranchRoleTable
-          filteredUsers={filteredUsers}
-          pendingAction={pendingAction}
-          requestSbRoleChange={requestSbRoleChange}
-        />
-      ) : (
-        <EventRolesPanel
-          assignments={filteredEventAssignments}
-          assignableUsers={verifiedUsers}
-          committeeRequired={committeeRequired}
-          eventOptions={eventOptions}
-          eventChairCounts={eventChairCounts}
-          eventRoleForm={eventRoleForm}
-          pendingAction={pendingAction}
-          requestEventRoleRevoke={requestEventRoleRevoke}
-          selectedUserId={selectedEventUserId}
-          setEventRoleForm={setEventRoleForm}
-          requestEventRoleAssignment={requestEventRoleAssignment}
-        />
-      )}
+      <BranchRoleTable
+        filteredUsers={filteredUsers}
+        pendingAction={pendingAction}
+        requestSbRoleChange={requestSbRoleChange}
+        selectedTerm={selectedTerm}
+      />
 
       <ConfirmationDialog
         confirmation={confirmation}
@@ -448,6 +228,7 @@ function BranchRoleTable({
   filteredUsers,
   pendingAction,
   requestSbRoleChange,
+  selectedTerm,
 }: {
   filteredUsers: AdminUser[];
   pendingAction: string | null;
@@ -457,6 +238,7 @@ function BranchRoleTable({
     userName: string;
     variant: "assign" | "revoke";
   }) => void;
+  selectedTerm: string;
 }) {
   return (
     <div className="overflow-x-auto rounded-md border border-border">
@@ -491,15 +273,19 @@ function BranchRoleTable({
               </td>
               <td className="px-4 py-4">
                 <div className="flex flex-wrap gap-1">
-                  {user.sbRoles.length > 0 ? (
-                    user.sbRoles.map((role) => (
-                      <Badge key={role} tone="primary">
-                        {role}
-                      </Badge>
-                    ))
-                  ) : (
+                  {user.sbRoleAssignments ? (
+                    user.sbRoleAssignments
+                      .filter((assignment) => assignment.term === selectedTerm && assignment.active)
+                      .map((assignment) => (
+                        <Badge key={assignment.$id} tone="primary">
+                          {assignment.role}
+                        </Badge>
+                      ))
+                  ) : null}
+                  {(!user.sbRoleAssignments || 
+                    user.sbRoleAssignments.filter((assignment) => assignment.term === selectedTerm && assignment.active).length === 0) ? (
                     <Badge>None</Badge>
-                  )}
+                  ) : null}
                 </div>
               </td>
               <td className="px-4 py-4">
@@ -507,6 +293,7 @@ function BranchRoleTable({
                   pendingAction={pendingAction}
                   requestSbRoleChange={requestSbRoleChange}
                   user={user}
+                  selectedTerm={selectedTerm}
                 />
               </td>
             </tr>
@@ -528,6 +315,7 @@ function BranchRoleControl({
   pendingAction,
   requestSbRoleChange,
   user,
+  selectedTerm,
 }: {
   pendingAction: string | null;
   requestSbRoleChange: (input: {
@@ -537,11 +325,16 @@ function BranchRoleControl({
     variant: "assign" | "revoke";
   }) => void;
   user: AdminUser;
+  selectedTerm: string;
 }) {
+  const activeRolesForTerm = (user.sbRoleAssignments ?? [])
+    .filter((assignment) => assignment.term === selectedTerm && assignment.active)
+    .map((assignment) => assignment.role);
+
   const assignableRoles = user.uomVerified
-    ? SB_ROLES.filter((role) => !user.sbRoles.includes(role))
+    ? SB_ROLES.filter((role) => !activeRolesForTerm.includes(role))
     : [];
-  const revokableRoles = SB_ROLES.filter((role) => user.sbRoles.includes(role));
+  const revokableRoles = SB_ROLES.filter((role) => activeRolesForTerm.includes(role));
   const [selectedAssignRole, setSelectedAssignRole] = useState<SbRole | "">(
     assignableRoles[0] ?? "",
   );
@@ -652,235 +445,6 @@ function BranchRoleControl({
   );
 }
 
-function EventRolesPanel({
-  assignments,
-  assignableUsers,
-  committeeRequired,
-  eventOptions,
-  eventChairCounts,
-  eventRoleForm,
-  pendingAction,
-  requestEventRoleRevoke,
-  selectedUserId,
-  setEventRoleForm,
-  requestEventRoleAssignment,
-}: {
-  assignments: Array<
-    EventRoleAssignment & {
-      userEmail: string;
-      userName: string;
-      userVerified: boolean;
-    }
-  >;
-  assignableUsers: AdminUser[];
-  committeeRequired: boolean;
-  eventOptions: AccessControlEventOption[];
-  eventChairCounts: Map<string, number>;
-  eventRoleForm: EventRoleFormState;
-  pendingAction: string | null;
-  requestEventRoleRevoke: (
-    assignment: EventRoleAssignment & { userName: string },
-  ) => void;
-  selectedUserId: string;
-  setEventRoleForm: React.Dispatch<React.SetStateAction<EventRoleFormState>>;
-  requestEventRoleAssignment: (event: React.FormEvent<HTMLFormElement>) => void;
-}) {
-  return (
-    <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
-      <form
-        className="rounded-md border border-border bg-surface-subtle p-4"
-        onSubmit={requestEventRoleAssignment}
-      >
-        <div className="flex items-center gap-2">
-          <ClipboardCheck className="size-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-text-primary">
-            Assign event responsibility
-          </h3>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          <label className="block text-sm font-medium text-text-secondary">
-            Volunteer
-            <select
-              className={cn(inputClasses, "mt-1")}
-              onChange={(event) =>
-                setEventRoleForm((current) => ({
-                  ...current,
-                  userId: event.target.value,
-                }))
-              }
-              required
-              value={selectedUserId}
-            >
-              {assignableUsers.length > 0 ? (
-                assignableUsers.map((user) => (
-                  <option key={user.authUserId} value={user.authUserId}>
-                    {user.name || user.googleEmail} · {user.uomEmail || user.googleEmail}
-                  </option>
-                ))
-              ) : (
-                <option value="">No verified profiles available</option>
-              )}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-text-secondary">
-            Event
-            <select
-              className={cn(inputClasses, "mt-1")}
-              onChange={(event) => {
-                const selectedEvent = eventOptions.find(
-                  (option) => option.id === event.target.value,
-                );
-                setEventRoleForm((current) => ({
-                  ...current,
-                  eventId: selectedEvent?.id ?? "",
-                  eventTitle: selectedEvent?.title ?? "",
-                }));
-              }}
-              required
-              value={eventRoleForm.eventId}
-            >
-              {eventOptions.length > 0 ? (
-                eventOptions.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.label}
-                  </option>
-                ))
-              ) : (
-                <option value="">Create an event before assigning responsibilities</option>
-              )}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-text-secondary">
-            Event role
-            <select
-              className={cn(inputClasses, "mt-1")}
-              onChange={(event) =>
-                setEventRoleForm((current) => ({
-                  ...current,
-                  committeeName: requiresCommitteeName(event.target.value as EventRole)
-                    ? current.committeeName
-                    : "",
-                  role: event.target.value as EventRole,
-                }))
-              }
-              value={eventRoleForm.role}
-            >
-              {EVENT_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-text-secondary">
-            Committee
-            <input
-              className={cn(inputClasses, "mt-1")}
-              disabled={!committeeRequired}
-              onChange={(event) =>
-                setEventRoleForm((current) => ({
-                  ...current,
-                  committeeName: event.target.value,
-                }))
-              }
-              placeholder={committeeRequired ? "Committee name" : "Not required"}
-              required={committeeRequired}
-              value={eventRoleForm.committeeName}
-            />
-          </label>
-        </div>
-
-        <Button
-          className="mt-4 w-full"
-          disabled={
-            pendingAction === "event-role:assign" ||
-            assignableUsers.length === 0 ||
-            eventOptions.length === 0 ||
-            !selectedUserId
-          }
-          type="submit"
-          variant="primary"
-        >
-          <ShieldPlus className="size-4" aria-hidden="true" />
-          Review Responsibility
-        </Button>
-      </form>
-
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="min-w-[920px] divide-y divide-border text-left text-sm">
-          <thead className="bg-surface-muted text-text-secondary">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Volunteer</th>
-              <th className="px-4 py-3 font-semibold">Event</th>
-              <th className="px-4 py-3 font-semibold">Responsibility</th>
-              <th className="px-4 py-3 font-semibold">Assigned</th>
-              <th className="px-4 py-3 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border bg-surface">
-            {assignments.map((assignment) => (
-              <tr key={assignment.$id}>
-                <td className="px-4 py-4">
-                  <p className="font-medium text-text-primary">{assignment.userName}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-text-muted">{assignment.userEmail}</span>
-                    <Badge tone={assignment.userVerified ? "success" : "warning"}>
-                      {assignment.userVerified ? "Verified" : "Not verified"}
-                    </Badge>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <p className="font-medium text-text-primary">{assignment.eventTitle}</p>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone="primary">
-                      {getEventRoleDisplayName(assignment.role, {
-                        chairCount:
-                          eventChairCounts.get(
-                            normalizeEventReference(assignment.eventId).toLowerCase(),
-                          ) ?? 0,
-                      })}
-                    </Badge>
-                    {assignment.committeeName ? (
-                      <Badge>{assignment.committeeName}</Badge>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-4 text-text-secondary">
-                  {new Date(assignment.assignedAt).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-4">
-                  <Button
-                    disabled={pendingAction === `event-role:${assignment.$id}`}
-                    onClick={() => requestEventRoleRevoke(assignment)}
-                    type="button"
-                    variant="ghost"
-                  >
-                    <ShieldMinus className="size-4" aria-hidden="true" />
-                    Review Revoke
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {assignments.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-center text-text-secondary" colSpan={5}>
-                  No event responsibilities are assigned yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function ConfirmationDialog({
   confirmation,
   isBusy,
@@ -949,34 +513,11 @@ function ConfirmationDialog({
 }
 
 function getConfirmationDetails(confirmation: Confirmation) {
-  if (confirmation.kind === "sb-role") {
-    return [
-      { label: "Action", value: confirmation.variant === "assign" ? "Assign" : "Revoke" },
-      { label: "Volunteer", value: confirmation.userName },
-      { label: "Role", value: confirmation.role },
-      { label: "Scope", value: "Student Branch" },
-    ];
-  }
-
-  if (confirmation.kind === "event-role-assign") {
-    return [
-      { label: "Action", value: "Assign" },
-      { label: "Volunteer", value: confirmation.userName },
-      { label: "Role", value: confirmation.roleDisplayName },
-      { label: "Event", value: confirmation.payload.eventTitle },
-      {
-        label: "Committee",
-        value: confirmation.payload.committeeName || "Event-level",
-      },
-    ];
-  }
-
   return [
-    { label: "Action", value: "Revoke" },
+    { label: "Action", value: confirmation.variant === "assign" ? "Assign" : "Revoke" },
     { label: "Volunteer", value: confirmation.userName },
-    { label: "Role", value: confirmation.roleDisplayName },
-    { label: "Event", value: confirmation.eventTitle },
-    { label: "Committee", value: confirmation.committeeName || "Event-level" },
+    { label: "Role", value: confirmation.role },
+    { label: "Scope", value: "Student Branch" },
   ];
 }
 

@@ -10,6 +10,7 @@ import type { EventRole } from "@/features/access-control/types";
 import { getEventById } from "@/features/events/server/event-service";
 import { getServerEnv } from "@/lib/env";
 import { dedupeRecipientUserIds } from "@/features/notifications/server/workflow-notifications";
+import { EXCOM_ROLES } from "@/lib/config";
 
 const EVENT_MANAGER_ROLES = ["Chair", "Vice Chair", "Committee Lead"] as const;
 
@@ -69,7 +70,7 @@ export async function getAdminNotificationRecipientIds(options: {
     .filter(
       (assignment) =>
         assignment.active &&
-        assignment.role === "ExCom" &&
+        (EXCOM_ROLES as readonly string[]).includes(assignment.role) &&
         activeProfileIds.has(assignment.userId),
     )
     .map((assignment) => assignment.userId);

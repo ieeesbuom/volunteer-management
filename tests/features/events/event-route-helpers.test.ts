@@ -42,7 +42,7 @@ describe("event route helpers and permissions", () => {
           status: "ACTIVE",
           uomVerified: false,
         },
-        sbRoles: ["ExCom"],
+        sbRoles: ["Chairperson"],
       }),
     ).toBe(false);
   });

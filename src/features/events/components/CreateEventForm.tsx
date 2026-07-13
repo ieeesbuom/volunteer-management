@@ -23,15 +23,6 @@ type FormState = {
   end_date: string;
 };
 
-const initialFormState: FormState = {
-  title: "",
-  reference: "",
-  description: "",
-  term: "",
-  year: String(new Date().getFullYear()),
-  start_date: "",
-  end_date: "",
-};
 
 export function CreateEventForm() {
   const router = useRouter();

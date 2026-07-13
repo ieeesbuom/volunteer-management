@@ -8,10 +8,9 @@ import {
   Search,
   ShieldMinus,
   ShieldPlus,
-  UserCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonClasses } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { IEEE_TERMS, SB_ROLES } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type {
@@ -544,15 +543,5 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
       </div>
       <p className="mt-2 text-2xl font-semibold text-text-primary">{value}</p>
     </div>
-  );
-}
-
-function modeButtonClasses(active: boolean) {
-  return cn(
-    buttonClasses({
-      className: "h-9 border-transparent px-3",
-      variant: active ? "secondary" : "ghost",
-    }),
-    active ? "bg-surface text-primary shadow-card" : "",
   );
 }

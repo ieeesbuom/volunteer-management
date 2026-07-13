@@ -1599,7 +1599,7 @@ export function ScoringDashboard({
         return (
           <ConfirmationDialog
             confirmLabel="Approve Request"
-            description={`Are you sure you want to approve the extra score request of ${requestToApprove.pointsRequested} points for ${targetVolName}? This will finalize the points and award them to the volunteer.`}
+            description={`Are you sure you want to approve the extra score request${requestToApprove.pointsRequested !== undefined ? ` of ${requestToApprove.pointsRequested} points` : ""} for ${targetVolName}? This will finalize the points and award them to the volunteer.`}
             isBusy={loading}
             onCancel={() => setRequestToApprove(null)}
             onConfirm={async () => {

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import {
   CalendarDays,
   MailCheck,
-  Settings,
   ShieldCheck,
   UserRound,
   UsersRound,
@@ -21,7 +20,6 @@ import {
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
-import { NotificationPreferencesForm } from "@/features/notifications/components/notification-preferences-form";
 import { listEventsByIds } from "@/features/events/server/event-service";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
 

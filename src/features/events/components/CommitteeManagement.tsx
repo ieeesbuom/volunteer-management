@@ -89,7 +89,7 @@ export function CommitteeManagement({
     setSearchQuery("");
   }, []);
 
-  const sortedVolunteers = (committee: CommitteeWithMembers) => {
+  const sortedVolunteers = () => {
     const filtered = volunteerOptions.filter((v) => {
       const query = searchQuery.toLowerCase().trim();
       if (!query) return true;
@@ -310,10 +310,8 @@ export function CommitteeManagement({
                     {canManage && editingCommitteeId !== committee.$id ? (
                       <Button
                         onClick={() => startEditingMembers(committee)}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="cursor-pointer text-xs"
+                        variant="secondary"
+                        className="h-8 cursor-pointer px-2.5 text-xs"
                       >
                         <UserPlus className="size-3.5" aria-hidden="true" />
                         Manage Members
@@ -339,8 +337,8 @@ export function CommitteeManagement({
                       />
 
                       <div className="max-h-60 overflow-y-auto rounded-md border border-border bg-surface divide-y divide-border">
-                        {sortedVolunteers(committee).length > 0 ? (
-                          sortedVolunteers(committee).map((volunteer) => {
+                        {sortedVolunteers().length > 0 ? (
+                          sortedVolunteers().map((volunteer) => {
                             const isSelected = selectedUserIds.has(volunteer.userId);
                             return (
                               <label
@@ -385,7 +383,7 @@ export function CommitteeManagement({
                           disabled={pendingAction === `save-members:${committee.$id}`}
                           onClick={() => setEditingCommitteeId(null)}
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           className="cursor-pointer"
                         >
                           Cancel

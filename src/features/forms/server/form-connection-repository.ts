@@ -118,7 +118,7 @@ export function createAppwriteFormConnectionRepository(): FormConnectionReposito
     async update(id, input) {
       const env = getServerEnv();
       const { tables } = getAppwriteAdminServices();
-      const updateData: Record<string, any> = {
+      const updateData: Record<string, unknown> = {
         updatedAt: input.updatedAt,
       };
 

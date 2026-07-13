@@ -10,6 +10,8 @@ export interface GradeRequest {
   targetUserId: string;
   targetUserName?: string;
   status: GradingStatus;
+  pointsRequested?: number;
+  gradeValue?: number;
   createdAt: string;
   updatedAt: string;
 }

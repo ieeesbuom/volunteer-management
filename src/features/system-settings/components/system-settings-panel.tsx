@@ -34,7 +34,7 @@ import type {
   TopBoardExclusion,
 } from "@/features/system-settings/types";
 
-type PanelTab = "audit" | "exclusions" | "permissions";
+type PanelTab = "audit" | "exclusions" | "permissions" | "terms";
 type NoticeStatus = "error" | "idle" | "success";
 type TermFormState = {
   endDate: string;
@@ -520,6 +520,23 @@ export function SystemSettingsPanel({
       </div>
 
       {message ? <Notice message={message} status={status} /> : null}
+
+      {tab === "terms" ? (
+        <TermsPanel
+          activeTermId={activeTermId}
+          editingTermId={editingTermId}
+          pendingAction={pendingAction}
+          requestActivate={(term) => setConfirmation({ kind: "activate-term", term })}
+          requestClose={(term) => setConfirmation({ kind: "close-term", term })}
+          resetTermForm={resetTermForm}
+          setEditingTermId={setEditingTermId}
+          setTermForm={setTermForm}
+          submitTerm={submitTerm}
+          termForm={termForm}
+          terms={terms}
+          useSuggestedTermDates={useSuggestedTermDates}
+        />
+      ) : null}
 
       {tab === "exclusions" ? (
         <TopBoardExclusionsPanel

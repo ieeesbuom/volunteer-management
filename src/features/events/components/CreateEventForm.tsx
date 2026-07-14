@@ -10,6 +10,7 @@ import {
   eventTextareaClasses,
 } from "@/features/events/lib/event-ui";
 import { CreateEventInputSchema } from "@/features/events/types";
+import { formatUserFacingError } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { deriveTermFromDate } from "@/features/scoring/lib/helpers";
 
@@ -99,14 +100,14 @@ export function CreateEventForm() {
       const responsePayload = await response.json();
 
       if (!response.ok) {
-        setError(responsePayload.error ?? "Could not create event.");
+        setError(formatUserFacingError(responsePayload.error, "Could not create event. Please try again."));
         return;
       }
 
       router.push(`/events/${responsePayload.event.$id}`);
       router.refresh();
     } catch {
-      setError("Could not create event.");
+      setError("We encountered an issue creating this event. Please check your network and try again.");
     } finally {
       setSubmitting(false);
     }

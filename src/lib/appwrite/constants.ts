@@ -14,7 +14,6 @@ export const APPWRITE_TABLES = {
   auditLogs: "audit_logs",
   conclusionReports: "conclusion_reports",
   reportApprovals: "report_approvals",
-  participationRecords: "participation_records",
   gradeRequests: "grade_requests",
   gradeReviews: "grade_reviews",
   pointLedger: "point_ledger",

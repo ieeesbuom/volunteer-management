@@ -369,7 +369,10 @@ export function EventDetail({
       />
 
       <EventFormConnections
+        assignments={assignments}
         canManage={canManageFormConnections}
+        committees={committees}
+        currentUserId={currentUserId}
         eventId={event.$id}
         initialConnections={initialFormConnections}
       />

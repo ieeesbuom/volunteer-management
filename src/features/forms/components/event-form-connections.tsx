@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -14,6 +14,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
+import {
+  formatAudienceBadge,
+  getFormAudienceMetadata,
+  isFormVisibleToUser,
+  type FormAudienceTier,
+} from "@/features/forms/lib/audience";
 import type {
   FormConnection,
   FormConnectionProvider,
@@ -69,22 +76,35 @@ function getSchedule(connection: FormConnection) {
 }
 
 export function EventFormConnections({
+  assignments = [],
   canManage,
+  committees = [],
+  currentUserId,
   eventId,
   initialConnections,
 }: {
+  assignments?: Array<{ committeeId?: string; committeeName?: string; userId: string }>;
   canManage: boolean;
+  committees?: Array<{ $id: string; name: string }>;
+  currentUserId?: string;
   eventId: string;
   initialConnections: FormConnection[];
 }) {
   const [connections, setConnections] = useState(initialConnections);
   const [showForm, setShowForm] = useState(initialConnections.length === 0 && canManage);
 
+  const committeesMap = useMemo(
+    () => new Map(committees.map((c) => [c.$id, c.name])),
+    [committees],
+  );
+
   // Add form state
   const [title, setTitle] = useState("");
   const [formUrl, setFormUrl] = useState("");
   const [addOpenAt, setAddOpenAt] = useState("");
   const [addCloseAt, setAddCloseAt] = useState("");
+  const [addAudience, setAddAudience] = useState<FormAudienceTier>("public");
+  const [addTargetCommitteeId, setAddTargetCommitteeId] = useState("");
 
   // Edit form state
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
@@ -92,6 +112,8 @@ export function EventFormConnections({
   const [editFormUrl, setEditFormUrl] = useState("");
   const [editOpenAt, setEditOpenAt] = useState("");
   const [editCloseAt, setEditCloseAt] = useState("");
+  const [editAudience, setEditAudience] = useState<FormAudienceTier>("public");
+  const [editTargetCommitteeId, setEditTargetCommitteeId] = useState("");
 
   const [connectionToDelete, setConnectionToDelete] = useState<FormConnection | null>(null);
   const [connectionToClose, setConnectionToClose] = useState<FormConnection | null>(null);
@@ -101,10 +123,19 @@ export function EventFormConnections({
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Show all connections (active + disabled/closed)
-  const visibleConnections = connections.filter(
+  // Show all connections (active + disabled/closed) filtered by audience access
+  const statusVisibleConnections = connections.filter(
     (c) => c.status === "active" || c.status === "disabled",
   ) as FormConnection[];
+
+  const visibleConnections = statusVisibleConnections.filter((conn) =>
+    isFormVisibleToUser({
+      canManage,
+      connection: conn,
+      currentUserId,
+      userRoleAssignments: assignments,
+    }),
+  );
 
   function handleCopy(id: string, url: string) {
     navigator.clipboard.writeText(url).then(() => {
@@ -122,6 +153,10 @@ export function EventFormConnections({
     const metadata: Record<string, string> = {};
     if (addOpenAt) metadata.openAt = addOpenAt;
     if (addCloseAt) metadata.closeAt = addCloseAt;
+    if (addAudience && addAudience !== "public") metadata.audience = addAudience;
+    if (addAudience === "event_team_only" && addTargetCommitteeId) {
+      metadata.targetCommitteeId = addTargetCommitteeId;
+    }
 
     try {
       const response = await fetch("/api/forms/connections", {
@@ -147,6 +182,8 @@ export function EventFormConnections({
       setFormUrl("");
       setAddOpenAt("");
       setAddCloseAt("");
+      setAddAudience("public");
+      setAddTargetCommitteeId("");
       setShowForm(false);
       setMessage("Form connection saved.");
     } catch (caught) {
@@ -164,6 +201,10 @@ export function EventFormConnections({
     const metadata: Record<string, string> = {};
     if (editOpenAt) metadata.openAt = editOpenAt;
     if (editCloseAt) metadata.closeAt = editCloseAt;
+    if (editAudience && editAudience !== "public") metadata.audience = editAudience;
+    if (editAudience === "event_team_only" && editTargetCommitteeId) {
+      metadata.targetCommitteeId = editTargetCommitteeId;
+    }
 
     try {
       const response = await fetch(`/api/forms/connections/${id}`, {
@@ -365,6 +406,38 @@ export function EventFormConnections({
                             />
                           </label>
                         </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <label className="block text-xs font-semibold text-text-secondary">
+                            Target Audience
+                            <select
+                              className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5 cursor-pointer")}
+                              value={editAudience}
+                              onChange={(e) => setEditAudience(e.target.value as FormAudienceTier)}
+                            >
+                              <option value="public">Public</option>
+                              <option value="volunteers_only">Logged-in Volunteers</option>
+                              <option value="event_team_only">Event Team Only</option>
+                              <option value="chairs_only">Chairs & Admins Only</option>
+                            </select>
+                          </label>
+                          {editAudience === "event_team_only" && committees.length > 0 ? (
+                            <label className="block text-xs font-semibold text-text-secondary">
+                              Specific Committee
+                              <select
+                                className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5 cursor-pointer")}
+                                value={editTargetCommitteeId}
+                                onChange={(e) => setEditTargetCommitteeId(e.target.value)}
+                              >
+                                <option value="">All Event Team</option>
+                                {committees.map((c) => (
+                                  <option key={c.$id} value={c.$id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null}
+                        </div>
                         <div className="flex gap-2 pt-1">
                           <Button
                             variant="secondary"
@@ -389,10 +462,19 @@ export function EventFormConnections({
                         {/* Card header row: purpose badge + provider + icon actions */}
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="inline-flex items-center rounded-full bg-primary-soft/40 px-2.5 py-0.5 text-xs font-medium text-primary capitalize">
                                 {formatPurpose(connection.purpose)}
                               </span>
+                              {(() => {
+                                const meta = getFormAudienceMetadata(connection);
+                                const badge = formatAudienceBadge(meta.audience, meta.targetCommitteeId, committeesMap);
+                                return (
+                                  <Badge tone={badge.tone} className="text-[11px] py-0 px-2">
+                                    {badge.label}
+                                  </Badge>
+                                );
+                              })()}
                               {isClosed && (
                                 <span className="inline-flex items-center rounded-full bg-warning-soft/60 px-2 py-0.5 text-xs font-semibold text-warning border border-warning/20">
                                   Closed
@@ -410,11 +492,14 @@ export function EventFormConnections({
                                     title="Edit"
                                     onClick={() => {
                                       const { openAt: oa, closeAt: ca } = getSchedule(connection);
+                                      const { audience: aud, targetCommitteeId: tcid } = getFormAudienceMetadata(connection);
                                       setEditingConnectionId(connection.id);
                                       setEditTitle(connection.title);
                                       setEditFormUrl(connection.formUrl ?? "");
                                       setEditOpenAt(oa);
                                       setEditCloseAt(ca);
+                                      setEditAudience(aud);
+                                      setEditTargetCommitteeId(tcid ?? "");
                                     }}
                                     className="inline-flex items-center justify-center rounded-md p-1.5 text-text-muted hover:bg-surface-subtle hover:text-primary transition cursor-pointer"
                                   >
@@ -598,6 +683,40 @@ export function EventFormConnections({
                     onChange={(e) => setAddCloseAt(e.target.value)}
                   />
                 </label>
+              </div>
+
+              {/* Audience Scope */}
+              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-border/60">
+                <label className="block text-sm font-semibold text-text-secondary">
+                  Target Audience
+                  <select
+                    className={cn(eventInputClasses, "mt-1.5 font-normal cursor-pointer")}
+                    value={addAudience}
+                    onChange={(e) => setAddAudience(e.target.value as FormAudienceTier)}
+                  >
+                    <option value="public">Public (Anyone can view & fill)</option>
+                    <option value="volunteers_only">Logged-in Volunteers Only</option>
+                    <option value="event_team_only">Event Team (Assigned Roles Only)</option>
+                    <option value="chairs_only">Chairs & Admins Only</option>
+                  </select>
+                </label>
+                {addAudience === "event_team_only" && committees.length > 0 ? (
+                  <label className="block text-sm font-semibold text-text-secondary">
+                    Specific Committee <span className="font-normal text-text-muted">(optional)</span>
+                    <select
+                      className={cn(eventInputClasses, "mt-1.5 font-normal cursor-pointer")}
+                      value={addTargetCommitteeId}
+                      onChange={(e) => setAddTargetCommitteeId(e.target.value)}
+                    >
+                      <option value="">All Event Team Members</option>
+                      {committees.map((c) => (
+                        <option key={c.$id} value={c.$id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
 
               <div className="flex justify-end pt-2">

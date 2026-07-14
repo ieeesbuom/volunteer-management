@@ -5,7 +5,7 @@ import { Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import { AssignEventRoleInputSchema, type EventRole } from "@/features/events/types";
-import { cn } from "@/lib/utils";
+import { cn, formatUserFacingError } from "@/lib/utils";
 
 const CHAIR_ASSIGNABLE_ROLES: EventRole[] = [
   "Vice Chair",
@@ -96,14 +96,14 @@ export function AssignRoleModal({
       const responsePayload = await response.json();
 
       if (!response.ok) {
-        setError(responsePayload.error ?? "Could not assign role.");
+        setError(formatUserFacingError(responsePayload.error, "Could not assign role. Please try again."));
         return;
       }
 
       onSuccess();
       onClose();
     } catch {
-      setError("Could not assign role.");
+      setError("We encountered an issue saving this role. Please check your network and try again.");
     } finally {
       setSubmitting(false);
     }

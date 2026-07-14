@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IEEE_TERMS, SB_ROLES } from "@/lib/config";
-import { cn } from "@/lib/utils";
+import { cn, formatUserFacingError } from "@/lib/utils";
 import type {
   EventRoleAssignment,
   Profile,
@@ -88,7 +88,7 @@ export function AccessControlPanel({
     }
 
     setStatus("error");
-    setMessage(payload.error ?? "Could not refresh users.");
+    setMessage(formatUserFacingError(payload.error, "Could not refresh users."));
   }
 
   function requestSbRoleChange({
@@ -149,7 +149,7 @@ export function AccessControlPanel({
 
       if (!response.ok) {
         setStatus("error");
-        setMessage(payload.error ?? "Role update failed.");
+        setMessage(formatUserFacingError(payload.error, "Role update failed. Please try again."));
         return;
       }
 
@@ -347,7 +347,12 @@ function BranchRoleControl({
   const displayName = user.name || user.googleEmail;
 
   return (
-    <div className="grid gap-2 xl:grid-cols-2">
+    <div
+      className={cn(
+        "grid gap-2",
+        revokableRoles.length > 0 ? "xl:grid-cols-2" : "grid-cols-1",
+      )}
+    >
       <div className="rounded-md border border-border bg-surface-subtle p-3">
         <label className="block text-xs font-semibold text-text-secondary">
           Assign role
@@ -400,46 +405,47 @@ function BranchRoleControl({
         ) : null}
       </div>
 
-      <div className="rounded-md border border-border bg-surface-subtle p-3">
-        <label className="block text-xs font-semibold text-text-secondary">
-          Revoke role
-          <select
-            className={cn(inputClasses, "mt-1")}
-            disabled={!currentRevokeRole}
-            onChange={(event) => setSelectedRevokeRole(event.target.value as SbRole)}
-            value={currentRevokeRole ?? ""}
-          >
-            {revokableRoles.length > 0 ? (
-              revokableRoles.map((role) => (
+      {revokableRoles.length > 0 ? (
+        <div className="rounded-md border border-border bg-surface-subtle p-3">
+          <label className="block text-xs font-semibold text-text-secondary">
+            Revoke role
+            <select
+              className={cn(inputClasses, "mt-1")}
+              disabled={!currentRevokeRole}
+              onChange={(event) => setSelectedRevokeRole(event.target.value as SbRole)}
+              value={currentRevokeRole ?? ""}
+            >
+              {revokableRoles.map((role) => (
                 <option key={role} value={role}>
                   {role}
                 </option>
-              ))
-            ) : (
-              <option value="">No role to revoke</option>
-            )}
-          </select>
-        </label>
-        <Button
-          className="mt-2 w-full"
-          disabled={!currentRevokeRole || pendingAction === `${user.authUserId}:${currentRevokeRole}`}
-          onClick={() =>
-            currentRevokeRole
-              ? requestSbRoleChange({
-                  role: currentRevokeRole,
-                  userId: user.authUserId,
-                  userName: displayName,
-                  variant: "revoke",
-                })
-              : undefined
-          }
-          type="button"
-          variant="ghost"
-        >
-          <ShieldMinus className="size-4" aria-hidden="true" />
-          Review Revoke
-        </Button>
-      </div>
+              ))}
+            </select>
+          </label>
+          <Button
+            className="mt-2 w-full"
+            disabled={
+              !currentRevokeRole ||
+              pendingAction === `${user.authUserId}:${currentRevokeRole}`
+            }
+            onClick={() =>
+              currentRevokeRole
+                ? requestSbRoleChange({
+                    role: currentRevokeRole,
+                    userId: user.authUserId,
+                    userName: displayName,
+                    variant: "revoke",
+                  })
+                : undefined
+            }
+            type="button"
+            variant="ghost"
+          >
+            <ShieldMinus className="size-4" aria-hidden="true" />
+            Review Revoke
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

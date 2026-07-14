@@ -6,7 +6,7 @@ import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { listActiveEventRoleAssignments, listActiveRoleAssignments } from "@/features/access-control/server/roles";
 import type { VolunteerProfileExport } from "@/features/reports/types";
-import type { ParticipationRecord, PointLedgerEntry } from "@/features/scoring/types";
+import type { PointLedgerEntry } from "@/features/scoring/types";
 import { listEvents } from "@/features/events/server/event-service";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
@@ -22,19 +22,6 @@ type VisibleRecommendationRow = {
   text: string;
 };
 
-const listParticipationRecords = cache(async function listParticipationRecords() {
-  const env = getServerEnv();
-  const { tables } = getAppwriteAdminServices();
-  const result = await tables.listRows(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.participationRecords,
-    [Query.limit(1000)],
-    undefined,
-    false,
-  );
-
-  return result.rows as unknown as ParticipationRecord[];
-});
 
 const listPointLedgerEntries = cache(async function listPointLedgerEntries() {
   const env = getServerEnv();
@@ -69,7 +56,6 @@ export const listVolunteerProfiles = cache(async function listVolunteerProfiles(
     profiles,
     sbAssignments,
     eventAssignments,
-    participationRecords,
     pointLedgerEntries,
     events,
     visibleRecommendations,
@@ -77,7 +63,6 @@ export const listVolunteerProfiles = cache(async function listVolunteerProfiles(
     listProfiles(),
     listActiveRoleAssignments(),
     listActiveEventRoleAssignments(),
-    listParticipationRecords(),
     listPointLedgerEntries(),
     listEvents(),
     listVisibleRecommendationRows(),
@@ -100,19 +85,18 @@ export const listVolunteerProfiles = cache(async function listVolunteerProfiles(
 
   const participationsByUser = new Map<string, VolunteerProfileExport["participations"]>();
 
-  for (const record of participationRecords.filter((entry) => entry.status === "attended")) {
-    const current = participationsByUser.get(record.userId) ?? [];
-    const assignment = assignmentsByEventAndUser.get(`${record.eventId}:${record.userId}`);
-    const event = eventsById.get(record.eventId);
+  for (const assignment of eventAssignments) {
+    const current = participationsByUser.get(assignment.userId) ?? [];
+    const event = eventsById.get(assignment.eventId);
 
-    participationsByUser.set(record.userId, [
+    participationsByUser.set(assignment.userId, [
       ...current,
       {
-        assignedAt: record.createdAt,
-        committeeName: assignment?.committeeName,
-        eventId: record.eventId,
-        eventTitle: event?.title ?? assignment?.eventTitle ?? record.eventId,
-        role: (assignment?.role ?? record.role) as VolunteerParticipationEntry["role"],
+        assignedAt: assignment.assignedAt,
+        committeeName: assignment.committeeName,
+        eventId: assignment.eventId,
+        eventTitle: event?.title ?? assignment.eventTitle ?? assignment.eventId,
+        role: assignment.role as VolunteerParticipationEntry["role"],
       },
     ]);
   }

@@ -200,6 +200,15 @@ describe("Scoring Server Actions & Access Control", () => {
   };
   let mockTables: MockTables;
 
+  const setMockGetRow = (objOrFn: any) => {
+    mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
+      if (table === "events") {
+        return Promise.resolve({ $id: id, status: "CLOSED" });
+      }
+      return Promise.resolve(typeof objOrFn === "function" ? objOrFn(db, table, id) : objOrFn);
+    });
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
 
@@ -219,7 +228,12 @@ describe("Scoring Server Actions & Access Control", () => {
         }
         return Promise.resolve({ total: 0, rows: [] });
       }),
-      getRow: vi.fn(),
+      getRow: vi.fn().mockImplementation((db: string, table: string, id: string) => {
+        if (table === "events") {
+          return Promise.resolve({ $id: id, status: "CLOSED" });
+        }
+        return Promise.reject(new Error("Not found"));
+      }),
       createRow: vi.fn().mockImplementation((db, table, id, data) => Promise.resolve({ $id: id, ...data })),
       updateRow: vi.fn().mockImplementation((db, table, id, data) => Promise.resolve({ $id: id, ...data })),
       deleteRow: vi.fn().mockResolvedValue({}),
@@ -301,14 +315,14 @@ describe("Scoring Server Actions & Access Control", () => {
 
   it("Point ledger uses conclusionApprovalDate from audit logs, delta is computed", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
-      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: false,
+      authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
       sbRoles: [],
       eventRoles: [
         {
           $id: "r2",
-          userId: "chair-1",
+          userId: "admin-1",
           eventId: "event-1",
           eventTitle: "Event One",
           role: "Chair",
@@ -319,7 +333,7 @@ describe("Scoring Server Actions & Access Control", () => {
       ],
     });
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -392,6 +406,9 @@ describe("Scoring Server Actions & Access Control", () => {
     });
 
     mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
+      if (table === "events") {
+        return Promise.resolve({ $id: id, status: "CLOSED" });
+      }
       if (table === "grade_reviews") {
         return Promise.resolve({
           $id: id,
@@ -486,7 +503,7 @@ describe("Scoring Server Actions & Access Control", () => {
       ],
     });
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -496,7 +513,7 @@ describe("Scoring Server Actions & Access Control", () => {
     vi.mocked(hasEventRole).mockReturnValue(false);
 
     await expect(submitGradeReview("request-1", 7)).rejects.toThrow(
-      "Only committee leads can score committee members"
+      "Only the event chair or an admin can submit extra scores."
     );
   });
 
@@ -511,7 +528,7 @@ describe("Scoring Server Actions & Access Control", () => {
       eventRoles: [],
     });
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -526,14 +543,14 @@ describe("Scoring Server Actions & Access Control", () => {
 
   it("Recalculate preserves existing entries and appends delta correctly", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
-      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: false,
+      authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
       sbRoles: [],
       eventRoles: [
         {
           $id: "r2",
-          userId: "chair-1",
+          userId: "admin-1",
           eventId: "event-1",
           eventTitle: "Event One",
           role: "Chair",
@@ -544,7 +561,7 @@ describe("Scoring Server Actions & Access Control", () => {
       ],
     });
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -672,7 +689,7 @@ describe("Scoring Server Actions & Access Control", () => {
       ],
     });
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -849,12 +866,26 @@ describe("Scoring Extra Requirements Tests", () => {
   };
   let mockTables: MockTables;
 
+  const setMockGetRow = (objOrFn: any) => {
+    mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
+      if (table === "events") {
+        return Promise.resolve({ $id: id, status: "CLOSED" });
+      }
+      return Promise.resolve(typeof objOrFn === "function" ? objOrFn(db, table, id) : objOrFn);
+    });
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
 
     mockTables = {
       listRows: vi.fn(),
-      getRow: vi.fn(),
+      getRow: vi.fn().mockImplementation((db: string, table: string, id: string) => {
+        if (table === "events") {
+          return Promise.resolve({ $id: id, status: "CLOSED" });
+        }
+        return Promise.reject(new Error("Not found"));
+      }),
       createRow: vi.fn().mockImplementation((db, table, id, data) => Promise.resolve({ $id: id, ...data })),
       updateRow: vi.fn().mockImplementation((db, table, id, data) => Promise.resolve({ $id: id, ...data })),
       deleteRow: vi.fn().mockResolvedValue({}),
@@ -867,14 +898,14 @@ describe("Scoring Extra Requirements Tests", () => {
 
   it("blocks finalization until the event has an approved conclusion report", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
-      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
-      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: false,
+      authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
       sbRoles: [],
       eventRoles: [
         {
           $id: "r2",
-          userId: "chair-1",
+          userId: "admin-1",
           eventId: "event-1",
           eventTitle: "Event One",
           role: "Chair",
@@ -885,7 +916,7 @@ describe("Scoring Extra Requirements Tests", () => {
       ],
     });
     vi.mocked(hasEventRole).mockReturnValue(true);
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -947,7 +978,7 @@ describe("Scoring Extra Requirements Tests", () => {
       ],
     });
     vi.mocked(hasEventRole).mockReturnValue(false);
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
@@ -970,11 +1001,11 @@ describe("Scoring Extra Requirements Tests", () => {
     });
 
     await expect(finalizeGrade("request-1")).rejects.toThrow(
-      "Only the event chair or an admin can approve extra scores."
+      "Only admins can approve extra scores."
     );
   });
 
-  it("automatically finalizes role points for attended volunteers after approval", async () => {
+  it("automatically finalizes role points for active assigned volunteers after approval", async () => {
     vi.mocked(requireAdmin).mockResolvedValue({
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
@@ -995,16 +1026,16 @@ describe("Scoring Extra Requirements Tests", () => {
           rows: [{ $id: "approval-1", reportId: "report-1", status: "APPROVED", reviewedAt: "2026-06-15T00:00:00.000Z" }],
         });
       }
-      if (table === "participation_records") {
+      if (table === "event_role_assignments") {
         return Promise.resolve({
           total: 2,
           rows: [
-            { $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", status: "attended" },
-            { $id: "part-2", userId: "lead-1", eventId: "event-1", role: "Committee Lead", status: "attended" },
+            { $id: "part-1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true },
+            { $id: "part-2", userId: "lead-1", eventId: "event-1", role: "Committee Lead", active: true },
           ],
         });
       }
-      if (table === "point_ledger" || table === "event_role_assignments") {
+      if (table === "point_ledger") {
         return Promise.resolve({ total: 0, rows: [] });
       }
       return Promise.resolve({ total: 0, rows: [] });
@@ -1041,7 +1072,7 @@ describe("Scoring Extra Requirements Tests", () => {
     );
   });
 
-  it("requires attended participation before creating or finalizing a grade", async () => {
+  it("requires active event role assignment before creating or finalizing a grade", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
       profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
@@ -1064,28 +1095,25 @@ describe("Scoring Extra Requirements Tests", () => {
     mockTables.listRows.mockImplementation((db: string, table: string) => {
       if (table === "event_role_assignments") {
         return Promise.resolve({
-          total: 1,
-          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+          total: 0,
+          rows: [],
         });
-      }
-      if (table === "participation_records") {
-        return Promise.resolve({ total: 0, rows: [] });
       }
       return Promise.resolve({ total: 0, rows: [] });
     });
 
     await expect(
       createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 })
-    ).rejects.toThrow("attended participation record");
+    ).rejects.toThrow("Target volunteer does not have an active responsibility assigned for this event.");
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "volunteer-1",
       status: "reviewed",
     });
 
-    await expect(finalizeGrade("request-1")).rejects.toThrow("attended participation record");
+    await expect(finalizeGrade("request-1")).rejects.toThrow("Target volunteer does not have an active responsibility assigned for this event.");
   });
 
   it("enforces grade values as integers from 0 through 10", async () => {
@@ -1188,7 +1216,7 @@ describe("Scoring Extra Requirements Tests", () => {
       ],
     });
 
-    mockTables.getRow.mockResolvedValue({
+    setMockGetRow({
       $id: "request-1",
       eventId: "event-1",
       targetUserId: "chair-1",
@@ -1198,5 +1226,170 @@ describe("Scoring Extra Requirements Tests", () => {
     await expect(finalizeGrade("request-1")).rejects.toThrow(
       "You cannot finalize your own grade request."
     );
+  });
+
+  it("enforces extra score given only one time per event for one volunteer", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r1",
+          userId: "chair-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Chair",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+    mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
+      if (table === "events") {
+        return Promise.resolve({ $id: id, status: "CLOSED" });
+      }
+      if (table === "grade_requests") {
+        return Promise.resolve({
+          $id: id,
+          eventId: "event-1",
+          targetUserId: "volunteer-1",
+          status: "pending",
+        });
+      }
+      return Promise.reject(new Error("404"));
+    });
+
+    await expect(
+      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 })
+    ).rejects.toThrow("An extra score evaluation has already been given to this volunteer for this event.");
+  });
+
+  it("blocks Chairs from submitting extra score for another Chair (Admin must give that score)", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r1",
+          userId: "chair-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Chair",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er2", userId: "chair-2", eventId: "event-1", role: "Chair", active: true }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    await expect(
+      createGradeRequest({ eventId: "event-1", targetUserId: "chair-2", gradeValue: 8 })
+    ).rejects.toThrow("Only admins can submit extra scores for chairs.");
+  });
+
+  it("blocks Chairs from approving extra score (Chair gives score for vice chair and others but Admin must approve)", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r1",
+          userId: "chair-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Chair",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+    setMockGetRow({
+      $id: "request-1",
+      eventId: "event-1",
+      targetUserId: "volunteer-1",
+      status: "reviewed",
+    });
+
+    await expect(finalizeGrade("request-1")).rejects.toThrow(
+      "Only admins can approve extra scores."
+    );
+  });
+
+  it("extra points to an event can only be given after the event is in pending conclusion or closed status", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
+      profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: true,
+      sbRoles: ["Chairperson"],
+      eventRoles: [],
+    });
+
+    mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
+      if (table === "events") {
+        return Promise.resolve({ $id: id, status: "ONGOING" });
+      }
+      if (table === "grade_requests") {
+        return Promise.resolve({
+          $id: "request-1",
+          eventId: "event-1",
+          targetUserId: "volunteer-1",
+          status: "pending",
+        });
+      }
+      return Promise.reject(new Error("404"));
+    });
+
+    await expect(
+      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 8 })
+    ).rejects.toThrow("Extra points to an event can only be given when the event is in PENDING_CONCLUSION or CLOSED status.");
+
+    await expect(
+      submitGradeReview("request-1", 8)
+    ).rejects.toThrow("Extra points to an event can only be given when the event is in PENDING_CONCLUSION or CLOSED status.");
+
+    await expect(
+      finalizeGrade("request-1")
+    ).rejects.toThrow("Extra points to an event can only be given when the event is in PENDING_CONCLUSION or CLOSED status.");
   });
 });

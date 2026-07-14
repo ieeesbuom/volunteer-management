@@ -29,6 +29,7 @@ import type {
 type AppRow = Models.Row & Record<string, unknown>;
 
 const ACTIVE_TERM_SETTING_KEY = "active_term_id";
+const ROLE_POWERS_SETTING_KEY = "role_powers_config";
 
 function toOptionalString(value: unknown) {
   return typeof value === "string" && value ? value : undefined;
@@ -516,8 +517,52 @@ export async function reconcileActiveTermState(
   return resolution.activeTermId;
 }
 
-export function getPermissionOverview(adminEmail: string): PermissionOverview {
-  return buildPermissionOverview(adminEmail);
+export async function getPermissionOverview(adminEmail: string): Promise<PermissionOverview> {
+  const env = getServerEnv();
+  const { tables } = getAppwriteAdminServices();
+  let customPowers: { eventRolePowers?: Record<string, string[]>; sbRolePowers?: Record<string, string[]> } | undefined;
+
+  try {
+    const row = await tables.getRow<AppRow>(
+      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+      APPWRITE_TABLES.systemSettings,
+      ROLE_POWERS_SETTING_KEY,
+    );
+
+    if (row?.value) {
+      customPowers = JSON.parse(String(row.value));
+    }
+  } catch (error) {
+    if (!isAppwriteNotFound(error)) {
+      throw error;
+    }
+  }
+
+  return buildPermissionOverview(adminEmail, customPowers);
+}
+
+export async function updateRolePermissions(
+  actorUserId: string,
+  input: {
+    eventRolePowers?: Record<string, string[]>;
+    sbRolePowers?: Record<string, string[]>;
+  },
+): Promise<PermissionOverview> {
+  const env = getServerEnv();
+  const transactionId = crypto.randomUUID();
+  const value = JSON.stringify({
+    eventRolePowers: input.eventRolePowers ?? {},
+    sbRolePowers: input.sbRolePowers ?? {},
+  });
+
+  await upsertSystemSetting({
+    actorUserId,
+    key: ROLE_POWERS_SETTING_KEY,
+    transactionId,
+    value,
+  });
+
+  return getPermissionOverview(env.ADMIN_EMAIL);
 }
 
 export async function listAuditLogs({
@@ -600,7 +645,7 @@ export async function getInitialSystemSettingsData() {
       nextCursor: undefined,
       total: 0,
     },
-    permissions: getPermissionOverview(env.ADMIN_EMAIL),
+    permissions: await getPermissionOverview(env.ADMIN_EMAIL),
     terms,
   };
 }

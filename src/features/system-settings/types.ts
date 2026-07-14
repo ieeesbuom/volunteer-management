@@ -41,12 +41,14 @@ export type PermissionOverview = {
   adminSource: "ADMIN_EMAIL";
   eventRoles: Array<{
     notes: string;
+    powers: string[];
     role: EventRole;
     scope: "event";
   }>;
   notes: string[];
   sbRoles: Array<{
     notes: string;
+    powers: string[];
     role: SbRole;
     scope: "student-branch";
   }>;

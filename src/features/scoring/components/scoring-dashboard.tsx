@@ -332,6 +332,12 @@ export function ScoringDashboard({
   const [volunteersLoading, setVolunteersLoading] = useState(false);
   const [volunteersError, setVolunteersError] = useState<string | null>(null);
 
+  // Dedicated volunteers state when giving extra points for the selected request event
+  const [requestVolunteers, setRequestVolunteers] = useState<VolunteerOption[]>([]);
+  const [requestVolunteersLoadedFor, setRequestVolunteersLoadedFor] = useState<string | null>(null);
+  const [requestVolunteersLoading, setRequestVolunteersLoading] = useState(false);
+  const [requestVolunteersError, setRequestVolunteersError] = useState<string | null>(null);
+
   // Selected volunteer for admin point ledger
   const [selectedVolPointsId, setSelectedVolPointsId] = useState(user.authUser.id);
 
@@ -423,6 +429,42 @@ export function ScoringDashboard({
     }
     loadVolunteers();
   }, [effectiveEventId, volunteersLoadedFor]);
+
+  // Fetch volunteers specifically for the selected extra score event
+  useEffect(() => {
+    const targetEventId = selectedRequestEventId;
+    if (!targetEventId || requestVolunteersLoadedFor === targetEventId) {
+      return;
+    }
+
+    let isMounted = true;
+    async function loadRequestVolunteers() {
+      setRequestVolunteersLoading(true);
+      setRequestVolunteersError(null);
+      try {
+        const list = await listVolunteers(targetEventId);
+        if (isMounted) {
+          setRequestVolunteers(list);
+          setRequestVolunteersLoadedFor(targetEventId);
+          setReqTargetUserId((prev) => (prev && !list.some((v) => v.id === prev) ? "" : prev));
+        }
+      } catch (err) {
+        if (isMounted) {
+          setRequestVolunteersError(
+            err instanceof Error ? err.message : "Failed to fetch volunteers for selected event.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setRequestVolunteersLoading(false);
+        }
+      }
+    }
+    loadRequestVolunteers();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedRequestEventId, requestVolunteersLoadedFor]);
 
   // Fetch leaderboard
   const fetchLeaderboard = async () => {
@@ -578,6 +620,9 @@ export function ScoringDashboard({
     for (const volunteer of volunteers) {
       map.set(volunteer.id, volunteer.name);
     }
+    for (const volunteer of requestVolunteers) {
+      map.set(volunteer.id, volunteer.name);
+    }
     for (const request of gradeRequests) {
       if (request.targetUserName) {
         map.set(request.targetUserId, request.targetUserName);
@@ -588,7 +633,7 @@ export function ScoringDashboard({
     }
 
     return map;
-  }, [gradeRequests, user.authUser.email, user.authUser.id, user.authUser.name, volunteers]);
+  }, [gradeRequests, requestVolunteers, user.authUser.email, user.authUser.id, user.authUser.name, volunteers]);
 
   function eventLabel(eventId?: string) {
     if (!eventId) {
@@ -998,12 +1043,12 @@ export function ScoringDashboard({
 
       {currentTab === "grade-requests" && (
         <div className="space-y-6">
-          {(derivedRole === "Admin" || derivedRole === "Chairperson" || derivedRole === "Committee Lead") && (
+          {(derivedRole === "Admin" || derivedRole === "Chairperson") && (
             <Card>
               <CardHeader>
                 <CardTitle>Submit Extra Score</CardTitle>
                 <CardDescription>
-                  Add the 0-10 extra score for an attended volunteer. Role points are awarded automatically after the conclusion report is approved.
+                  Add the 0-10 extra score for a volunteer (one score per volunteer per event). Chairs submit scores for vice chairs and members; Admins submit scores for chairs and approve all submissions.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1012,8 +1057,8 @@ export function ScoringDashboard({
                     e.preventDefault();
                     setError(null);
                     setSuccess(null);
-                    if (!selectedRequestEventId) {
-                      setError("Select an event before submitting an extra score.");
+                    if (!selectedRequestEventId || !reqTargetUserId) {
+                      setError("Select an event and volunteer before submitting.");
                       return;
                     }
                     try {
@@ -1028,10 +1073,11 @@ export function ScoringDashboard({
                       const data = await res.json();
                       if (data.error) throw new Error(data.error);
                       setSuccess("Extra score submitted successfully!");
-                      fetchGradeRequests();
                       setReqTargetUserId("");
+                      setReqGradeValue(5);
+                      fetchGradeRequests();
                     } catch (err) {
-                      setError(err instanceof Error ? err.message : "Failed to submit request.");
+                      setError(err instanceof Error ? err.message : "Failed to create extra score request.");
                     }
                   }}
                   className="grid items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,16rem)_auto]"
@@ -1052,7 +1098,10 @@ export function ScoringDashboard({
                       <select
                         required
                         value={selectedRequestEventId}
-                        onChange={(e) => setReqEventId(e.target.value)}
+                        onChange={(e) => {
+                          setReqEventId(e.target.value);
+                          setReqTargetUserId("");
+                        }}
                         className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
                       >
                         {allEvents.map((event) => (
@@ -1074,9 +1123,9 @@ export function ScoringDashboard({
                     <VolunteerSelect
                       value={reqTargetUserId}
                       onChange={(val) => setReqTargetUserId(val)}
-                      volunteers={volunteers.filter((v) => v.id !== user.authUser.id)}
-                      loading={volunteersLoading}
-                      error={volunteersError}
+                      volunteers={(!selectedRequestEventId ? [] : requestVolunteers).filter((v) => v.id !== user.authUser.id)}
+                      loading={requestVolunteersLoading}
+                      error={requestVolunteersError}
                     />
                   </div>
                   <div>
@@ -1095,12 +1144,12 @@ export function ScoringDashboard({
                   </div>
                   <Button
                     disabled={
-                      volunteersLoading ||
+                      requestVolunteersLoading ||
                       !reqTargetUserId ||
                       !selectedRequestEventId
                     }
                     type="submit"
-                    className="flex h-10 shrink-0 items-center gap-1"
+                    className="flex h-10 shrink-0 items-center gap-1 cursor-pointer"
                   >
                     <Plus className="size-4" /> Submit
                   </Button>
@@ -1109,33 +1158,48 @@ export function ScoringDashboard({
             </Card>
           )}
 
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-text-primary">Submitted Extra Scores</h3>
+              <p className="text-xs text-text-secondary">
+                Review pending extra scores before approval.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-text-secondary">Filter by Event:</label>
+              <select
+                value={effectiveEventId}
+                onChange={(e) => handleEventContextChange(e.target.value)}
+                className="px-3 py-1.5 border border-border rounded-md text-xs bg-surface"
+              >
+                <option value="">All Actionable Events</option>
+                {user.isAdmin
+                  ? allEvents.map((ev) => (
+                      <option key={ev.eventId} value={ev.eventId}>
+                        {ev.eventTitle}
+                      </option>
+                    ))
+                  : activeEventAssignments.map((ev) => (
+                      <option key={ev.eventId} value={ev.eventId}>
+                        {ev.eventTitle}
+                      </option>
+                    ))}
+              </select>
+            </div>
+          </div>
+
           <Card>
-            <CardHeader>
-              <CardTitle>
-                {derivedRole === "Admin"
-                  ? "Extra Score Requests"
-                  : effectiveEventId
-                  ? `Extra Score Requests for ${eventLabel(effectiveEventId)}`
-                  : "Extra Score Requests for My Events"}
-              </CardTitle>
-              <CardDescription>
-                {derivedRole === "Admin"
-                  ? "Only requests that still need review or final approval are shown here."
-                  : "Only requests connected to your event responsibility that still need action are shown here."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-4">
               {(() => {
-                const actionableRequests = gradeRequests.filter((req) => req.status !== "finalized");
-                const visibleRequests = derivedRole === "Admin"
-                  ? (effectiveEventId ? actionableRequests.filter(req => req.eventId === effectiveEventId) : actionableRequests)
-                  : actionableRequests.filter((req) => {
+                const visibleRequests = user.isAdmin
+                  ? effectiveEventId
+                    ? gradeRequests.filter((req) => req.eventId === effectiveEventId)
+                    : gradeRequests
+                  : gradeRequests.filter((req) => {
                     if (effectiveEventId) {
                       return req.eventId === effectiveEventId;
                     }
-                    return derivedRole === "Chairperson"
-                      ? chairEventIds.includes(req.eventId)
-                      : committeeLeadEventIds.includes(req.eventId);
+                    return chairEventIds.includes(req.eventId);
                   });
 
                 if (visibleRequests.length > 0) {
@@ -1143,38 +1207,25 @@ export function ScoringDashboard({
                     <div className="space-y-4">
                       {visibleRequests.map((req) => {
                         const targetVolName = req.targetUserName ?? volunteerLabel(req.targetUserId);
-                        const canSubmitScoreForEvent = committeeLeadEventIds.includes(req.eventId);
+                        const canSubmitScoreForEvent = chairEventIds.includes(req.eventId) || user.isAdmin;
 
                         return (
                           <div
                             key={req.$id}
-                            className="p-4 border border-border rounded-lg bg-surface flex flex-col gap-4"
+                            className="p-4 border border-border rounded-lg bg-surface flex flex-col gap-3 shadow-xs"
                           >
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-sm text-text-primary">
-                                    {req.eventTitle ?? eventLabel(req.eventId)}
-                                  </span>
-                                  <Badge
-                                    tone={
-                                      req.status === "finalized"
-                                        ? "success"
-                                        : req.status === "reviewed"
-                                        ? "primary"
-                                        : "neutral"
-                                    }
-                                  >
-                                    {req.status}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-text-secondary">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <span className="text-xs font-semibold uppercase text-primary tracking-wider">
+                                  {req.eventTitle}
+                                </span>
+                                <p className="text-sm text-text-primary">
                                   Volunteer: <span className="font-semibold">{targetVolName}</span>
                                 </p>
                               </div>
 
-                              {/* Approval actions for Admins and Chairs */}
-                              {(derivedRole === "Admin" || derivedRole === "Chairperson") && req.status !== "finalized" && (
+                              {/* Approval actions for Admins only */}
+                              {derivedRole === "Admin" && req.status !== "finalized" && (
                                 <div className="flex gap-2">
                                   <Button
                                     variant="primary"
@@ -1183,29 +1234,27 @@ export function ScoringDashboard({
                                   >
                                     Approve (Finalize)
                                   </Button>
-                                  {derivedRole === "Admin" ? (
-                                    <Button
-                                      variant="secondary"
-                                      className="cursor-pointer"
-                                      onClick={() => setRequestToReject(req)}
-                                    >
-                                      Reject (Delete)
-                                    </Button>
-                                  ) : null}
+                                  <Button
+                                    variant="secondary"
+                                    className="cursor-pointer"
+                                    onClick={() => setRequestToReject(req)}
+                                  >
+                                    Reject (Delete)
+                                  </Button>
                                 </div>
                               )}
                             </div>
 
-                            {/* Score input for Committee Leads */}
-                            {derivedRole === "Committee Lead" && (
+                            {/* Score update input for Chairs and Admins */}
+                            {(derivedRole === "Chairperson" || derivedRole === "Admin") && req.status !== "finalized" && (
                               <div className="space-y-3 mt-2 pt-2 border-t border-border/50">
                                 {req.targetUserId === user.authUser.id ? (
                                   <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
                                     You cannot grade yourself.
                                   </div>
-                                ) : !canSubmitScoreForEvent && !user.isAdmin ? (
+                                ) : !canSubmitScoreForEvent ? (
                                   <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
-                                    You must be a Committee Lead for this event to submit a member extra score.
+                                    You must be the event chair or an admin to submit/update extra scores.
                                   </div>
                                 ) : (
                                   <form
@@ -1222,10 +1271,10 @@ export function ScoringDashboard({
                                         });
                                         const data = await res.json();
                                         if (data.error) throw new Error(data.error);
-                                        setSuccess("Extra score submitted successfully!");
+                                        setSuccess("Extra score updated successfully!");
                                         fetchGradeRequests();
                                       } catch (err) {
-                                        setError(err instanceof Error ? err.message : "Failed to submit extra score.");
+                                        setError(err instanceof Error ? err.message : "Failed to update extra score.");
                                       }
                                     }}
                                     className="flex items-center gap-3"
@@ -1239,13 +1288,13 @@ export function ScoringDashboard({
                                         name="gradeValue"
                                         min={0}
                                         max={10}
-                                        defaultValue={5}
+                                        defaultValue={req.gradeValue}
                                         required
                                         className="w-full px-2 py-1 border border-border rounded text-sm bg-surface"
                                       />
                                     </div>
                                     <Button type="submit" variant="secondary" className="mt-4">
-                                      Submit Score
+                                      Update Score
                                     </Button>
                                   </form>
                                 )}

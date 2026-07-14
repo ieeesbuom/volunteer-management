@@ -1,50 +1,47 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   AlertTriangle,
   CalendarRange,
   Check,
+  Edit,
   History,
+  Loader2,
+  Lock,
   RefreshCw,
   ShieldCheck,
-  ShieldMinus,
-  UserMinus,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatUserFacingError } from "@/lib/utils";
 import {
   formatDisplayDate,
   formatDisplayDateTime,
 } from "@/features/system-settings/lib/display";
 import {
+  EVENT_ROLE_POWERS,
   formatTermLabel,
   getSuggestedTermRange,
-  isActiveTopBoardExclusion,
+  SB_ROLE_POWERS,
 } from "@/features/system-settings/lib/rules";
 import { deriveTermFromDate } from "@/features/scoring/lib/helpers";
-import type { Profile } from "@/features/access-control/types";
 import type {
   AuditLog,
   AuditLogPage,
   IeeeTerm,
   IeeeTermStatus,
   PermissionOverview,
-  TopBoardExclusion,
 } from "@/features/system-settings/types";
 
-type PanelTab = "audit" | "exclusions" | "permissions" | "terms";
+type PanelTab = "audit" | "permissions" | "terms";
 type NoticeStatus = "error" | "idle" | "success";
 type TermFormState = {
   endDate: string;
   notes: string;
   startDate: string;
   status: Exclude<IeeeTermStatus, "ACTIVE">;
-};
-type ExclusionFormState = {
-  reason: string;
-  userId: string;
 };
 type AuditFilters = {
   action: string;
@@ -55,8 +52,7 @@ type AuditFilters = {
 };
 type Confirmation =
   | { kind: "activate-term"; term: IeeeTerm }
-  | { kind: "close-term"; term: IeeeTerm }
-  | { exclusion: TopBoardExclusion; kind: "revoke-exclusion"; userName: string };
+  | { kind: "close-term"; term: IeeeTerm };
 
 const suggestedTerm = getSuggestedTermRange();
 const emptyTermForm: TermFormState = {
@@ -89,19 +85,15 @@ const inputClasses =
 export function SystemSettingsPanel({
   initialActiveTermId,
   initialAuditPage,
-  initialExclusions,
   initialPermissions,
   initialSelectedTermId,
   initialTerms,
-  initialUsers,
 }: {
   initialActiveTermId: string;
   initialAuditPage: AuditLogPage;
-  initialExclusions: TopBoardExclusion[];
   initialPermissions: PermissionOverview;
   initialSelectedTermId: string;
   initialTerms: IeeeTerm[];
-  initialUsers: Profile[];
 }) {
   const [activeTermId, setActiveTermId] = useState(initialActiveTermId);
   const [auditFilters, setAuditFilters] = useState<AuditFilters>({
@@ -121,31 +113,24 @@ export function SystemSettingsPanel({
   const [auditTotal, setAuditTotal] = useState(initialAuditPage.total);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [editingTermId, setEditingTermId] = useState<string | null>(null);
-  const [exclusionForm, setExclusionForm] = useState<ExclusionFormState>({
-    reason: "",
-    userId: initialUsers[0]?.authUserId ?? "",
-  });
-  const [exclusions, setExclusions] = useState(initialExclusions);
-  const [exclusionsLoaded, setExclusionsLoaded] = useState(initialExclusions.length > 0);
   const [message, setMessage] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState(initialPermissions);
   const [selectedTermId, setSelectedTermId] = useState(initialSelectedTermId);
   const [status, setStatus] = useState<NoticeStatus>("idle");
   const [tab, setTab] = useState<PanelTab>("permissions");
   const [termForm, setTermForm] = useState<TermFormState>(emptyTermForm);
   const [terms, setTerms] = useState(initialTerms);
-  const [users, setUsers] = useState(initialUsers);
 
-  const userById = useMemo(
-    () => new Map(users.map((user) => [user.authUserId, user])),
-    [users],
-  );
   const selectedTerm = terms.find((term) => term.$id === selectedTermId);
-  const activeExclusions = exclusions.filter(isActiveTopBoardExclusion);
 
   function setNotice(nextStatus: NoticeStatus, nextMessage: string) {
     setStatus(nextStatus);
-    setMessage(nextMessage);
+    setMessage(
+      nextStatus === "error"
+        ? formatUserFacingError(nextMessage, "An unexpected error occurred. Please try again.")
+        : nextMessage,
+    );
   }
 
   function resetTermForm() {
@@ -190,10 +175,6 @@ export function SystemSettingsPanel({
     setActiveTermId(nextActiveTermId);
     setSelectedTermId(nextSelectedTermId);
     setNotice("success", nextMessage);
-
-    if (nextSelectedTermId && exclusionsLoaded) {
-      await refreshExclusions(nextSelectedTermId, false);
-    }
   }
 
   async function submitTerm(event: React.FormEvent<HTMLFormElement>) {
@@ -218,15 +199,30 @@ export function SystemSettingsPanel({
       const payload = await response.json();
 
       if (!response.ok) {
-        setNotice("error", payload.error ?? "Term save failed.");
+        setNotice("error", payload.error ?? "Could not save IEEE term.");
         return;
       }
 
-      resetTermForm();
-      await refreshTerms(editingTermId ? "IEEE term updated." : "IEEE term created.");
+      setTermForm(emptyTermForm);
+      setEditingTermId(null);
+      await refreshTerms(
+        editingTermId ? "IEEE term updated." : "IEEE term created.",
+        payload.term?.$id,
+      );
     } finally {
       setPendingAction(null);
     }
+  }
+
+  function startEditingTerm(term: IeeeTerm) {
+    setEditingTermId(term.$id);
+    setTermForm({
+      endDate: term.endDate.slice(0, 10),
+      notes: term.notes ?? "",
+      startDate: term.startDate.slice(0, 10),
+      status: term.status === "ACTIVE" ? "DRAFT" : term.status,
+    });
+    setTab("terms");
   }
 
   async function activateTerm(termId: string) {
@@ -234,9 +230,10 @@ export function SystemSettingsPanel({
     setNotice("idle", "Activating IEEE term...");
 
     try {
-      const response = await fetch(`/api/admin/settings/terms/${termId}/activate`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `/api/admin/settings/terms/${termId}/activate`,
+        { method: "POST" },
+      );
       const payload = await response.json();
 
       if (!response.ok) {
@@ -244,7 +241,7 @@ export function SystemSettingsPanel({
         return;
       }
 
-      await refreshTerms("IEEE term activated.", (payload.term as IeeeTerm).$id);
+      await refreshTerms("IEEE term activated.", termId);
     } finally {
       setPendingAction(null);
     }
@@ -255,17 +252,10 @@ export function SystemSettingsPanel({
     setNotice("idle", "Closing IEEE term...");
 
     try {
-      const response = await fetch(`/api/admin/settings/terms/${term.$id}`, {
-        body: JSON.stringify({
-          endDate: term.endDate,
-          label: term.label,
-          notes: term.notes ?? "",
-          startDate: term.startDate,
-          status: "CLOSED",
-        }),
-        headers: { "Content-Type": "application/json" },
-        method: "PATCH",
-      });
+      const response = await fetch(
+        `/api/admin/settings/terms/${term.$id}/close`,
+        { method: "POST" },
+      );
       const payload = await response.json();
 
       if (!response.ok) {
@@ -279,123 +269,30 @@ export function SystemSettingsPanel({
     }
   }
 
-  async function refreshExclusions(termId = selectedTermId, showMessage = true) {
-    if (!termId) {
-      setExclusions([]);
-      setExclusionsLoaded(true);
-      return;
-    }
-
-    const response = await fetch(
-      `/api/admin/settings/top-board-exclusions?termId=${encodeURIComponent(termId)}`,
-    );
-    const payload = await response.json();
-
-    if (!response.ok) {
-      setNotice("error", payload.error ?? "Could not load Top Board exclusions.");
-      return;
-    }
-
-    setExclusions(payload.exclusions);
-    setExclusionsLoaded(true);
-
-    if (showMessage) {
-      setNotice("success", "Top Board exclusions refreshed.");
-    }
-  }
-
-  async function loadExclusionUsers() {
-    if (users.length > 0) {
-      return users;
-    }
-
-    const response = await fetch("/api/admin/settings/profiles");
-    const payload = await response.json();
-
-    if (!response.ok) {
-      setNotice("error", payload.error ?? "Could not load profiles.");
-      return [];
-    }
-
-    const nextUsers = payload.profiles as Profile[];
-    setUsers(nextUsers);
-    setExclusionForm((current) => ({
-      ...current,
-      userId: current.userId || nextUsers[0]?.authUserId || "",
-    }));
-
-    return nextUsers;
-  }
-
-  async function loadExclusionData() {
-    setPendingAction("exclusions:load");
-    setNotice("idle", "Loading Top Board exclusions...");
+  async function handleSavePermissions(nextPowers: {
+    eventRolePowers: Record<string, string[]>;
+    sbRolePowers: Record<string, string[]>;
+  }) {
+    setPendingAction("permissions:save");
+    setNotice("idle", "Saving role permissions...");
 
     try {
-      await Promise.all([
-        loadExclusionUsers(),
-        selectedTermId ? refreshExclusions(selectedTermId, false) : Promise.resolve(),
-      ]);
-      setNotice("success", "Top Board exclusions loaded.");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function submitExclusion(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!selectedTermId) {
-      setNotice("error", "Create and select an IEEE term before adding exclusions.");
-      return;
-    }
-
-    setPendingAction("exclusion:add");
-    setNotice("idle", "Adding Top Board exclusion...");
-
-    try {
-      const response = await fetch("/api/admin/settings/top-board-exclusions", {
-        body: JSON.stringify({
-          reason: exclusionForm.reason,
-          termId: selectedTermId,
-          userId: exclusionForm.userId,
-        }),
+      const response = await fetch("/api/admin/settings/permissions", {
+        body: JSON.stringify(nextPowers),
         headers: { "Content-Type": "application/json" },
-        method: "POST",
+        method: "PUT",
       });
       const payload = await response.json();
 
       if (!response.ok) {
-        setNotice("error", payload.error ?? "Could not add exclusion.");
+        setNotice("error", payload.error ?? "Could not save role permissions.");
         return;
       }
 
-      setExclusionForm((current) => ({ ...current, reason: "" }));
-      await refreshExclusions(selectedTermId, false);
-      setNotice("success", "Top Board exclusion added.");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
-  async function revokeExclusion(exclusionId: string) {
-    setPendingAction(`exclusion:revoke:${exclusionId}`);
-    setNotice("idle", "Revoking Top Board exclusion...");
-
-    try {
-      const response = await fetch(
-        `/api/admin/settings/top-board-exclusions/${exclusionId}/revoke`,
-        { method: "POST" },
-      );
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setNotice("error", payload.error ?? "Could not revoke exclusion.");
-        return;
-      }
-
-      await refreshExclusions(selectedTermId, false);
-      setNotice("success", "Top Board exclusion revoked.");
+      setPermissions(payload.permissions);
+      setNotice("success", "Role permissions saved successfully.");
+    } catch {
+      setNotice("error", "Could not save role permissions.");
     } finally {
       setPendingAction(null);
     }
@@ -472,10 +369,6 @@ export function SystemSettingsPanel({
     if (nextTab === "audit" && !auditLoaded) {
       void loadAuditLogs({ append: false });
     }
-
-    if (nextTab === "exclusions" && !exclusionsLoaded) {
-      void loadExclusionData();
-    }
   }
 
   async function runConfirmedAction() {
@@ -495,27 +388,20 @@ export function SystemSettingsPanel({
       await closeTerm(current.term);
       return;
     }
-
-    await revokeExclusion(current.exclusion.$id);
   }
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid gap-3 md:grid-cols-2">
         <SummaryTile
           label="Active term"
           value={deriveTermFromDate(new Date().toISOString())}
-        />
-        <SummaryTile
-          label="Top Board exclusions"
-          value={exclusionsLoaded ? String(activeExclusions.length) : "On demand"}
         />
         <SummaryTile label="Audit records" value={auditLoaded ? String(auditTotal) : "On demand"} />
       </section>
 
       <div className="inline-flex flex-wrap rounded-md border border-border bg-surface p-1">
         <TabButton active={tab === "permissions"} icon={ShieldCheck} label="Permissions" onClick={() => openTab("permissions")} />
-        <TabButton active={tab === "exclusions"} icon={UserMinus} label="Top Board Exclusions" onClick={() => openTab("exclusions")} />
         <TabButton active={tab === "audit"} icon={History} label="Audit" onClick={() => openTab("audit")} />
       </div>
 
@@ -538,32 +424,12 @@ export function SystemSettingsPanel({
         />
       ) : null}
 
-      {tab === "exclusions" ? (
-        <TopBoardExclusionsPanel
-          exclusionForm={exclusionForm}
-          exclusions={exclusions}
-          pendingAction={pendingAction}
-          refreshExclusions={refreshExclusions}
-          requestRevoke={(exclusion) =>
-            setConfirmation({
-              exclusion,
-              kind: "revoke-exclusion",
-              userName: getUserDisplayName(userById.get(exclusion.userId), exclusion.userId),
-            })
-          }
-          selectedTerm={selectedTerm}
-          selectedTermId={selectedTermId}
-          setExclusionForm={setExclusionForm}
-          setSelectedTermId={setSelectedTermId}
-          submitExclusion={submitExclusion}
-          terms={terms}
-          userById={userById}
-          users={users}
-        />
-      ) : null}
-
       {tab === "permissions" ? (
-        <PermissionsPanel permissions={initialPermissions} />
+        <PermissionsPanel
+          onSavePermissions={handleSavePermissions}
+          pendingAction={pendingAction}
+          permissions={permissions}
+        />
       ) : null}
 
       {tab === "audit" ? (
@@ -807,246 +673,346 @@ function TermsPanel({
   );
 }
 
-function TopBoardExclusionsPanel({
-  exclusionForm,
-  exclusions,
+function PermissionsPanel({
+  onSavePermissions,
   pendingAction,
-  refreshExclusions,
-  requestRevoke,
-  selectedTerm,
-  selectedTermId,
-  setExclusionForm,
-  setSelectedTermId,
-  submitExclusion,
-  terms,
-  userById,
-  users,
+  permissions,
 }: {
-  exclusionForm: ExclusionFormState;
-  exclusions: TopBoardExclusion[];
+  onSavePermissions: (powers: {
+    eventRolePowers: Record<string, string[]>;
+    sbRolePowers: Record<string, string[]>;
+  }) => Promise<void>;
   pendingAction: string | null;
-  refreshExclusions: (termId?: string, showMessage?: boolean) => Promise<void>;
-  requestRevoke: (exclusion: TopBoardExclusion) => void;
-  selectedTerm?: IeeeTerm;
-  selectedTermId: string;
-  setExclusionForm: React.Dispatch<React.SetStateAction<ExclusionFormState>>;
-  setSelectedTermId: React.Dispatch<React.SetStateAction<string>>;
-  submitExclusion: (event: React.FormEvent<HTMLFormElement>) => void;
-  terms: IeeeTerm[];
-  userById: Map<string, Profile>;
-  users: Profile[];
+  permissions: PermissionOverview;
 }) {
-  const activeExclusions = exclusions.filter(isActiveTopBoardExclusion);
-
-  return (
-    <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
-      <form
-        className="rounded-md border border-border bg-surface-subtle p-4"
-        onSubmit={submitExclusion}
-      >
-        <div className="flex items-center gap-2">
-          <UserMinus className="size-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-text-primary">
-            Add Top Board exclusion
-          </h3>
-        </div>
-        <p className="mt-2 text-xs leading-5 text-text-secondary">
-          Exclusions are stored per IEEE term for later leaderboard calculations.
-        </p>
-
-        <div className="mt-4 space-y-3">
-          <label className="block text-sm font-medium text-text-secondary">
-            IEEE term
-            <select
-              className={cn(inputClasses, "mt-1")}
-              disabled={terms.length === 0}
-              onChange={async (event) => {
-                setSelectedTermId(event.target.value);
-                await refreshExclusions(event.target.value, false);
-              }}
-              value={selectedTermId}
-            >
-              {terms.length > 0 ? (
-                terms.map((term) => (
-                  <option key={term.$id} value={term.$id}>
-                    {term.label} ({term.active ? "Active" : term.status})
-                  </option>
-                ))
-              ) : (
-                <option value="">No terms configured</option>
-              )}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-text-secondary">
-            User
-            <select
-              className={cn(inputClasses, "mt-1")}
-              disabled={users.length === 0}
-              onChange={(event) =>
-                setExclusionForm((current) => ({
-                  ...current,
-                  userId: event.target.value,
-                }))
-              }
-              value={exclusionForm.userId}
-            >
-              {users.length > 0 ? (
-                users.map((user) => (
-                  <option key={user.authUserId} value={user.authUserId}>
-                    {getUserDisplayName(user, user.authUserId)} -{" "}
-                    {user.uomEmail ?? user.googleEmail}
-                  </option>
-                ))
-              ) : (
-                <option value="">No profiles available</option>
-              )}
-            </select>
-          </label>
-
-          <label className="block text-sm font-medium text-text-secondary">
-            Reason
-            <textarea
-              className="min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary"
-              onChange={(event) =>
-                setExclusionForm((current) => ({
-                  ...current,
-                  reason: event.target.value,
-                }))
-              }
-              placeholder="Top Board member for the selected IEEE term"
-              required
-              value={exclusionForm.reason}
-            />
-          </label>
-        </div>
-
-        <Button
-          className="mt-4 w-full"
-          disabled={
-            pendingAction === "exclusion:add" ||
-            !selectedTermId ||
-            !exclusionForm.userId ||
-            users.length === 0
-          }
-          type="submit"
-          variant="primary"
-        >
-          <UserMinus className="size-4" aria-hidden="true" />
-          Add Exclusion
-        </Button>
-      </form>
-
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="min-w-[820px] divide-y divide-border text-left text-sm">
-          <thead className="bg-surface-muted text-text-secondary">
-            <tr>
-              <th className="px-4 py-3 font-semibold">User</th>
-              <th className="px-4 py-3 font-semibold">Term</th>
-              <th className="px-4 py-3 font-semibold">Reason</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border bg-surface">
-            {exclusions.map((exclusion) => {
-              const user = userById.get(exclusion.userId);
-              const isActive = isActiveTopBoardExclusion(exclusion);
-
-              return (
-                <tr key={exclusion.$id}>
-                  <td className="px-4 py-4">
-                    <p className="font-medium text-text-primary">
-                      {getUserDisplayName(user, exclusion.userId)}
-                    </p>
-                    <p className="mt-1 text-xs text-text-muted">
-                      {user?.googleEmail ?? "Profile unavailable"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4 text-text-secondary">
-                    {selectedTerm?.label ?? exclusion.termId}
-                  </td>
-                  <td className="px-4 py-4 text-text-secondary">{exclusion.reason}</td>
-                  <td className="px-4 py-4">
-                    <Badge tone={isActive ? "warning" : "neutral"}>
-                      {isActive ? "Excluded" : "Revoked"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-4">
-                    {isActive ? (
-                      <Button
-                        disabled={pendingAction === `exclusion:revoke:${exclusion.$id}`}
-                        onClick={() => requestRevoke(exclusion)}
-                        type="button"
-                        variant="ghost"
-                      >
-                        <ShieldMinus className="size-4" aria-hidden="true" />
-                        Review Revoke
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-text-muted">No action</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {exclusions.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-center text-text-secondary" colSpan={5}>
-                  {selectedTermId
-                    ? "No Top Board exclusions found for this term."
-                    : "Create an IEEE term before adding Top Board exclusions."}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-        {activeExclusions.length === 0 && exclusions.length > 0 ? (
-          <p className="border-t border-border px-4 py-3 text-sm text-text-secondary">
-            No active exclusions remain for this term.
-          </p>
-        ) : null}
-      </div>
-    </div>
+  const [sbPowers, setSbPowers] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(permissions.sbRoles.map((r) => [r.role, r.powers ?? []])),
   );
-}
+  const [eventPowers, setEventPowers] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(permissions.eventRoles.map((r) => [r.role, r.powers ?? []])),
+  );
+  const [editingRole, setEditingRole] = useState<{ role: string; type: "event" | "sb" } | null>(
+    null,
+  );
+  const [confirmSave, setConfirmSave] = useState<{ role: string; type: "event" | "sb" } | null>(
+    null,
+  );
 
-function PermissionsPanel({ permissions }: { permissions: PermissionOverview }) {
+  function toggleSbPower(role: string, powerId: string) {
+    setSbPowers((prev) => {
+      const current = prev[role] ?? [];
+      const next = current.includes(powerId)
+        ? current.filter((id) => id !== powerId)
+        : [...current, powerId];
+      return { ...prev, [role]: next };
+    });
+  }
+
+  function toggleEventPower(role: string, powerId: string) {
+    setEventPowers((prev) => {
+      const current = prev[role] ?? [];
+      const next = current.includes(powerId)
+        ? current.filter((id) => id !== powerId)
+        : [...current, powerId];
+      return { ...prev, [role]: next };
+    });
+  }
+
+  function handleCancelEdit(role: string, type: "event" | "sb") {
+    if (type === "sb") {
+      const orig = permissions.sbRoles.find((r) => r.role === role)?.powers ?? [];
+      setSbPowers((prev) => ({ ...prev, [role]: orig }));
+    } else {
+      const orig = permissions.eventRoles.find((r) => r.role === role)?.powers ?? [];
+      setEventPowers((prev) => ({ ...prev, [role]: orig }));
+    }
+    setEditingRole(null);
+  }
+
+  async function executeConfirmedSave() {
+    if (!confirmSave) {
+      return;
+    }
+    await onSavePermissions({ eventRolePowers: eventPowers, sbRolePowers: sbPowers });
+    setConfirmSave(null);
+    setEditingRole(null);
+  }
+
   return (
-    <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
-      <section className="rounded-md border border-border bg-surface-subtle p-4">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-text-primary">Admin Source</h3>
-        </div>
-        <dl className="mt-4 space-y-3 text-sm">
+    <div className="space-y-6">
+      <div className="rounded-md border border-border bg-surface-subtle p-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
+            <Lock className="size-4" aria-hidden="true" />
+          </span>
           <div>
-            <dt className="font-medium text-text-secondary">Source</dt>
-            <dd className="mt-1 text-text-primary">{permissions.adminSource}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-text-secondary">Configured email</dt>
-            <dd className="mt-1 break-all text-text-primary">{permissions.adminEmail}</dd>
-          </div>
-        </dl>
-        <div className="mt-4 space-y-2">
-          {permissions.notes.map((note) => (
-            <p className="text-xs leading-5 text-text-secondary" key={note}>
-              {note}
+            <h3 className="text-sm font-semibold text-text-primary">
+              Predefined Role & System Capabilities
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">
+              Role permissions are predefined by default to ensure secure access control. To inspect what capabilities each role grants, view the active capability list below. If you explicitly need to add or reduce capabilities for a specific role, click <strong>Edit Permissions</strong> next to that role and confirm your changes.
             </p>
-          ))}
+          </div>
         </div>
-      </section>
+      </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <RoleTable
+          editingRole={editingRole?.type === "sb" ? editingRole.role : null}
+          onCancelEdit={(role) => handleCancelEdit(role, "sb")}
+          onRequestSave={(role) => setConfirmSave({ role, type: "sb" })}
+          onStartEdit={(role) => setEditingRole({ role, type: "sb" })}
+          onTogglePower={toggleSbPower}
+          powerOptions={SB_ROLE_POWERS}
+          powersMap={sbPowers}
           rows={permissions.sbRoles}
           title="Student Branch Roles"
         />
         <RoleTable
+          editingRole={editingRole?.type === "event" ? editingRole.role : null}
+          onCancelEdit={(role) => handleCancelEdit(role, "event")}
+          onRequestSave={(role) => setConfirmSave({ role, type: "event" })}
+          onStartEdit={(role) => setEditingRole({ role, type: "event" })}
+          onTogglePower={toggleEventPower}
+          powerOptions={EVENT_ROLE_POWERS}
+          powersMap={eventPowers}
           rows={permissions.eventRoles}
           title="Event Roles"
         />
+      </div>
+
+      {confirmSave ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+        >
+          <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
+            <div className="border-b border-border px-5 py-4">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
+                  <AlertTriangle className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="text-base font-semibold text-text-primary">
+                    Confirm Role Capabilities Update
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-text-secondary">
+                    Review this action before applying it across the system.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 px-5 py-4 text-sm">
+              <div className="flex items-start justify-between gap-4 border-b border-border pb-2">
+                <span className="font-medium text-text-secondary">Role</span>
+                <span className="text-right font-semibold text-text-primary">
+                  {confirmSave.role}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4 border-b border-border pb-2">
+                <span className="font-medium text-text-secondary">Category</span>
+                <span className="text-right font-medium text-text-primary">
+                  {confirmSave.type === "sb" ? "Student Branch Role" : "Event Role"}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="font-medium text-text-secondary">Assigned Powers</span>
+                <span className="text-right font-medium text-text-primary">
+                  {
+                    (confirmSave.type === "sb" ? sbPowers : eventPowers)[confirmSave.role]
+                      ?.length
+                  }{" "}
+                  /{" "}
+                  {confirmSave.type === "sb"
+                    ? SB_ROLE_POWERS.length
+                    : EVENT_ROLE_POWERS.length}{" "}
+                  capabilities
+                </span>
+              </div>
+              <p className="mt-2 rounded-md bg-surface-muted p-3 text-xs leading-5 text-text-secondary">
+                <strong>Important:</strong> Modifying predefined role permissions immediately impacts all volunteers holding this role. Please ensure these capability updates align with IEEE branch security policies.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+              <Button
+                className="cursor-pointer"
+                disabled={pendingAction === "permissions:save"}
+                onClick={() => setConfirmSave(null)}
+                type="button"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="cursor-pointer"
+                disabled={pendingAction === "permissions:save"}
+                onClick={executeConfirmedSave}
+                type="button"
+                variant="primary"
+              >
+                {pendingAction === "permissions:save" ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+                    Saving...
+                  </>
+                ) : (
+                  "Confirm & Save"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RoleTable({
+  editingRole,
+  onCancelEdit,
+  onRequestSave,
+  onStartEdit,
+  onTogglePower,
+  powerOptions,
+  powersMap,
+  rows,
+  title,
+}: {
+  editingRole: string | null;
+  onCancelEdit: (role: string) => void;
+  onRequestSave: (role: string) => void;
+  onStartEdit: (role: string) => void;
+  onTogglePower: (role: string, powerId: string) => void;
+  powerOptions: Array<{ description: string; id: string; label: string }>;
+  powersMap: Record<string, string[]>;
+  rows: Array<{ notes: string; role: string; scope: string }>;
+  title: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-surface">
+      <div className="border-b border-border bg-surface-muted px-4 py-3">
+        <h4 className="font-semibold text-text-primary">{title}</h4>
+      </div>
+      <div className="divide-y divide-border">
+        {rows.map((row) => {
+          const activePowers = powersMap[row.role] ?? [];
+          const isEditing = editingRole === row.role;
+
+          return (
+            <div className="p-4 transition-colors hover:bg-surface-subtle/50" key={row.role}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Badge tone="primary">{row.role}</Badge>
+                  <span className="text-xs font-medium text-text-muted">({row.scope})</span>
+                </div>
+                {!isEditing ? (
+                  <Button
+                    className="cursor-pointer text-xs h-8 px-2.5"
+                    onClick={() => onStartEdit(row.role)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <Edit className="mr-1.5 size-3.5" aria-hidden="true" />
+                    Edit Permissions
+                  </Button>
+                ) : null}
+              </div>
+
+              <p className="mt-1.5 text-xs text-text-secondary">{row.notes}</p>
+
+              {isEditing ? (
+                <div className="mt-4 rounded-md border border-primary/25 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between border-b border-primary/15 pb-2 text-xs font-medium text-primary">
+                    <span>Select or deselect capabilities for {row.role}</span>
+                    <span>
+                      {activePowers.length} / {powerOptions.length} active
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {powerOptions.map((power) => {
+                      const isChecked = activePowers.includes(power.id);
+                      return (
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs transition-colors",
+                            isChecked
+                              ? "border-primary/50 bg-surface text-text-primary shadow-2xs"
+                              : "border-border/60 bg-surface/60 text-text-secondary hover:bg-surface",
+                          )}
+                          key={power.id}
+                        >
+                          <input
+                            checked={isChecked}
+                            className="mt-0.5 cursor-pointer accent-primary"
+                            onChange={() => onTogglePower(row.role, power.id)}
+                            type="checkbox"
+                          />
+                          <div>
+                            <span className="block font-medium text-text-primary">
+                              {power.label}
+                            </span>
+                            <span className="block text-[11px] leading-4 text-text-muted">
+                              {power.description}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-primary/15 pt-3">
+                    <Button
+                      className="cursor-pointer text-xs h-8 px-2.5"
+                      onClick={() => onCancelEdit(row.role)}
+                      type="button"
+                      variant="ghost"
+                    >
+                      <X className="mr-1.5 size-3.5" aria-hidden="true" />
+                      Cancel
+                    </Button>
+                    <Button
+                      className="cursor-pointer text-xs h-8 px-2.5"
+                      onClick={() => onRequestSave(row.role)}
+                      type="button"
+                      variant="primary"
+                    >
+                      <Check className="mr-1.5 size-3.5" aria-hidden="true" />
+                      Review & Save Changes
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                    Assigned Capabilities ({activePowers.length})
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {powerOptions
+                      .filter((power) => activePowers.includes(power.id))
+                      .map((power) => (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-subtle px-2 py-1 text-xs font-medium text-text-secondary"
+                          key={power.id}
+                        >
+                          <Check className="size-3 text-primary" aria-hidden="true" />
+                          {power.label}
+                        </span>
+                      ))}
+                    {activePowers.length === 0 ? (
+                      <span className="text-xs italic text-text-muted">
+                        No predefined capabilities assigned. Click Edit Permissions to configure.
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1222,36 +1188,7 @@ function AuditPanel({
   );
 }
 
-function RoleTable({
-  rows,
-  title,
-}: {
-  rows: Array<{ notes: string; role: string; scope: string }>;
-  title: string;
-}) {
-  return (
-    <div className="overflow-x-auto rounded-md border border-border">
-      <table className="min-w-[420px] divide-y divide-border text-left text-sm">
-        <thead className="bg-surface-muted text-text-secondary">
-          <tr>
-            <th className="px-4 py-3 font-semibold" colSpan={2}>{title}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border bg-surface">
-          {rows.map((row) => (
-            <tr key={row.role}>
-              <td className="px-4 py-4">
-                <Badge tone="primary">{row.role}</Badge>
-                <p className="mt-2 text-xs text-text-muted">{row.scope}</p>
-              </td>
-              <td className="px-4 py-4 text-text-secondary">{row.notes}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+
 
 function ConfirmationDialog({
   confirmation,
@@ -1329,22 +1266,14 @@ function getConfirmationDetails(confirmation: Confirmation) {
     ];
   }
 
-  if (confirmation.kind === "close-term") {
-    return [
-      { label: "Action", value: "Close IEEE term" },
-      { label: "Term", value: confirmation.term.label },
-      { label: "Dates", value: `${confirmation.term.startDate} to ${confirmation.term.endDate}` },
-      {
-        label: "Important",
-        value: "Closed terms are permanent historical records and cannot be reopened.",
-      },
-    ];
-  }
-
   return [
-    { label: "Action", value: "Revoke Top Board exclusion" },
-    { label: "User", value: confirmation.userName },
-    { label: "Reason", value: confirmation.exclusion.reason },
+    { label: "Action", value: "Close IEEE term" },
+    { label: "Term", value: confirmation.term.label },
+    { label: "Dates", value: `${confirmation.term.startDate} to ${confirmation.term.endDate}` },
+    {
+      label: "Important",
+      value: "Closed terms are permanent historical records and cannot be reopened.",
+    },
   ];
 }
 
@@ -1398,10 +1327,6 @@ function Notice({ message, status }: { message: string; status: NoticeStatus }) 
       {message}
     </div>
   );
-}
-
-function getUserDisplayName(user: Profile | undefined, fallback = "Unknown user") {
-  return user?.name || user?.uomEmail || user?.googleEmail || fallback;
 }
 
 function formatSafeTermLabel(date: string) {

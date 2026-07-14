@@ -19,7 +19,6 @@ Structural committees (`event_committees`) and membership (`event_committee_memb
 | `DELETE .../members/[memberId]` | Remove member |
 | `PATCH /api/events/[eventId]/conclude` | Legacy guard route; returns `409` and points users to structured reports |
 | `PATCH /api/events/[eventId]/status` | Operational status only (no conclusion bypass) |
-| `GET/POST /api/events/[eventId]/participation` | Event-staff participation intake for assigned volunteers |
 
 ## Conclusion workflow
 

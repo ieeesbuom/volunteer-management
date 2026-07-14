@@ -22,8 +22,8 @@ import type { EventRole, EventRoleAssignment, RoleAssignment, SbRole } from "@/f
 type AppRow = Models.Row & Record<string, unknown>;
 
 function roleRowId(userId: string, role: SbRole, term: string) {
-  const cleanTerm = term.replaceAll("/", "_");
-  return `${userId}_${role.toLowerCase().replaceAll(" ", "_")}_${cleanTerm}`;
+  const seed = [userId, role.toLowerCase(), term].join(":");
+  return `sb_${createHash("sha1").update(seed).digest("hex").slice(0, 30)}`;
 }
 
 function eventRoleRowId({
@@ -278,30 +278,55 @@ export async function assignSbRole({
 }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const rowId = roleRowId(userId, role, term);
   const assignedAt = new Date().toISOString();
 
   await requireRoleAssignableProfile(userId);
 
+  const existing = await tables.listRows<AppRow>(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.sbRoleAssignments,
+    [
+      Query.equal("userId", userId),
+      Query.equal("role", role),
+      Query.equal("term", term),
+      Query.limit(1),
+    ],
+  );
+
+  const rowId =
+    existing.rows.length > 0 && existing.rows[0]?.$id
+      ? existing.rows[0].$id
+      : roleRowId(userId, role, term);
+
   let row: AppRow;
 
   try {
-    await tables.getRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.sbRoleAssignments,
-      rowId,
-    );
-
-    row = await tables.updateRow<AppRow>(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.sbRoleAssignments,
-      rowId,
-      {
-        active: true,
-        assignedAt,
-        assignedBy: actorUserId,
-      },
-    );
+    if (existing.rows.length > 0) {
+      row = await tables.updateRow<AppRow>(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.sbRoleAssignments,
+        rowId,
+        {
+          active: true,
+          assignedAt,
+          assignedBy: actorUserId,
+        },
+      );
+    } else {
+      row = await tables.createRow<AppRow>(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.sbRoleAssignments,
+        rowId,
+        {
+          active: true,
+          assignedAt,
+          assignedBy: actorUserId,
+          role,
+          term,
+          userId,
+        },
+      );
+    }
   } catch (error) {
     if (!isAppwriteNotFound(error)) {
       throw error;
@@ -479,7 +504,23 @@ export async function revokeSbRole({
 }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const rowId = roleRowId(userId, role, term);
+
+  const existing = await tables.listRows<AppRow>(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.sbRoleAssignments,
+    [
+      Query.equal("userId", userId),
+      Query.equal("role", role),
+      Query.equal("term", term),
+      Query.limit(1),
+    ],
+  );
+
+  const rowId =
+    existing.rows.length > 0 && existing.rows[0]?.$id
+      ? existing.rows[0].$id
+      : roleRowId(userId, role, term);
+
   const row = await tables.updateRow<AppRow>(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     APPWRITE_TABLES.sbRoleAssignments,

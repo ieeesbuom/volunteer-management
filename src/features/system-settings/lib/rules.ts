@@ -185,7 +185,53 @@ export function resolveActiveTermState(
   };
 }
 
-export function buildPermissionOverview(adminEmail: string): PermissionOverview {
+export const SB_ROLE_POWERS: { description: string; id: string; label: string }[] = [
+  { description: "Verify UoM emails, view volunteer directory, and manage profiles.", id: "volunteers.manage", label: "Manage Volunteers & Profiles" },
+  { description: "Create new events, edit details, and control event status.", id: "events.manage", label: "Manage Events & Lifecycle" },
+  { description: "Open or close IEEE terms and modify system settings.", id: "settings.manage", label: "Manage System & Terms" },
+  { description: "Review and approve volunteer recognition requests.", id: "recommendations.review", label: "Approve Recommendations" },
+  { description: "Verify volunteer point requests and audit score ledger.", id: "scoring.audit", label: "Audit Scoring & Points" },
+  { description: "View event conclusion reports and export volunteer summaries.", id: "reports.access", label: "Access & Export Reports" },
+];
+
+export const EVENT_ROLE_POWERS: { description: string; id: string; label: string }[] = [
+  { description: "Modify event title, dates, descriptions, and transition status.", id: "event.details", label: "Update Event Details & Status" },
+  { description: "Create structural committees and add or remove members.", id: "event.committees", label: "Manage Committees & Members" },
+  { description: "Assign vice chairs, committee leads, and team roles.", id: "event.roles", label: "Assign Sub-Roles & Leads" },
+  { description: "Connect registration forms and control attendance links.", id: "event.forms", label: "Manage Forms & Registrations" },
+  { description: "Generate and submit event conclusion reports for approval.", id: "event.reports", label: "Draft Conclusion Reports" },
+];
+
+export const DEFAULT_SB_ROLE_POWERS: Record<string, string[]> = {
+  Chairperson: ["volunteers.manage", "events.manage", "settings.manage", "recommendations.review", "scoring.audit", "reports.access"],
+  "Vice Chairperson": ["volunteers.manage", "events.manage", "recommendations.review", "scoring.audit", "reports.access"],
+  Secretary: ["volunteers.manage", "events.manage", "reports.access"],
+  "Assistant Secretary": ["volunteers.manage", "reports.access"],
+  Treasurer: ["events.manage", "scoring.audit", "reports.access"],
+  "Assistant Treasurer": ["scoring.audit", "reports.access"],
+  Editor: ["events.manage", "reports.access"],
+  Webmaster: ["events.manage", "reports.access"],
+  "SB Lead": ["events.manage"],
+  "SB Member": ["reports.access"],
+};
+
+export const DEFAULT_EVENT_ROLE_POWERS: Record<string, string[]> = {
+  Chair: ["event.details", "event.committees", "event.roles", "event.forms", "event.reports"],
+  "Vice Chair": ["event.details", "event.committees", "event.forms", "event.reports"],
+  "Committee Lead": ["event.forms"],
+  "Committee Member": [],
+};
+
+export function buildPermissionOverview(
+  adminEmail: string,
+  customPowers?: {
+    eventRolePowers?: Record<string, string[]>;
+    sbRolePowers?: Record<string, string[]>;
+  },
+): PermissionOverview {
+  const sbPowerMap = customPowers?.sbRolePowers ?? DEFAULT_SB_ROLE_POWERS;
+  const eventPowerMap = customPowers?.eventRolePowers ?? DEFAULT_EVENT_ROLE_POWERS;
+
   return {
     adminEmail,
     adminSource: "ADMIN_EMAIL",
@@ -194,6 +240,7 @@ export function buildPermissionOverview(adminEmail: string): PermissionOverview 
         role === "Chair"
           ? "Event-level lead privilege. Multiple Chair assignments display as Co-chair."
           : "Event-scoped responsibility controlled by Admin assignment.",
+      powers: eventPowerMap[role] ?? DEFAULT_EVENT_ROLE_POWERS[role] ?? [],
       role,
       scope: "event",
     })),
@@ -205,6 +252,7 @@ export function buildPermissionOverview(adminEmail: string): PermissionOverview 
     ],
     sbRoles: SB_ROLES.map((role) => ({
       notes: "Student Branch privilege assigned and revoked by the Admin account.",
+      powers: sbPowerMap[role] ?? DEFAULT_SB_ROLE_POWERS[role] ?? [],
       role,
       scope: "student-branch",
     })),

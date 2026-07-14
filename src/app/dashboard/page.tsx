@@ -22,6 +22,7 @@ import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { listEventsByIds } from "@/features/events/server/event-service";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
+import { isEligibleForGlobalDashboard } from "@/features/forms/lib/audience";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,7 @@ export default async function DashboardPage() {
 
   const formRepo = createAppwriteFormConnectionRepository();
   const allConnections = await formRepo.list({ limit: 100 });
-  const activeRegistrations = allConnections.filter(
-    (conn) => conn.status === "active" && conn.purpose === "registration" && conn.formUrl
-  );
+  const activeRegistrations = allConnections.filter(isEligibleForGlobalDashboard);
 
   const assignedEventIds = new Set(user.eventRoles.map((r) => r.eventId));
   const openOpportunities = activeRegistrations.filter(

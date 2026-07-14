@@ -12,7 +12,7 @@ import {
 } from "@/features/events/lib/event-ui";
 import { CreateEventInputSchema, type Event } from "@/features/events/types";
 import { IEEE_TERMS } from "@/lib/config";
-import { cn } from "@/lib/utils";
+import { cn, formatUserFacingError } from "@/lib/utils";
 
 type FormState = {
   title: string;
@@ -89,14 +89,14 @@ export function EditEventForm({ event }: Readonly<{ event: Event }>) {
       const responsePayload = await response.json();
 
       if (!response.ok) {
-        setError(responsePayload.error ?? "Could not update event.");
+        setError(formatUserFacingError(responsePayload.error, "Could not update event. Please try again."));
         return;
       }
 
       router.push(`/events/${event.$id}`);
       router.refresh();
     } catch {
-      setError("Could not update event.");
+      setError("We encountered an issue updating this event. Please check your network and try again.");
     } finally {
       setSubmitting(false);
     }

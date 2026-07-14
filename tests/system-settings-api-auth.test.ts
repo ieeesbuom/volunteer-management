@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
   revokeTopBoardExclusion: vi.fn(),
   updateIeeeTerm: vi.fn(),
+  updateRolePermissions: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -24,6 +25,7 @@ vi.mock("@/features/system-settings/server/settings", () => ({
   listAuditLogs: mocks.listAuditLogs,
   listIeeeTerms: mocks.listIeeeTerms,
   updateIeeeTerm: mocks.updateIeeeTerm,
+  updateRolePermissions: mocks.updateRolePermissions,
 }));
 vi.mock("@/features/system-settings/server/top-board-exclusions", () => ({
   addTopBoardExclusion: mocks.addTopBoardExclusion,

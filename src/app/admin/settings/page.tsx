@@ -58,11 +58,9 @@ export default async function AdminSettingsPage() {
             <SystemSettingsPanel
               initialActiveTermId={settingsData.activeTermId}
               initialAuditPage={settingsData.auditPage}
-              initialExclusions={[]}
               initialPermissions={settingsData.permissions}
               initialSelectedTermId={selectedTermId}
               initialTerms={settingsData.terms}
-              initialUsers={[]}
             />
           </CardContent>
         </Card>

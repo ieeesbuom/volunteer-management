@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import type { Committee, CommitteeMember } from "@/features/events/types";
-import { cn } from "@/lib/utils";
+import { cn, formatUserFacingError } from "@/lib/utils";
 
 type CommitteeWithMembers = Committee & {
   members: CommitteeMember[];
@@ -61,7 +61,7 @@ export function CommitteeManagement({
     const payload = await response.json();
 
     if (!response.ok) {
-      setError(payload.error ?? "Could not load committees.");
+      setError(formatUserFacingError(payload.error, "Could not load committees. Please refresh and try again."));
       return;
     }
 
@@ -149,7 +149,7 @@ export function CommitteeManagement({
       setEditingCommitteeId(null);
       await refreshCommittees();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to update committee members.");
+      setError(formatUserFacingError(caught, "Failed to update committee members. Please try again."));
     } finally {
       setPendingAction(null);
     }
@@ -173,7 +173,7 @@ export function CommitteeManagement({
       const payload = await response.json();
 
       if (!response.ok) {
-        setError(payload.error ?? "Could not create committee.");
+        setError(formatUserFacingError(payload.error, "Could not create committee. Please try again."));
         return;
       }
 
@@ -198,7 +198,7 @@ export function CommitteeManagement({
 
       if (!response.ok) {
         const payload = await response.json();
-        setError(payload.error ?? "Could not delete committee.");
+        setError(formatUserFacingError(payload.error, "Could not delete committee. Please try again."));
         return;
       }
 
@@ -222,7 +222,7 @@ export function CommitteeManagement({
 
       if (!response.ok) {
         const payload = await response.json();
-        setError(payload.error ?? "Could not remove committee member.");
+        setError(formatUserFacingError(payload.error, "Could not remove committee member. Please try again."));
         return;
       }
 

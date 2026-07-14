@@ -38,13 +38,7 @@ import type {
   GradeAuditEntry,
 } from "../types";
 
-type ParticipationRecord = {
-  $id: string;
-  eventId: string;
-  role: string;
-  status: string;
-  userId: string;
-};
+
 
 type ConclusionReportRow = {
   $id: string;
@@ -82,10 +76,9 @@ function resolveScoringRole(role?: string | null): ScoringRole | null {
 }
 
 function resolveTargetScoringRole(
-  participation: ParticipationRecord,
   assignment: { role?: string } | null,
 ) {
-  return resolveScoringRole(participation.role) ?? resolveScoringRole(assignment?.role);
+  return resolveScoringRole(assignment?.role);
 }
 
 async function requireActiveEventRoleAssignment(
@@ -132,29 +125,6 @@ async function getActiveEventRoleAssignment(
   return result.total > 0 ? (result.rows[0] as unknown as { role?: string }) : null;
 }
 
-async function requireAttendedParticipationRecord(
-  tables: TablesDB,
-  databaseId: string,
-  userId: string,
-  eventId: string
-) {
-  const result = await tables.listRows(
-    databaseId,
-    APPWRITE_TABLES.participationRecords,
-    [
-      Query.equal("userId", userId),
-      Query.equal("eventId", eventId),
-      Query.equal("status", "attended"),
-      Query.limit(1),
-    ]
-  );
-
-  if (result.total === 0) {
-    throw new Error("Target volunteer must have an attended participation record for this event before grading.");
-  }
-
-  return result.rows[0] as unknown as ParticipationRecord;
-}
 
 async function getApprovedConclusionApprovalDate(
   tables: TablesDB,
@@ -256,6 +226,27 @@ function isExcludedBySystemTopBoardSettings(
   );
 }
 
+async function assertEventEligibleForExtraScoring(
+  tables: TablesDB,
+  databaseId: string,
+  eventId: string
+) {
+  let event: { status?: string } | null = null;
+  try {
+    event = (await tables.getRow(
+      databaseId,
+      APPWRITE_TABLES.events,
+      eventId
+    )) as unknown as { status?: string };
+  } catch {
+    // If event cannot be fetched or does not exist, let validation handle or check status below
+  }
+
+  if (!event || (event.status !== "PENDING_CONCLUSION" && event.status !== "CLOSED")) {
+    throw new Error("Extra points to an event can only be given when the event is in PENDING_CONCLUSION or CLOSED status.");
+  }
+}
+
 function assertCanSubmitExtraScore({
   eventId,
   targetRole,
@@ -269,49 +260,27 @@ function assertCanSubmitExtraScore({
     return;
   }
 
-  if (targetRole === "Committee Member" && hasEventRole(user, eventId, ["Committee Lead"])) {
+  if (targetRole === "Chair") {
+    throw new Error("Only admins can submit extra scores for chairs.");
+  }
+
+  if (hasEventRole(user, eventId, ["Chair"])) {
     return;
   }
 
-  if (targetRole === "Committee Lead" && hasEventRole(user, eventId, ["Chair"])) {
-    return;
-  }
-
-  if (targetRole === "Chair" || targetRole === "Vice Chair") {
-    throw new Error("Only admins can submit extra scores for chairs and vice chairs.");
-  }
-
-  throw new Error(
-    "Only committee leads can score committee members, chairs can score committee leads, and admins can score any role."
-  );
+  throw new Error("Only the event chair or an admin can submit extra scores.");
 }
 
 function assertCanFinalizeExtraScore({
-  eventId,
-  targetRole,
   user,
 }: {
-  eventId: string;
-  targetRole: ScoringRole | null;
+  eventId?: string;
+  targetRole?: ScoringRole | null;
   user: Awaited<ReturnType<typeof requireAuth>>;
 }) {
-  if (user.isAdmin) {
-    return;
+  if (!user.isAdmin) {
+    throw new Error("Only admins can approve extra scores.");
   }
-
-  const chairCanFinalize =
-    (targetRole === "Committee Member" || targetRole === "Committee Lead") &&
-    hasEventRole(user, eventId, ["Chair"]);
-
-  if (chairCanFinalize) {
-    return;
-  }
-
-  if (targetRole === "Chair" || targetRole === "Vice Chair") {
-    throw new Error("Only admins can approve extra scores for chairs and vice chairs.");
-  }
-
-  throw new Error("Only the event chair or an admin can approve extra scores.");
 }
 
 /**
@@ -335,19 +304,19 @@ export async function createGradeRequest(data: {
     throw new Error("You cannot grade yourself.");
   }
 
+  await assertEventEligibleForExtraScoring(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    validated.eventId
+  );
+
   const targetAssignment = await requireActiveEventRoleAssignment(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     validated.targetUserId,
     validated.eventId
   );
-  const participation = await requireAttendedParticipationRecord(
-    tables,
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    validated.targetUserId,
-    validated.eventId
-  );
-  const targetRole = resolveTargetScoringRole(participation, targetAssignment);
+  const targetRole = resolveTargetScoringRole(targetAssignment);
 
   assertCanSubmitExtraScore({ eventId: validated.eventId, targetRole, user });
 
@@ -360,46 +329,51 @@ export async function createGradeRequest(data: {
   const requestId = `gr_${createHash("sha1").update(`${validated.eventId}:${validated.targetUserId}`).digest("hex").slice(0, 30)}`;
   const now = new Date().toISOString();
 
-  // Check if finalized
+  // Check if request already exists (one extra score per event per volunteer)
+  let existingRequest: GradeRequest | null = null;
   try {
-    const existing = (await tables.getRow(
+    existingRequest = (await tables.getRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeRequests,
       requestId
     )) as unknown as GradeRequest;
-
-    if (existing.status === "finalized") {
-      throw new Error("Cannot modify a finalized grade request.");
-    }
-  } catch (err) {
-    if (err instanceof Error && err.message === "Cannot modify a finalized grade request.") {
-      throw err;
-    }
-    // Otherwise, create request row
-    await tables.createRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.gradeRequests,
-      requestId,
-      {
-        requestId,
-        eventId: validated.eventId,
-        requestedBy: graderId,
-        targetUserId: validated.targetUserId,
-        status: "pending",
-        createdAt: now,
-        updatedAt: now,
-      }
-    );
+  } catch {
+    existingRequest = null;
   }
+
+  if (existingRequest) {
+    throw new Error("An extra score evaluation has already been given to this volunteer for this event.");
+  }
+
+  await tables.createRow(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.gradeRequests,
+    requestId,
+    {
+      requestId,
+      eventId: validated.eventId,
+      requestedBy: graderId,
+      targetUserId: validated.targetUserId,
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    }
+  );
 
   const reviewId = `rev_${createHash("sha1").update(`${requestId}:${graderId}`).digest("hex").slice(0, 28)}`;
 
+  let existingReview: GradeReview | null = null;
   try {
-    await tables.getRow(
+    existingReview = (await tables.getRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
       reviewId
-    );
+    )) as unknown as GradeReview;
+  } catch {
+    existingReview = null;
+  }
+
+  if (existingReview) {
     await tables.updateRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
@@ -409,7 +383,7 @@ export async function createGradeRequest(data: {
         submittedAt: now,
       }
     );
-  } catch {
+  } else {
     await tables.createRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
@@ -495,6 +469,12 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
     gradeRequestId
   )) as unknown as GradeRequest;
 
+  await assertEventEligibleForExtraScoring(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.eventId
+  );
+
   if (graderId === gradeRequest.targetUserId) {
     throw new Error("You cannot review your own grade request.");
   }
@@ -509,13 +489,7 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
     gradeRequest.targetUserId,
     gradeRequest.eventId
   );
-  const participation = await requireAttendedParticipationRecord(
-    tables,
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    gradeRequest.targetUserId,
-    gradeRequest.eventId
-  );
-  const targetRole = resolveTargetScoringRole(participation, targetAssignment);
+  const targetRole = resolveTargetScoringRole(targetAssignment);
 
   assertCanSubmitExtraScore({ eventId: gradeRequest.eventId, targetRole, user });
 
@@ -526,12 +500,18 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
   const reviewId = `rev_${createHash("sha1").update(`${gradeRequestId}:${graderId}`).digest("hex").slice(0, 28)}`;
   const now = new Date().toISOString();
 
+  let existingReview: GradeReview | null = null;
   try {
-    await tables.getRow(
+    existingReview = (await tables.getRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
       reviewId
-    );
+    )) as unknown as GradeReview;
+  } catch {
+    existingReview = null;
+  }
+
+  if (existingReview) {
     await tables.updateRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
@@ -541,7 +521,7 @@ export async function submitGradeReview(gradeRequestId: string, gradeValue: numb
         submittedAt: now,
       }
     );
-  } catch {
+  } else {
     await tables.createRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.gradeReviews,
@@ -633,6 +613,12 @@ export async function finalizeGrade(gradeRequestId: string) {
     gradeRequestId
   )) as unknown as GradeRequest;
 
+  await assertEventEligibleForExtraScoring(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    gradeRequest.eventId
+  );
+
   if (graderId === gradeRequest.targetUserId) {
     throw new Error("You cannot finalize your own grade request.");
   }
@@ -647,13 +633,7 @@ export async function finalizeGrade(gradeRequestId: string) {
     gradeRequest.targetUserId,
     gradeRequest.eventId
   );
-  const participation = await requireAttendedParticipationRecord(
-    tables,
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    gradeRequest.targetUserId,
-    gradeRequest.eventId
-  );
-  const targetRole = resolveTargetScoringRole(participation, targetAssignment);
+  const targetRole = resolveTargetScoringRole(targetAssignment);
 
   assertCanFinalizeExtraScore({ eventId: gradeRequest.eventId, targetRole, user });
 
@@ -706,31 +686,25 @@ async function syncRoleLedgerEntry({
   createdBy,
   databaseId,
   eventId,
-  participation,
+  assignment,
   tables,
   conclusionApprovalDate,
 }: {
   createdBy: string;
   databaseId: string;
   eventId: string;
-  participation: ParticipationRecord;
+  assignment: { userId: string; role?: string };
   tables: TablesDB;
   conclusionApprovalDate: string;
 }) {
-  const assignment = await getActiveEventRoleAssignment(
-    tables,
-    databaseId,
-    participation.userId,
-    eventId
-  );
-  const role = resolveTargetScoringRole(participation, assignment);
+  const role = resolveTargetScoringRole(assignment);
 
   if (!role) {
     return { changed: false, skipped: true };
   }
 
   const existingEntries = await tables.listRows(databaseId, APPWRITE_TABLES.pointLedger, [
-    Query.equal("userId", participation.userId),
+    Query.equal("userId", assignment.userId),
     Query.equal("eventId", eventId),
     Query.equal("source", "role"),
     Query.limit(100),
@@ -745,7 +719,7 @@ async function syncRoleLedgerEntry({
   }
 
   await tables.createRow(databaseId, APPWRITE_TABLES.pointLedger, ID.unique(), {
-    userId: participation.userId,
+    userId: assignment.userId,
     eventId,
     points: roleDiff,
     conclusionApprovalDate,
@@ -770,27 +744,27 @@ export async function finalizeEventRolePoints(eventId: string) {
     validatedEventId
   );
 
-  const participationResult = await tables.listRows(
+  const assignmentsResult = await tables.listRows(
     databaseId,
-    APPWRITE_TABLES.participationRecords,
+    APPWRITE_TABLES.eventRoleAssignments,
     [
       Query.equal("eventId", validatedEventId),
-      Query.equal("status", "attended"),
+      Query.equal("active", true),
       Query.limit(500),
     ]
   );
-  const participationRecords = participationResult.rows as unknown as ParticipationRecord[];
+  const assignments = assignmentsResult.rows as unknown as Array<{ userId: string; role?: string }>;
   let finalized = 0;
   let unchanged = 0;
   let skipped = 0;
 
-  for (const participation of participationRecords) {
+  for (const assignment of assignments) {
     const result = await syncRoleLedgerEntry({
       conclusionApprovalDate,
       createdBy: user.authUser.id,
       databaseId,
       eventId: validatedEventId,
-      participation,
+      assignment,
       tables,
     });
 
@@ -850,13 +824,13 @@ export async function adminOverrideGrade(
     review.gradeRequestId
   )) as unknown as GradeRequest;
 
-  await requireActiveEventRoleAssignment(
+  await assertEventEligibleForExtraScoring(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    gradeRequest.targetUserId,
     gradeRequest.eventId
   );
-  await requireAttendedParticipationRecord(
+
+  await requireActiveEventRoleAssignment(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     gradeRequest.targetUserId,
@@ -1189,16 +1163,29 @@ export async function listVolunteers(eventId?: string) {
     if (assignedUserIds.length === 0) {
       return [];
     }
-    const profiles = await tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.profiles,
-      [Query.equal("$id", assignedUserIds), Query.limit(500)]
-    );
-    return profiles.rows.map((p) => ({
-      id: p.$id,
-      email: p.uomEmail || p.googleEmail || "",
-      name: profileDisplayName(p as unknown as Profile),
-    }));
+    const uniqueUserIds = Array.from(new Set(assignedUserIds));
+    if (uniqueUserIds.length <= 100) {
+      const profiles = await tables.listRows(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.profiles,
+        [Query.equal("$id", uniqueUserIds), Query.limit(500)]
+      );
+      return profiles.rows.map((p) => ({
+        id: p.$id,
+        email: p.uomEmail || p.googleEmail || "",
+        name: profileDisplayName(p as unknown as Profile),
+      }));
+    } else {
+      const allProfiles = await listProfiles();
+      const userSet = new Set(uniqueUserIds);
+      return allProfiles
+        .filter((p) => userSet.has(p.$id))
+        .map((p) => ({
+          id: p.$id,
+          email: p.uomEmail || p.googleEmail || "",
+          name: profileDisplayName(p),
+        }));
+    }
   }
 
   const profiles = await listProfiles();

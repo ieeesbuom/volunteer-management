@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isUomEmail, UOM_EMAIL_DOMAIN } from "@/lib/config";
+import { formatUserFacingError } from "@/lib/utils";
 
 type RequestResult = {
   deliveredTo: string;
@@ -44,7 +45,7 @@ export function VerificationPanel() {
 
       if (!response.ok) {
         setStatus("error");
-        setMessage(payload.error ?? "Could not send the verification email.");
+        setMessage(formatUserFacingError(payload.error, "Could not send the verification email."));
         return;
       }
 
@@ -78,7 +79,7 @@ export function VerificationPanel() {
 
       if (!response.ok) {
         setStatus("error");
-        setMessage(payload.error ?? "Could not confirm code.");
+        setMessage(formatUserFacingError(payload.error, "Could not confirm code. Please check and try again."));
         return;
       }
 

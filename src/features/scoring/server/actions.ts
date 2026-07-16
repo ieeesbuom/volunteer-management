@@ -131,42 +131,59 @@ async function getApprovedConclusionApprovalDate(
   databaseId: string,
   eventId: string
 ) {
-  const reportsResult = await tables.listRows(
-    databaseId,
-    APPWRITE_TABLES.conclusionReports,
-    [
-      Query.equal("eventId", eventId),
-      Query.equal("status", "APPROVED"),
-      Query.limit(1),
-    ]
-  );
+  try {
+    const reportsResult = await tables.listRows(
+      databaseId,
+      APPWRITE_TABLES.conclusionReports,
+      [
+        Query.equal("eventId", eventId),
+        Query.equal("status", "APPROVED"),
+        Query.limit(1),
+      ]
+    );
 
-  if (reportsResult.total === 0) {
-    throw new Error("Cannot finalize points until the event has an approved conclusion report.");
+    if (reportsResult.total > 0) {
+      const report = reportsResult.rows[0] as unknown as ConclusionReportRow;
+      const approvalsResult = await tables.listRows(
+        databaseId,
+        APPWRITE_TABLES.reportApprovals,
+        [
+          Query.equal("reportId", report.$id),
+          Query.equal("status", "APPROVED"),
+          Query.orderDesc("reviewedAt"),
+          Query.limit(1),
+        ]
+      );
+
+      if (approvalsResult.total > 0) {
+        const approval = approvalsResult.rows[0] as unknown as ReportApprovalRow;
+        if (approval.reviewedAt) {
+          return approval.reviewedAt;
+        }
+      }
+    }
+  } catch {
+    // Fallthrough to event status check below
   }
 
-  const report = reportsResult.rows[0] as unknown as ConclusionReportRow;
-  const approvalsResult = await tables.listRows(
-    databaseId,
-    APPWRITE_TABLES.reportApprovals,
-    [
-      Query.equal("reportId", report.$id),
-      Query.equal("status", "APPROVED"),
-      Query.orderDesc("reviewedAt"),
-      Query.limit(1),
-    ]
-  );
-
-  if (approvalsResult.total === 0) {
-    throw new Error("Cannot finalize points until the event has an approved conclusion report.");
+  // If no approved conclusion report exists, check if event is in PENDING_CONCLUSION or CLOSED state
+  let event: { status?: string; updatedAt?: string } | null = null;
+  try {
+    event = (await tables.getRow(
+      databaseId,
+      APPWRITE_TABLES.events,
+      eventId
+    )) as unknown as { status?: string; updatedAt?: string };
+  } catch {
+    event = null;
   }
 
-  const approval = approvalsResult.rows[0] as unknown as ReportApprovalRow;
-  if (!approval.reviewedAt) {
-    throw new Error("Approved conclusion report is missing its approval date.");
+  const status = event?.status?.toLowerCase();
+  if (status === "pending_conclusion" || status === "closed") {
+    return event?.updatedAt || new Date().toISOString();
   }
 
-  return approval.reviewedAt;
+  throw new Error("Points can only be finalized when the event is in PENDING_CONCLUSION or CLOSED status.");
 }
 
 function termVariants(term: string) {
@@ -242,7 +259,8 @@ async function assertEventEligibleForExtraScoring(
     // If event cannot be fetched or does not exist, let validation handle or check status below
   }
 
-  if (!event || (event.status !== "PENDING_CONCLUSION" && event.status !== "CLOSED")) {
+  const status = event?.status?.toLowerCase();
+  if (!event || (status !== "pending_conclusion" && status !== "closed")) {
     throw new Error("Extra points to an event can only be given when the event is in PENDING_CONCLUSION or CLOSED status.");
   }
 }
@@ -430,15 +448,34 @@ export async function listGradeRequests(params?: { limit?: number; offset?: numb
   );
 
   const rows = JSON.parse(JSON.stringify(result.rows)) as GradeRequest[];
-  const [profiles, events] = await Promise.all([listProfiles(), listEvents()]);
+  const [profiles, events, reviewsResult] = await Promise.all([
+    listProfiles(),
+    listEvents(),
+    tables.listRows(
+      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+      APPWRITE_TABLES.gradeReviews,
+      [Query.limit(1000)]
+    ),
+  ]);
+  const reviewsByRequestId = new Map<string, number[]>();
+  for (const row of reviewsResult.rows as unknown as GradeReview[]) {
+    const list = reviewsByRequestId.get(row.gradeRequestId) ?? [];
+    list.push(Number(row.gradeValue));
+    reviewsByRequestId.set(row.gradeRequestId, list);
+  }
   const profileMap = new Map(profiles.map((profile) => [profile.authUserId, profile]));
   const eventMap = new Map(events.map((event) => [event.$id, event]));
-  const enrichedRows = rows.map((row) => ({
-    ...row,
-    eventTitle: eventMap.get(row.eventId)?.title,
-    requestedByName: profileDisplayName(profileMap.get(row.requestedBy)),
-    targetUserName: profileDisplayName(profileMap.get(row.targetUserId)),
-  }));
+  const enrichedRows = rows.map((row) => {
+    const grades = reviewsByRequestId.get(row.$id || row.requestId) || [];
+    const avg = grades.length > 0 ? calculateAverageGrade(grades) : undefined;
+    return {
+      ...row,
+      gradeValue: row.gradeValue !== undefined && row.gradeValue !== null ? row.gradeValue : avg,
+      eventTitle: eventMap.get(row.eventId)?.title,
+      requestedByName: profileDisplayName(profileMap.get(row.requestedBy)),
+      targetUserName: profileDisplayName(profileMap.get(row.targetUserId)),
+    };
+  });
 
   if (user.isAdmin) {
     return enrichedRows;
@@ -1106,6 +1143,9 @@ export async function getLeaderboard(params: {
   } else if (validated.year !== undefined) {
     targetTerm = `${validated.year}/${validated.year + 1}`;
     targetYear = validated.year;
+  } else {
+    targetTerm = deriveTermFromDate(new Date().toISOString());
+    targetYear = Number(targetTerm.split("/")[0]);
   }
 
   // Filter ledger

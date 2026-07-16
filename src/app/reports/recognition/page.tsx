@@ -74,7 +74,7 @@ export default async function RecognitionPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="size-4 text-primary" aria-hidden="true" />
-              Yearly Hall of Fame
+              Term Hall of Fame
             </CardTitle>
             <CardDescription>Current IEEE term ranking with Top Board exclusions</CardDescription>
           </CardHeader>

@@ -67,6 +67,7 @@ export type EventVolunteerIdentity = {
 
 export function EventDetail({
   canManageFormConnections,
+  canViewMoreInfo,
   currentUserId,
   initialAssignments,
   initialCommittees,
@@ -76,8 +77,9 @@ export function EventDetail({
   initialVolunteers,
   isAdmin,
   userEventRole,
-}: Readonly<{
+} : Readonly<{
   canManageFormConnections: boolean;
+  canViewMoreInfo: boolean;
   currentUserId: string;
   initialAssignments: EventRoleAssignment[];
   initialCommittees: Array<Committee & { members: CommitteeMember[] }>;
@@ -360,25 +362,27 @@ export function EventDetail({
         </Card>
       ) : null}
 
-      <CommitteeManagement
-        canManage={permissions.canManageCommittee}
-        eventId={event.$id}
-        initialCommittees={initialCommittees}
-        volunteerOptions={initialVolunteers}
-        onCommitteesChange={setCommittees}
-      />
+      {canViewMoreInfo ? (
+        <>
+          <CommitteeManagement
+            canManage={permissions.canManageCommittee}
+            eventId={event.$id}
+            initialCommittees={initialCommittees}
+            volunteerOptions={initialVolunteers}
+            onCommitteesChange={setCommittees}
+          />
 
-      <EventFormConnections
-        assignments={assignments}
-        canManage={canManageFormConnections}
-        committees={committees}
-        currentUserId={currentUserId}
-        eventId={event.$id}
-        initialConnections={initialFormConnections}
-      />
+          <EventFormConnections
+            assignments={assignments}
+            canManage={canManageFormConnections}
+            committees={committees}
+            currentUserId={currentUserId}
+            eventId={event.$id}
+            initialConnections={initialFormConnections}
+          />
 
-      <Card>
-        <CardHeader>
+          <Card>
+            <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -477,6 +481,8 @@ export function EventDetail({
           )}
         </CardContent>
       </Card>
+      </>
+      ) : null}
 
       {isPrivileged ? (
         <Card>

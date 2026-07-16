@@ -896,7 +896,7 @@ describe("Scoring Extra Requirements Tests", () => {
     } as unknown as ReturnType<typeof getAppwriteAdminServices>);
   });
 
-  it("blocks finalization until the event has an approved conclusion report", async () => {
+  it("allows finalization without an approved conclusion report when event is in PENDING_CONCLUSION state", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
@@ -947,14 +947,18 @@ describe("Scoring Extra Requirements Tests", () => {
       return Promise.resolve({ total: 0, rows: [] });
     });
 
-    await expect(finalizeGrade("request-1")).rejects.toThrow(
-      "Cannot finalize points until the event has an approved conclusion report."
-    );
-    expect(mockTables.createRow).not.toHaveBeenCalledWith(
+    const res = await finalizeGrade("request-1");
+    expect(res.status).toBe("finalized");
+    expect(mockTables.createRow).toHaveBeenCalledWith(
       "database-1",
       "point_ledger",
       expect.any(String),
-      expect.any(Object)
+      expect.objectContaining({
+        userId: "volunteer-1",
+        eventId: "event-1",
+        source: "grade",
+        points: 8,
+      })
     );
   });
 

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { canVolunteer } from "@/features/access-control/lib/rules";
+import { canVolunteer, hasSbRole } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { EXCOM_ROLES } from "@/lib/config";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { EventDetail } from "@/features/events/components/EventDetail";
 import {
@@ -84,10 +85,17 @@ export default async function EventDetailPage({ params }: PageProps) {
     userEventRole === "Vice Chair" ||
     userEventRole === "Committee Lead";
 
+  const canViewMoreInfo =
+    user.isAdmin ||
+    hasSbRole(user, [...EXCOM_ROLES, "SB Lead"]) ||
+    userEventRole === "Chair" ||
+    userEventRole === "Vice Chair";
+
   return (
     <AppShell active="events" user={user}>
       <EventDetail
         canManageFormConnections={canManageFormConnections}
+        canViewMoreInfo={canViewMoreInfo}
         currentUserId={user.authUser.id}
         initialAssignments={assignments}
         initialCommittees={committees}

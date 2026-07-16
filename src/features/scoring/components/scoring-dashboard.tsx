@@ -904,7 +904,7 @@ export function ScoringDashboard({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="size-4 text-primary" aria-hidden="true" />
-                  Yearly Hall of Fame
+                  Term Hall of Fame
                 </CardTitle>
                 <CardDescription>Current IEEE term ranking with Top Board exclusions</CardDescription>
               </CardHeader>
@@ -1222,6 +1222,14 @@ export function ScoringDashboard({
                                 <p className="text-sm text-text-primary">
                                   Volunteer: <span className="font-semibold">{targetVolName}</span>
                                 </p>
+                                <p className="text-sm text-text-primary mt-0.5">
+                                  Extra Score Given:{" "}
+                                  <span className="font-semibold text-primary">
+                                    {req.gradeValue !== undefined && req.gradeValue !== null
+                                      ? `${req.gradeValue} / 10`
+                                      : "Not graded yet"}
+                                  </span>
+                                </p>
                               </div>
 
                               {/* Approval actions for Admins only */}
@@ -1288,7 +1296,7 @@ export function ScoringDashboard({
                                         name="gradeValue"
                                         min={0}
                                         max={10}
-                                        defaultValue={req.gradeValue}
+                                        defaultValue={req.gradeValue !== undefined && req.gradeValue !== null ? req.gradeValue : ""}
                                         required
                                         className="w-full px-2 py-1 border border-border rounded text-sm bg-surface"
                                       />

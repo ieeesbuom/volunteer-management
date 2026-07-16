@@ -59,6 +59,22 @@ export async function requestUomVerification({
   }
 
   const normalizedUomEmail = normalizeUomEmail(uomEmail);
+  const { tables } = getAppwriteAdminServices();
+
+  const existingProfiles = await tables.listRows(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.profiles,
+    [
+      Query.equal("uomEmail", normalizedUomEmail),
+      Query.equal("uomVerified", true),
+      Query.limit(1),
+    ]
+  );
+
+  if (existingProfiles.total > 0) {
+    throw new Error("This UoM email is already verified by another account.");
+  }
+
   const code = createVerificationCode();
   const codeHash = createCodeHash({
     code,
@@ -66,7 +82,7 @@ export async function requestUomVerification({
     uomEmail: normalizedUomEmail,
     userId,
   });
-  const { tables } = getAppwriteAdminServices();
+
   const expiresAt = createVerificationExpiry();
   const row = await tables.createRow(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
@@ -146,6 +162,20 @@ export async function confirmUomVerification({
 
   if (existingProfile?.uomVerified) {
     throw new Error("UoM email is already verified.");
+  }
+
+  const existingProfiles = await tables.listRows(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.profiles,
+    [
+      Query.equal("uomEmail", row.uomEmail),
+      Query.equal("uomVerified", true),
+      Query.limit(1),
+    ]
+  );
+
+  if (existingProfiles.total > 0 && existingProfiles.rows[0].$id !== userId) {
+    throw new Error("This UoM email is already verified by another account.");
   }
 
   if (row.status !== "PENDING") {

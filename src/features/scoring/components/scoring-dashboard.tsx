@@ -232,17 +232,7 @@ export function ScoringDashboard({
   }, [allEvents.length, user.isAdmin]);
   const [gradeRequests, setGradeRequests] = useState<GradeRequest[]>([]);
 
-  const committeeLeadEventIds = useMemo(
-    () =>
-      user.eventRoles
-        .filter(
-          (assignment) =>
-            assignment.active &&
-            assignment.role === "Committee Lead",
-        )
-        .map((assignment) => assignment.eventId),
-    [user.eventRoles],
-  );
+
   const chairEventIds = useMemo(
     () =>
       user.eventRoles

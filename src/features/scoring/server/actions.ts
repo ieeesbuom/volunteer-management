@@ -105,25 +105,7 @@ async function requireActiveEventRoleAssignment(
   return result.rows[0] as unknown as { role?: string };
 }
 
-async function getActiveEventRoleAssignment(
-  tables: TablesDB,
-  databaseId: string,
-  userId: string,
-  eventId: string
-) {
-  const result = await tables.listRows(
-    databaseId,
-    APPWRITE_TABLES.eventRoleAssignments,
-    [
-      Query.equal("userId", userId),
-      Query.equal("eventId", eventId),
-      Query.equal("active", true),
-      Query.limit(1),
-    ]
-  );
 
-  return result.total > 0 ? (result.rows[0] as unknown as { role?: string }) : null;
-}
 
 
 async function getApprovedConclusionApprovalDate(

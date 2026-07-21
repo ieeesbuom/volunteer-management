@@ -135,7 +135,7 @@ export function ProfileDetailsForm({
 
   if (!isEditing) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 bg-surface p-6 rounded-[12px] border border-border-subtle shadow-sm">
         <div className="grid gap-6 md:grid-cols-2">
           <ReadOnlyField label="University Index" value={universityIndex} />
           <ReadOnlyField label="Batch / Year" value={batchYear} />
@@ -161,7 +161,7 @@ export function ProfileDetailsForm({
         {skills && <ReadOnlyField label="Skills" value={skills} />}
         {bio && <ReadOnlyField label="Bio" value={bio} />}
 
-        <div className="flex pt-2">
+        <div className="flex pt-4">
           <button
             onClick={() => {
               setIsEditing(true);
@@ -178,11 +178,11 @@ export function ProfileDetailsForm({
   }
 
   return (
-    <form className="space-y-4" onSubmit={saveDetails}>
-      <div className="grid gap-4 md:grid-cols-2">
+    <form className="space-y-5" onSubmit={saveDetails}>
+      <div className="grid gap-5 md:grid-cols-2">
         <Field label="University Index" error={fieldErrors.universityIndex}>
           <input
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
             maxLength={40}
             onChange={(event) => setUniversityIndex(event.target.value)}
             required
@@ -191,7 +191,7 @@ export function ProfileDetailsForm({
         </Field>
         <Field label="Batch / Year" error={fieldErrors.batchYear}>
           <select
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
+            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
             onChange={(event) => setBatchYear(event.target.value)}
             required
             value={batchYear}
@@ -206,7 +206,7 @@ export function ProfileDetailsForm({
         </Field>
         <Field label="Faculty" error={fieldErrors.faculty}>
           <select
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
+            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
             onChange={(event) => handleFacultyChange(event.target.value)}
             required
             value={faculty}
@@ -221,7 +221,7 @@ export function ProfileDetailsForm({
         </Field>
         <Field label="Department" error={fieldErrors.department}>
           <select
-            className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary cursor-pointer"
+            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
             onChange={(event) => setDepartment(event.target.value)}
             required
             value={department}
@@ -240,7 +240,7 @@ export function ProfileDetailsForm({
       </div>
       <Field label="Headline" error={fieldErrors.headline}>
         <input
-          className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+          className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
           maxLength={160}
           onChange={(event) => setHeadline(event.target.value)}
           value={headline}
@@ -248,7 +248,7 @@ export function ProfileDetailsForm({
       </Field>
       <Field label="LinkedIn URL" error={fieldErrors.linkedinUrl}>
         <input
-          className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+          className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
           maxLength={240}
           onChange={(event) => setLinkedinUrl(event.target.value)}
           placeholder="https://www.linkedin.com/in/..."
@@ -257,7 +257,7 @@ export function ProfileDetailsForm({
       </Field>
       <Field label="Skills" error={fieldErrors.skills}>
         <textarea
-          className="min-h-24 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+          className="min-h-24 w-full resize-y rounded-md border border-border-default bg-surface px-3 py-2 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
           maxLength={500}
           onChange={(event) => setSkills(event.target.value)}
           value={skills}
@@ -265,7 +265,7 @@ export function ProfileDetailsForm({
       </Field>
       <Field label="Bio" error={fieldErrors.bio}>
         <textarea
-          className="min-h-36 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+          className="min-h-36 w-full resize-y rounded-md border border-border-default bg-surface px-3 py-2 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
           maxLength={1200}
           onChange={(event) => setBio(event.target.value)}
           value={bio}
@@ -323,9 +323,9 @@ function Field({
   label: string;
 }) {
   return (
-    <div className="space-y-2">
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-text-secondary">{label}</span>
+    <div className="space-y-1.5">
+      <label className="block space-y-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{label}</span>
         {children}
       </label>
       {error && <span className="mt-1 block text-xs text-danger">{error}</span>}
@@ -341,11 +341,11 @@ function ReadOnlyField({
   value: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1 border-b border-border pb-2 last:border-0 last:pb-0">
-      <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    <div className="space-y-1 border-b border-border-subtle pb-3 last:border-0 last:pb-0">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
         {label}
       </span>
-      <div className="text-sm text-text-primary whitespace-pre-wrap">{value}</div>
+      <div className="text-[14px] text-text-primary whitespace-pre-wrap font-medium">{value}</div>
     </div>
   );
 }

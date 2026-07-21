@@ -4,10 +4,10 @@ import { getOperationalStatusTransitions } from "@/features/events/lib/event-sta
 type BadgeTone = "neutral" | "primary" | "success" | "warning" | "danger";
 
 export const eventInputClasses =
-  "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
+  "h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all placeholder:text-text-placeholder focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]";
 
 export const eventTextareaClasses =
-  "min-h-28 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
+  "min-h-28 w-full rounded-md border border-border-default bg-surface px-3 py-2 text-[14px] text-text-primary outline-none transition-all placeholder:text-text-placeholder focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]";
 
 export function formatEventStatus(status: EventStatus) {
   return status

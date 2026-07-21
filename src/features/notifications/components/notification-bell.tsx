@@ -130,7 +130,7 @@ export function NotificationBell({
       <button
         aria-expanded={isOpen}
         aria-label="Notifications"
-        className="relative inline-flex size-10 items-center justify-center rounded-md border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer"
+        className="relative flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-neutral-soft hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
         onClick={toggleOpen}
         type="button"
       >
@@ -160,7 +160,7 @@ export function UnreadCountBadge({ count }: { count: number }) {
   }
 
   return (
-    <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full border border-surface bg-danger px-1.5 text-[11px] font-semibold leading-5 text-white">
+    <span className="absolute -right-1 -top-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full border-2 border-surface bg-danger px-1 text-[10px] font-bold leading-none text-white animate-pulse">
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -186,11 +186,11 @@ export function NotificationDropdown({
   unreadCount: number;
 }) {
   return (
-    <div className="absolute right-0 z-40 mt-2 w-[min(calc(100vw-2rem),26rem)] overflow-hidden rounded-lg border border-border bg-surface text-text-primary shadow-xl">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+    <div className="absolute right-0 z-40 mt-2 w-[min(calc(100vw-2rem),26rem)] overflow-hidden rounded-[12px] border border-border-subtle bg-surface text-text-primary shadow-overlay origin-top-right animate-in fade-in zoom-in-95 duration-150">
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3">
         <div>
-          <p className="text-sm font-semibold">Notifications</p>
-          <p className="text-xs text-text-secondary">
+          <p className="text-[14px] font-semibold text-text-strong">Notifications</p>
+          <p className="text-[12px] text-text-muted">
             {unreadCount} unread
           </p>
         </div>
@@ -247,9 +247,12 @@ export function NotificationList({
 }) {
   if (notifications.length === 0) {
     return (
-      <div className="px-4 py-8 text-center text-sm text-text-secondary">
-        <Inbox className="mx-auto mb-2 size-5 text-text-muted" aria-hidden="true" />
-        No notifications yet.
+      <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-surface-muted mb-4">
+          <Inbox className="size-6 text-text-muted" aria-hidden="true" />
+        </div>
+        <p className="text-[15px] font-semibold text-text-strong">You're all caught up.</p>
+        <p className="mt-1 text-[13px] text-text-secondary">Check back later for updates.</p>
       </div>
     );
   }
@@ -339,7 +342,7 @@ export function NotificationReadState({ readAt }: { readAt: string | null }) {
 
 function notificationItemClasses(unread: boolean) {
   return cn(
-    "border-b border-border px-4 py-3 text-left transition-colors last:border-0 hover:bg-surface-muted",
-    unread ? "bg-primary-soft/45" : "bg-surface",
+    "border-b border-border-subtle px-4 py-3 text-left transition-colors last:border-0 hover:bg-neutral-soft",
+    unread ? "bg-primary-soft border-l-[3px] border-l-primary" : "bg-surface border-l-[3px] border-l-transparent",
   );
 }

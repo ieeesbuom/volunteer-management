@@ -13,6 +13,7 @@ import {
   Plus,
   RefreshCw,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -681,7 +682,7 @@ export function ScoringDashboard({
             <select
               value={effectiveEventId}
               onChange={(event) => handleEventContextChange(event.target.value)}
-              className="min-w-64 rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary"
+              className="min-w-64 rounded-md border border-border-default bg-surface px-3 py-1.5 text-sm text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
             >
               {activeEventAssignments.map((assignment) => (
                 <option key={assignment.$id} value={assignment.eventId}>
@@ -694,7 +695,7 @@ export function ScoringDashboard({
       ) : null}
 
       {/* Tab bar header */}
-      <div className="flex border-b border-border bg-surface px-4 py-2 rounded-t-lg gap-2 overflow-x-auto">
+      <div className="flex border-b border-border-subtle mb-6 overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -702,11 +703,12 @@ export function ScoringDashboard({
             <button
               key={tab.id}
               onClick={() => startTransition(() => setActiveTab(tab.id))}
-              className={`flex cursor-pointer items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${
+              className={cn(
+                "flex items-center gap-2 h-10 px-4 text-[14px] font-medium relative transition-colors cursor-pointer whitespace-nowrap",
                 isActive
-                  ? "bg-primary-soft text-primary border border-primary/20"
-                  : "text-text-secondary hover:bg-surface-muted"
-              }`}
+                  ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
+                  : "text-text-muted hover:text-text-body"
+              )}
             >
               <Icon className="size-4" />
               {tab.label}
@@ -747,7 +749,7 @@ export function ScoringDashboard({
                   <select
                     value={filterTerm}
                     onChange={(e) => setFilterTerm(e.target.value)}
-                    className="px-3 py-1.5 border border-border rounded-md text-sm w-36 bg-surface cursor-pointer"
+                    className="px-3 py-1.5 border border-border-default rounded-md text-[13px] w-36 bg-surface cursor-pointer outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
                   >
                     {visibleTerms.map((term) => (
                       <option key={term} value={term}>
@@ -760,12 +762,12 @@ export function ScoringDashboard({
                     placeholder="Year"
                     value={filterYear}
                     onChange={(e) => setFilterYear(e.target.value)}
-                    className="px-3 py-1.5 border border-border rounded-md text-sm w-28 bg-surface"
+                    className="px-3 py-1.5 border border-border-default rounded-md text-[13px] w-28 bg-surface outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
                   />
                   <select
                     value={filterMonth}
                     onChange={(e) => setFilterMonth(e.target.value)}
-                    className="px-3 py-1.5 border border-border rounded-md text-sm bg-surface"
+                    className="px-3 py-1.5 border border-border-default rounded-md text-[13px] bg-surface cursor-pointer outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
                   >
                     <option value="">Full Year</option>
                     <option value="1">January</option>
@@ -911,18 +913,32 @@ export function ScoringDashboard({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border bg-surface">
-                        {hallOfFame.map((entry) => (
-                          <tr key={entry.userId}>
-                            <td className="px-4 py-3 font-medium text-text-primary">
-                              #{entry.rank}
-                            </td>
-                            <td className="px-4 py-3 text-text-primary">{entry.name}</td>
-                            <td className="px-4 py-3 text-text-secondary">{entry.term?.label ?? 'Unknown'}</td>
-                            <td className="px-4 py-3">
-                              <Badge tone="primary">{entry.pointsEarned}</Badge>
-                            </td>
-                          </tr>
-                        ))}
+                        {hallOfFame.map((entry) => {
+                          let rankBadgeTone = "neutral";
+                          let rankClassName = "bg-surface-subtle text-text-secondary border-border-subtle";
+                          if (entry.rank === 1) {
+                            rankClassName = "bg-amber-100 text-amber-900 border-amber-300 shadow-sm";
+                          } else if (entry.rank === 2) {
+                            rankClassName = "bg-slate-100 text-slate-800 border-slate-300 shadow-sm";
+                          } else if (entry.rank === 3) {
+                            rankClassName = "bg-orange-100 text-orange-900 border-orange-300 shadow-sm";
+                          }
+
+                          return (
+                            <tr key={entry.userId}>
+                              <td className="px-4 py-3 font-medium text-text-primary">
+                                <span className={cn("inline-flex items-center justify-center min-w-[28px] h-[28px] rounded-full border text-[13px] font-bold", rankClassName)}>
+                                  #{entry.rank}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-text-primary font-medium">{entry.name}</td>
+                              <td className="px-4 py-3 text-[13px] text-text-secondary">{entry.term?.label ?? 'Unknown'}</td>
+                              <td className="px-4 py-3">
+                                <Badge tone="primary" className="font-bold">{entry.pointsEarned}</Badge>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

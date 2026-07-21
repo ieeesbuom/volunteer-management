@@ -1,55 +1,103 @@
 @import "tailwindcss";
 
 :root {
-  --font-geist-sans: "Segoe UI", Arial, sans-serif;
-  --font-geist-mono: "Cascadia Code", Consolas, monospace;
-  --background: #f5f7fa;
-  --foreground: #111827;
-  --surface: #ffffff;
-  --surface-muted: #eef2f6;
-  --surface-subtle: #f8fafc;
-  --border: #d8dee8;
-  --border-strong: #b9c2cf;
-  --text-primary: #111827;
-  --text-secondary: #526070;
-  --text-muted: #7a8697;
-  --primary: #1456a3;
-  --primary-hover: #0f4584;
-  --primary-soft: #e8f1fb;
-  --success: #166534;
-  --success-soft: #e8f5ed;
-  --warning: #8a5a00;
-  --warning-soft: #fff5d6;
-  --danger: #a22b2b;
-  --danger-soft: #fdecec;
-  --ring: #5b8fd7;
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.06);
+  --primary: hsl(216, 79%, 36%);
+  --primary-hover: hsl(216, 79%, 28%);
+  --primary-soft: hsl(216, 80%, 97%);
+  --primary-mid: hsl(216, 60%, 92%);
+
+  --bg-base: hsl(220, 16%, 96%);
+  --surface-raised: hsl(0, 0%, 100%);
+  --surface-overlay: hsl(0, 0%, 100%);
+
+  --border-subtle: hsl(220, 13%, 91%);
+  --border-default: hsl(220, 13%, 84%);
+  --border-strong: hsl(220, 13%, 72%);
+
+  --text-strong: hsl(220, 26%, 14%);
+  --text-body: hsl(220, 14%, 32%);
+  --text-muted: hsl(220, 10%, 52%);
+  --text-placeholder: hsl(220, 8%, 68%);
+
+  --success: hsl(142, 52%, 28%);
+  --success-soft: hsl(142, 60%, 96%);
+  --warning: hsl(38, 90%, 30%);
+  --warning-soft: hsl(40, 100%, 96%);
+  --danger: hsl(0, 68%, 40%);
+  --danger-soft: hsl(0, 80%, 97%);
+  --neutral: hsl(220, 10%, 50%);
+  --neutral-soft: hsl(220, 12%, 94%);
+
+  --gold: hsl(43, 90%, 48%);
+  --silver: hsl(220, 10%, 62%);
+  --bronze: hsl(20, 65%, 48%);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px hsl(220 26% 14% / 0.04), 0 1px 3px hsl(220 26% 14% / 0.06);
+  --shadow-md: 0 4px 6px hsl(220 26% 14% / 0.05), 0 2px 4px hsl(220 26% 14% / 0.06);
+  --shadow-lg: 0 10px 15px hsl(220 26% 14% / 0.07), 0 4px 6px hsl(220 26% 14% / 0.05);
+  --shadow-overlay: 0 20px 25px hsl(220 26% 14% / 0.1), 0 8px 10px hsl(220 26% 14% / 0.06);
+
+  --transition-fast: 100ms ease;
+  --transition-base: 150ms ease;
+  --transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-surface-subtle: var(--surface-subtle);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
+  --color-primary-mid: var(--primary-mid);
+
+  --color-bg-base: var(--bg-base);
+  --color-surface: var(--surface-raised);
+  --color-surface-muted: var(--neutral-soft);
+  --color-surface-subtle: var(--bg-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border: var(--border-default);
+
+  --color-text-strong: var(--text-strong);
+  --color-text-body: var(--text-body);
+  --color-text-muted: var(--text-muted);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-text-primary: var(--text-strong);
+  --color-text-secondary: var(--text-body);
+
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
-  --color-ring: var(--ring);
-  --shadow-card: var(--shadow-card);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  
+  --color-ring: var(--primary);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --font-sans: "Inter", sans-serif;
 }
 
 * {
@@ -57,13 +105,14 @@
 }
 
 html {
-  background: var(--background);
+  background: var(--bg-base);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-base);
+  color: var(--text-body);
   letter-spacing: 0;
+  font-family: var(--font-sans);
 }
 
 ::selection {
@@ -72,8 +121,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  outline: none;
 }
 
 /* Ensure all clickable elements show a hand (pointer) cursor on hover */

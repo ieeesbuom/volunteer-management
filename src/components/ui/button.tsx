@@ -1,14 +1,16 @@
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "border-primary bg-primary text-white hover:bg-primary-hover",
+    "border-primary bg-primary text-white hover:bg-primary-hover shadow-[0_2px_10px_-2px_var(--color-primary)]",
   secondary:
-    "border-border-strong bg-surface text-text-primary hover:bg-surface-muted",
+    "border-border-default bg-surface text-text-primary hover:bg-surface-muted shadow-sm",
   ghost:
     "border-transparent bg-transparent text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+  danger:
+    "border-danger bg-danger text-white hover:bg-danger/90 shadow-[0_2px_10px_-2px_var(--color-danger)]",
 };
 
 export function buttonClasses({
@@ -19,7 +21,7 @@ export function buttonClasses({
   variant?: ButtonVariant;
 } = {}) {
   return cn(
-    "inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+    "inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:translate-y-px",
     variantClasses[variant],
     className,
   );

@@ -1,6 +1,6 @@
 export const themeDescription = {
-  posture: "formal admin system",
-  radius: "6px to 8px",
-  accent: "restrained IEEE blue",
-  surfaces: "neutral gray background with white operational panels",
+  posture: "Crafted Institutional — serious, trustworthy, human",
+  radius: "4px to 16px (badges to large modals)",
+  accent: "IEEE blue",
+  surfaces: "neutral gray base, white raised surfaces with 3-level shadow system",
 } as const;

@@ -200,6 +200,7 @@ describe("Scoring Server Actions & Access Control", () => {
   };
   let mockTables: MockTables;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setMockGetRow = (objOrFn: any) => {
     mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
       if (table === "events") {
@@ -866,6 +867,7 @@ describe("Scoring Extra Requirements Tests", () => {
   };
   let mockTables: MockTables;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setMockGetRow = (objOrFn: any) => {
     mockTables.getRow.mockImplementation((db: string, table: string, id: string) => {
       if (table === "events") {

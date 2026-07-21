@@ -122,7 +122,7 @@ export function SystemSettingsPanel({
   const [termForm, setTermForm] = useState<TermFormState>(emptyTermForm);
   const [terms, setTerms] = useState(initialTerms);
 
-  const selectedTerm = terms.find((term) => term.$id === selectedTermId);
+
 
   function setNotice(nextStatus: NoticeStatus, nextMessage: string) {
     setStatus(nextStatus);
@@ -214,16 +214,7 @@ export function SystemSettingsPanel({
     }
   }
 
-  function startEditingTerm(term: IeeeTerm) {
-    setEditingTermId(term.$id);
-    setTermForm({
-      endDate: term.endDate.slice(0, 10),
-      notes: term.notes ?? "",
-      startDate: term.startDate.slice(0, 10),
-      status: term.status === "ACTIVE" ? "DRAFT" : term.status,
-    });
-    setTab("terms");
-  }
+
 
   async function activateTerm(termId: string) {
     setPendingAction(`term:activate:${termId}`);

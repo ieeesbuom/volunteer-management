@@ -1,16 +1,29 @@
 import { cn } from "@/lib/utils";
 
+type CardVariant = "default" | "highlight";
+
+const cardVariantClasses: Record<CardVariant, string> = {
+  default: "bg-surface text-text-primary border-border-subtle",
+  highlight: "bg-[linear-gradient(to_bottom_right,var(--color-surface),var(--color-primary-soft))] border-border-subtle border-l-[4px] border-l-primary",
+};
+
 export function Card({
   children,
   className,
+  variant = "default",
+  navigable = false,
 }: Readonly<{
   children: React.ReactNode;
   className?: string;
+  variant?: CardVariant;
+  navigable?: boolean;
 }>) {
   return (
     <section
       className={cn(
-        "rounded-lg border border-border bg-surface text-text-primary shadow-card",
+        "rounded-lg border shadow-sm",
+        cardVariantClasses[variant],
+        navigable && "transition-all hover:-translate-y-[1px] hover:shadow-md cursor-pointer",
         className,
       )}
     >
@@ -26,7 +39,7 @@ export function CardHeader({
   children: React.ReactNode;
   className?: string;
 }>) {
-  return <div className={cn("border-b border-border px-5 py-4", className)}>{children}</div>;
+  return <div className={cn("border-b border-border-subtle px-5 py-4", className)}>{children}</div>;
 }
 
 export function CardContent({
@@ -47,7 +60,7 @@ export function CardTitle({
   className?: string;
 }>) {
   return (
-    <h2 className={cn("text-base font-semibold text-text-primary", className)}>
+    <h2 className={cn("text-[15px] font-semibold text-text-primary", className)}>
       {children}
     </h2>
   );

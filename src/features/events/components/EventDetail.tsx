@@ -281,10 +281,10 @@ export function EventDetail({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className="block flex-1 text-sm font-medium text-text-secondary">
+            <label className="block flex-1 text-[13px] font-semibold text-text-body mb-1.5">
               New status
               <select
-                className="mt-1 h-10 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
+                className="mt-1 h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] font-normal"
                 onChange={(changeEvent) =>
                   setSelectedStatus(changeEvent.target.value as EventStatus)
                 }
@@ -329,35 +329,43 @@ export function EventDetail({
             <CardDescription>Event progression from draft through closure.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ol className="grid gap-3 md:grid-cols-6">
+            <div className="flex w-full items-center justify-between pb-8 pt-2">
               {EVENT_STATUSES.map((status, index) => {
                 const isComplete = index < currentStatusIndex;
                 const isCurrent = status === event.status;
+                const isLast = index === EVENT_STATUSES.length - 1;
 
                 return (
-                  <li
-                    className={cn(
-                      "rounded-md border px-3 py-3 text-center text-xs font-medium",
-                      isCurrent
-                        ? "border-primary/30 bg-primary-soft text-primary"
-                        : isComplete
-                          ? "border-success/25 bg-success-soft text-success"
-                          : "border-border bg-surface-subtle text-text-muted",
-                    )}
-                    key={status}
-                  >
-                    <span className="mb-2 flex justify-center">
-                      {isComplete ? (
-                        <Check className="size-4" aria-hidden="true" />
-                      ) : (
-                        <span className="size-4 rounded-full border border-current" />
+                  <div key={status} className={cn("relative flex flex-col items-center", !isLast && "w-full")}>
+                    <div className="flex items-center justify-center w-full relative">
+                      <div
+                        className={cn(
+                          "relative z-10 flex size-5 shrink-0 items-center justify-center rounded-full",
+                          isComplete ? "bg-success text-white" : isCurrent ? "bg-primary text-white ring-4 ring-primary-soft" : "border-2 border-border-default bg-surface"
+                        )}
+                      >
+                        {isComplete && <Check className="size-3" aria-hidden="true" />}
+                        {isCurrent && <span className="size-1.5 rounded-full bg-white" />}
+                      </div>
+                      {!isLast && (
+                        <div
+                          className={cn(
+                            "absolute left-1/2 top-1/2 h-[2px] w-full -translate-y-1/2",
+                            isComplete ? "bg-success" : "bg-border-subtle"
+                          )}
+                        />
                       )}
+                    </div>
+                    <span className={cn(
+                      "absolute top-8 text-[12px] font-medium whitespace-nowrap",
+                      isCurrent || isComplete ? "text-text-strong" : "text-text-muted"
+                    )}>
+                      {LIFECYCLE_LABELS[status]}
                     </span>
-                    {LIFECYCLE_LABELS[status]}
-                  </li>
+                  </div>
                 );
               })}
-            </ol>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -402,19 +410,19 @@ export function EventDetail({
         <CardContent>
           {assignments.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-[760px] divide-y divide-border text-left text-sm">
-                <thead className="text-text-secondary">
+              <table className="min-w-[760px] w-full divide-y divide-border-subtle text-left text-[13px]">
+                <thead className="bg-bg-base border-b border-border-default">
                   <tr>
-                    <th className="py-2 pr-4 font-semibold">Member</th>
-                    <th className="px-4 py-2 font-semibold">Role</th>
-                    <th className="px-4 py-2 font-semibold">Committee</th>
-                    <th className="px-4 py-2 font-semibold">Assigned</th>
+                    <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Member</th>
+                    <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Role</th>
+                    <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Committee</th>
+                    <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Assigned</th>
                     {permissions.canAssignRoles ? (
-                      <th className="px-4 py-2 font-semibold">Action</th>
+                      <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Action</th>
                     ) : null}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border-subtle">
                   {assignments.map((assignment) => {
                     const canRemove = canRemoveCommitteeRole({
                       actorEventRole: userEventRole,
@@ -425,8 +433,8 @@ export function EventDetail({
                     const volunteer = volunteersByUserId.get(assignment.userId);
 
                     return (
-                      <tr key={assignment.$id}>
-                        <td className="py-3 pr-4">
+                      <tr key={assignment.$id} className="hover:bg-primary-soft/40 transition-colors">
+                        <td className="py-3 px-4">
                           <p className="font-medium text-text-primary">
                             {volunteer ? (
                               <Link
@@ -439,7 +447,7 @@ export function EventDetail({
                               "Volunteer"
                             )}
                           </p>
-                          <p className="mt-1 text-xs text-text-muted">
+                          <p className="mt-1 text-[12px] text-text-muted">
                             {volunteer?.uomEmail || volunteer?.googleEmail || "Profile unavailable"}
                           </p>
                         </td>
@@ -464,7 +472,7 @@ export function EventDetail({
                                 Remove
                               </Button>
                             ) : (
-                              <span className="text-xs text-text-muted">—</span>
+                              <span className="text-[12px] text-text-muted">—</span>
                             )}
                           </td>
                         ) : null}
@@ -605,22 +613,22 @@ function ConfirmationDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4 transition-all"
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-        <div className="border-b border-border px-5 py-4">
+      <div className="w-full max-w-lg rounded-[12px] border border-border-subtle bg-surface shadow-lg">
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+              <h3 className="text-[16px] font-semibold text-text-strong">{title}</h3>
+              <p className="mt-1 text-[14px] leading-6 text-text-secondary">{description}</p>
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4 bg-surface-subtle rounded-b-[12px]">
           <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost">
             Cancel
           </Button>

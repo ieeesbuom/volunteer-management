@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Plus, UserRound } from "lucide-react";
+import { CalendarDays, Plus, UserRound, Inbox } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   getEventStatusBadgeClassName,
   getEventStatusBadgeTone,
 } from "@/features/events/lib/event-ui";
-import type { Event } from "@/features/events/types";
+import type { Event, EventStatus } from "@/features/events/types";
 
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -31,6 +31,18 @@ function formatRoleLabel(role: EventRoleAssignment) {
   return getEventRoleDisplayName(role.role, {
     chairCount: role.eventChairCount ?? 0,
   });
+}
+
+function getEventBorderClass(status: EventStatus) {
+  switch (status) {
+    case "draft": return "border-l-neutral";
+    case "planning": return "border-l-primary";
+    case "published": return "border-l-primary";
+    case "ongoing": return "border-l-success";
+    case "pending_conclusion": return "border-l-warning";
+    case "closed": return "border-l-border-strong";
+    default: return "border-l-border-strong";
+  }
 }
 
 export function EventList({
@@ -81,52 +93,70 @@ export function EventList({
       />
 
       {showMyEventsTab && (
-        <div className="inline-flex flex-wrap gap-2 rounded-md border border-border bg-surface p-1">
+        <div className="flex border-b border-border-subtle mb-6">
           <button
             type="button"
             onClick={() => handleTabChange("all")}
             className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors cursor-pointer",
+              "h-10 px-4 text-[14px] font-medium relative transition-colors cursor-pointer",
               activeTab === "all"
-                ? "border-primary/30 bg-primary-soft text-primary"
-                : "border-transparent text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+                ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
+                : "text-text-muted hover:text-text-body"
             )}
           >
-            <CalendarDays className="size-4" aria-hidden="true" />
-            All Events ({allEvents.length})
+            <div className="flex items-center gap-2">
+              <CalendarDays className="size-4" aria-hidden="true" />
+              All Events ({allEvents.length})
+            </div>
           </button>
           <button
             type="button"
             onClick={() => handleTabChange("my")}
             className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors cursor-pointer",
+              "h-10 px-4 text-[14px] font-medium relative transition-colors cursor-pointer",
               activeTab === "my"
-                ? "border-primary/30 bg-primary-soft text-primary"
-                : "border-transparent text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+                ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
+                : "text-text-muted hover:text-text-body"
             )}
           >
-            <UserRound className="size-4" aria-hidden="true" />
-            My Events ({myEvents.length})
+            <div className="flex items-center gap-2">
+              <UserRound className="size-4" aria-hidden="true" />
+              My Events ({myEvents.length})
+            </div>
           </button>
         </div>
       )}
 
       {activeTab === "all" && allEvents.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <CalendarDays className="size-8 text-text-muted" aria-hidden="true" />
-            <p className="text-sm text-text-secondary">No events are available to display.</p>
+          <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <Inbox className="size-6" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-[16px] font-semibold text-text-strong">No events found</p>
+              <p className="mt-1 text-[14px] text-text-muted">There are no events available to display right now.</p>
+            </div>
+            {canCreate && (
+              <Link className={buttonClasses({ variant: "primary", className: "mt-2" })} href="/events/new">
+                <Plus className="size-4" aria-hidden="true" />
+                Create Event
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : null}
 
       {activeTab === "my" && myEvents.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <CalendarDays className="size-8 text-text-muted" aria-hidden="true" />
-            <p className="text-sm text-text-secondary">
-              You are not assigned to any events at this time.
-            </p>
+          <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <UserRound className="size-6" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-[16px] font-semibold text-text-strong">No assigned events</p>
+              <p className="mt-1 text-[14px] text-text-muted">You are not assigned to any events at this time.</p>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -134,15 +164,18 @@ export function EventList({
       {activeTab === "all" && allEvents.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {allEvents.map((event) => (
-            <Link href={`/events/${event.$id}`} key={event.$id}>
-              <Card className="h-full transition-colors hover:border-primary/30 hover:bg-surface-subtle">
+            <Link href={`/events/${event.$id}`} key={event.$id} className="group outline-none">
+              <Card navigable className={cn("h-full border-l-[4px]", getEventBorderClass(event.status))}>
                 <CardContent className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-text-primary">{event.title}</h3>
+                      <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors">{event.title}</h3>
                       {isAdmin || userRoles.some((r) => r.eventId === event.$id && r.role === "Chair") ? (
-                        <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
+                        <p className="mt-1 text-[12px] text-text-muted">{event.reference}</p>
                       ) : null}
+                      {event.description && (
+                        <p className="mt-1.5 text-[13px] text-text-muted line-clamp-2">{event.description}</p>
+                      )}
                     </div>
                     <Badge
                       className={getEventStatusBadgeClassName(event.status)}
@@ -152,20 +185,20 @@ export function EventList({
                     </Badge>
                   </div>
 
-                  <dl className="grid gap-2 text-sm">
-                    <div className="flex justify-between gap-3">
+                  <dl className="grid gap-2 text-[13px]">
+                    <div className="flex items-center justify-between gap-3">
                       <dt className="text-text-secondary">Term / Year</dt>
-                      <dd className="font-medium text-text-primary">
-                        {event.term} · {event.year}
+                      <dd>
+                        <Badge tone="neutral">{event.term} · {event.year}</Badge>
                       </dd>
                     </div>
-                    <div className="flex justify-between gap-3">
+                    <div className="flex justify-between gap-3 pt-1">
                       <dt className="text-text-secondary">Start date</dt>
                       <dd className="font-medium text-text-primary">
                         {formatEventDate(event.start_date)}
                       </dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 pt-1">
                       <dt className="text-text-secondary">Conclusion</dt>
                       <dd>
                         <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
@@ -184,15 +217,18 @@ export function EventList({
       {activeTab === "my" && myEvents.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {myEvents.map(({ event, role }) => (
-            <Link href={`/events/${event.$id}`} key={event.$id}>
-              <Card className="h-full transition-colors hover:border-primary/30 hover:bg-surface-subtle">
+            <Link href={`/events/${event.$id}`} key={event.$id} className="group outline-none">
+              <Card navigable className={cn("h-full border-l-[4px]", getEventBorderClass(event.status))}>
                 <CardContent className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-text-primary">{event.title}</h3>
+                      <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors">{event.title}</h3>
                       {isAdmin || role.role === "Chair" ? (
-                        <p className="mt-1 text-xs text-text-muted">{event.reference}</p>
+                        <p className="mt-1 text-[12px] text-text-muted">{event.reference}</p>
                       ) : null}
+                      {event.description && (
+                        <p className="mt-1.5 text-[13px] text-text-muted line-clamp-2">{event.description}</p>
+                      )}
                     </div>
                     <Badge tone="primary">{formatRoleLabel(role)}</Badge>
                   </div>
@@ -207,14 +243,14 @@ export function EventList({
                     {role.committeeName ? <Badge>{role.committeeName}</Badge> : null}
                   </div>
 
-                  <dl className="grid gap-2 text-sm">
-                    <div className="flex justify-between gap-3">
+                  <dl className="grid gap-2 text-[13px]">
+                    <div className="flex items-center justify-between gap-3 pt-2">
                       <dt className="text-text-secondary">Term / Year</dt>
-                      <dd className="font-medium text-text-primary">
-                        {event.term} · {event.year}
+                      <dd>
+                        <Badge tone="neutral">{event.term} · {event.year}</Badge>
                       </dd>
                     </div>
-                    <div className="flex justify-between gap-3">
+                    <div className="flex justify-between gap-3 pt-1">
                       <dt className="text-text-secondary">Start date</dt>
                       <dd className="font-medium text-text-primary">
                         {formatEventDate(event.start_date)}

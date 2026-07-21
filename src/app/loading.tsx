@@ -1,44 +1,47 @@
-import { ShieldCheck } from "lucide-react";
-import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
-
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-background text-text-primary">
-      <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 py-4 sm:px-8 lg:px-10">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-normal text-text-muted">
-              {ORGANIZATION_NAME}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-md border border-primary/20 bg-primary-soft text-primary">
-                <ShieldCheck className="size-4" aria-hidden="true" />
-              </span>
-              <h1 className="text-xl font-semibold text-text-primary">{APP_NAME}</h1>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2" aria-hidden="true">
-            {[96, 88, 104, 120, 112].map((width) => (
-              <span
-                className="h-10 animate-pulse rounded-md border border-border bg-surface-muted"
-                key={width}
-                style={{ width }}
-              />
-            ))}
-          </div>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar Skeleton (hidden on mobile, visible on lg) */}
+      <div className="hidden lg:flex w-60 flex-col border-r border-border-subtle bg-surface">
+        <div className="flex h-[72px] items-center px-6 border-b border-border-subtle">
+          <div className="h-6 w-32 animate-pulse rounded bg-surface-muted" />
         </div>
-      </header>
-      <div className="mx-auto w-full max-w-7xl space-y-4 px-5 py-6 sm:px-8 lg:px-10">
-        <div className="h-10 w-64 animate-pulse rounded-md bg-surface-muted" />
-        <div className="grid gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((item) => (
+        <div className="flex-1 space-y-2 p-4">
+          {[1, 2, 3, 4, 5].map((item) => (
             <div
-              className="h-36 animate-pulse rounded-md border border-border bg-surface"
               key={item}
+              className="h-9 w-full animate-pulse rounded-md bg-surface-muted"
             />
           ))}
         </div>
       </div>
-    </main>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col">
+        {/* Mobile Header Skeleton */}
+        <div className="flex h-16 items-center border-b border-border-subtle bg-surface px-4 lg:hidden">
+          <div className="h-6 w-32 animate-pulse rounded bg-surface-muted" />
+        </div>
+
+        {/* Content Skeleton */}
+        <main className="flex-1 p-6 lg:p-8 space-y-8">
+          {/* Page Header Skeleton */}
+          <div className="space-y-3">
+            <div className="h-8 w-48 animate-pulse rounded bg-surface-muted" />
+            <div className="h-4 w-96 animate-pulse rounded bg-surface-muted" />
+          </div>
+
+          {/* Cards/Grids Skeleton */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="h-40 w-full animate-pulse rounded-[12px] border border-border-subtle bg-surface"
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }

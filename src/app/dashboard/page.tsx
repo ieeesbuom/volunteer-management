@@ -156,7 +156,7 @@ export default async function DashboardPage() {
                 {opportunityList.map(({ conn, event }) => (
                   <div
                     key={conn.id}
-                    className="flex flex-col justify-between p-4 rounded-lg border border-border bg-surface hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
+                    className="flex flex-col justify-between p-5 rounded-[12px] border border-border-subtle bg-surface hover:border-primary/30 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-[1px]"
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
@@ -211,23 +211,23 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {user.eventRoles.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-[720px] divide-y divide-border text-left text-sm">
-                  <thead className="text-text-secondary">
+              <div className="overflow-x-auto rounded-md border border-border-subtle">
+                <table className="min-w-[720px] divide-y divide-border-subtle text-left text-sm">
+                  <thead className="bg-base text-[11px] font-semibold uppercase tracking-widest text-text-secondary">
                     <tr>
-                      <th className="py-2 pr-4 font-semibold">Event</th>
-                      <th className="px-4 py-2 font-semibold">Role</th>
-                      <th className="px-4 py-2 font-semibold">Committee</th>
-                      <th className="px-4 py-2 font-semibold">Assigned</th>
+                      <th className="px-4 py-3">Event</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3">Committee</th>
+                      <th className="px-4 py-3">Assigned</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-border-subtle bg-surface">
                     {user.eventRoles.map((assignment) => (
-                      <tr key={assignment.$id}>
-                        <td className="py-3 pr-4">
+                      <tr key={assignment.$id} className="hover:bg-primary-soft transition-colors">
+                        <td className="px-4 py-3">
                           <Link
                             href={`/events/${assignment.eventId}`}
-                            className="font-medium text-primary hover:underline"
+                            className="font-medium text-text-primary hover:text-primary transition-colors cursor-pointer"
                           >
                             {assignment.eventTitle}
                           </Link>
@@ -239,10 +239,10 @@ export default async function DashboardPage() {
                             })}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-text-secondary">
+                        <td className="px-4 py-3 text-[13px] text-text-secondary">
                           {assignment.committeeName ?? "Event-level"}
                         </td>
-                        <td className="px-4 py-3 text-text-secondary">
+                        <td className="px-4 py-3 text-[13px] text-text-secondary">
                           {new Date(assignment.assignedAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -264,9 +264,9 @@ export default async function DashboardPage() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1 border-b border-border pb-2 last:border-0 last:pb-0">
-      <span className="font-medium text-text-secondary">{label}</span>
-      <span className="break-all text-text-primary">{value}</span>
+    <div className="flex flex-col gap-1 border-b border-border-subtle pb-3 last:border-0 last:pb-0">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{label}</span>
+      <span className="break-all text-[14px] font-medium text-text-primary">{value}</span>
     </div>
   );
 }

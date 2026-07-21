@@ -1,26 +1,36 @@
 export const pdfTheme = {
-  background: "#f5f7fa",
-  border: "#d8dee8",
-  borderStrong: "#b9c2cf",
-  danger: "#a22b2b",
-  muted: "#7a8697",
-  primary: "#1456a3",
-  primarySoft: "#e8f1fb",
-  secondary: "#526070",
+  background: "#f8fafc",
+  border: "#e2e8f0",
+  borderSubtle: "#f1f5f9",
+  borderStrong: "#cbd5e1",
+  danger: "#dc2626",
+  muted: "#64748b",
+  primary: "#0b57d0",
+  primaryDark: "#0842a0",
+  primarySoft: "#f0f5fc",
+  secondary: "#475569",
   surface: "#ffffff",
-  text: "#111827",
+  surfaceSubtle: "#f8fafc",
+  text: "#0f172a",
+  textMuted: "#64748b",
+  success: "#16a34a",
+  successSoft: "#f0fdf4",
+  badgeBg: "#edf4fc",
+  badgeText: "#0b57d0",
 } as const;
 
 export const pdfFonts = {
-  body: 11,
-  caption: 9,
-  heading: 16,
-  section: 13,
-  title: 20,
+  caption: 8.5,
+  bodySm: 9.5,
+  body: 10.5,
+  section: 12.5,
+  heading: 14.5,
+  title: 18,
 } as const;
 
 export const pdfLayout = {
-  margin: 56,
-  lineGap: 6,
-  sectionGap: 18,
+  margin: 48,
+  lineGap: 4,
+  sectionGap: 16,
 } as const;
+

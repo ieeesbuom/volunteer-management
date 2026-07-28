@@ -1,4 +1,4 @@
-import { UserRound } from "lucide-react";
+import { MessageSquareQuote, UserRound } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +94,8 @@ function VolunteerProfileContent({
   recommendations: Awaited<ReturnType<typeof listVisibleRecommendationsForVolunteer>>;
   userIsUnverified: boolean;
 }) {
+  const recommendationCount = profile.isPrivateView ? recommendations.length : null;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -101,6 +103,7 @@ function VolunteerProfileContent({
         description={profile.details?.headline ?? "Volunteer profile"}
       />
 
+      {/* 2-col identity / contribution grid */}
       <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
           <Card>
             <CardHeader>
@@ -146,68 +149,86 @@ function VolunteerProfileContent({
           </Card>
         </div>
 
-        {profile.isPrivateView ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Roles</CardTitle>
-              <CardDescription>Student Branch and event responsibilities.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {profile.sbRoles.length > 0 ? (
-                  profile.sbRoles.map((role) => <Badge key={role}>{role}</Badge>)
-                ) : (
-                  <Badge>No SB roles</Badge>
+      {/* Recommendations — full-width, placed prominently after the top grid */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquareQuote className="size-4 text-primary" aria-hidden="true" />
+                Recommendations
+                {recommendationCount !== null && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">
+                    {recommendationCount}
+                  </span>
                 )}
-              </div>
-              <div className="grid gap-2 text-sm text-text-secondary">
-                {profile.eventRoles.length > 0 ? (
-                  profile.eventRoles.map((role) => (
-                    <div className="rounded-md border border-border p-3" key={`${role.eventId}-${role.role}`}>
-                      <p className="font-medium text-text-primary">{role.eventTitle}</p>
-                      <p>{[role.role, role.committeeName].filter(Boolean).join(" · ")}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p>No event responsibilities assigned.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Written endorsements from fellow verified volunteers.
+              </CardDescription>
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recommendations</CardTitle>
-            <CardDescription>
-              Visible recommendation history and request actions.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            {/* Request CTA — visible at a glance in the header */}
             {canRequestRecommendation ? (
               <RecommendationRequestForm
                 respondentId={profile.userId}
                 respondentName={profileDisplayName}
               />
             ) : null}
-            {userIsUnverified ? (
-              <p className="text-sm text-text-secondary">
-                Verify your UoM email before requesting or reporting recommendations.
-              </p>
-            ) : null}
-            {profile.isPrivateView ? (
-              <RecommendationList
-                canReport={canReportRecommendations}
-                initialRecommendations={recommendations}
-              />
-            ) : (
-              <p className="text-sm text-text-secondary">
-                Recommendations are visible only to the profile owner and admins.
-              </p>
-            )}
+          </div>
+
+          {userIsUnverified ? (
+            <p className="mt-2 text-sm text-text-muted">
+              Verify your UoM email before requesting or reporting recommendations.
+            </p>
+          ) : null}
+        </CardHeader>
+
+        <CardContent>
+          {profile.isPrivateView ? (
+            <RecommendationList
+              canReport={canReportRecommendations}
+              initialRecommendations={recommendations}
+            />
+          ) : (
+            <p className="text-sm text-text-secondary">
+              Recommendations are visible only to the profile owner and admins.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Roles — private view only, shown below recommendations */}
+      {profile.isPrivateView ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Roles</CardTitle>
+            <CardDescription>Student Branch and event responsibilities.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {profile.sbRoles.length > 0 ? (
+                profile.sbRoles.map((role) => <Badge key={role}>{role}</Badge>)
+              ) : (
+                <Badge>No SB roles</Badge>
+              )}
+            </div>
+            <div className="grid gap-2 text-sm text-text-secondary">
+              {profile.eventRoles.length > 0 ? (
+                profile.eventRoles.map((role) => (
+                  <div className="rounded-md border border-border p-3" key={`${role.eventId}-${role.role}`}>
+                    <p className="font-medium text-text-primary">{role.eventTitle}</p>
+                    <p>{[role.role, role.committeeName].filter(Boolean).join(" · ")}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No event responsibilities assigned.</p>
+              )}
+            </div>
           </CardContent>
         </Card>
-      </div>
+      ) : null}
+    </div>
   );
 }
 

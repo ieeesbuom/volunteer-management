@@ -914,7 +914,6 @@ export function ScoringDashboard({
                       </thead>
                       <tbody className="divide-y divide-border bg-surface">
                         {hallOfFame.map((entry) => {
-                          let rankBadgeTone = "neutral";
                           let rankClassName = "bg-surface-subtle text-text-secondary border-border-subtle";
                           if (entry.rank === 1) {
                             rankClassName = "bg-amber-100 text-amber-900 border-amber-300 shadow-sm";

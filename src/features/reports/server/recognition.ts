@@ -121,9 +121,23 @@ function isExcludedFromRecognition({
   userId: string;
 }) {
   const parsedTerm = parseIeeeTerm(term);
+  
+  const variants = new Set<string>();
+  variants.add(term);
+  const shortMatch = term.match(/^(\d{2})\/(\d{2})$/);
+  if (shortMatch) {
+    variants.add(`20${shortMatch[1]}/20${shortMatch[2]}`);
+    variants.add(`20${shortMatch[1]}/${shortMatch[2]}`);
+  }
+  const fullMatch = term.match(/^(\d{4})\/(\d{4})$/);
+  if (fullMatch) {
+    variants.add(`${fullMatch[1].slice(-2)}/${fullMatch[2].slice(-2)}`);
+    variants.add(`${fullMatch[1]}/${fullMatch[2].slice(-2)}`);
+  }
+
   const termIds = new Set(
     terms
-      .filter((row) => row.label === term || row.$id === term)
+      .filter((row) => variants.has(row.label) || variants.has(row.$id))
       .map((row) => row.$id),
   );
 
@@ -132,7 +146,7 @@ function isExcludedFromRecognition({
       (row) =>
         row.userId === userId &&
         row.excludedFromTopBoard &&
-        (row.term === term || row.year === parsedTerm.startYear),
+        (variants.has(row.term) || row.year === parsedTerm.startYear),
     ) ||
     topBoardExclusions.some(
       (row) =>

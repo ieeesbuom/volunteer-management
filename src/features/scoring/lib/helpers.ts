@@ -69,8 +69,21 @@ export function filterLedgerByTerm(
   ledger: PointLedgerEntry[],
   term: string
 ): PointLedgerEntry[] {
+  const variants = new Set<string>();
+  variants.add(term);
+  const shortMatch = term.match(/^(\d{2})\/(\d{2})$/);
+  if (shortMatch) {
+    variants.add(`20${shortMatch[1]}/20${shortMatch[2]}`);
+    variants.add(`20${shortMatch[1]}/${shortMatch[2]}`);
+  }
+  const fullMatch = term.match(/^(\d{4})\/(\d{4})$/);
+  if (fullMatch) {
+    variants.add(`${fullMatch[1].slice(-2)}/${fullMatch[2].slice(-2)}`);
+    variants.add(`${fullMatch[1]}/${fullMatch[2].slice(-2)}`);
+  }
+
   return ledger.filter((entry) => {
-    return entry.term === term;
+    return variants.has(entry.term);
   });
 }
 

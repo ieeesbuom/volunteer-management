@@ -55,21 +55,29 @@ export function RecommendationList({
     <div className="space-y-3">
       {recommendations.length > 0 ? (
         recommendations.map((recommendation) => (
-          <div className="rounded-md border border-border p-4" key={recommendation.$id}>
-            <p className="text-sm leading-6 text-text-primary">{recommendation.text}</p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-text-muted">
+          <div
+            key={recommendation.$id}
+            className="rounded-md border border-border-subtle bg-surface pl-4 pr-4 pt-4 pb-3"
+            style={{ borderLeft: "3px solid var(--primary)" }}
+          >
+            <p className="text-sm leading-relaxed text-text-primary italic">
+              &ldquo;{recommendation.text}&rdquo;
+            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium text-text-muted uppercase tracking-wide">
                 From{" "}
-                {recommendation.respondent ? (
-                  <Link
-                    href={`/volunteers/${recommendation.respondentId}`}
-                    className="hover:underline hover:text-primary transition-colors cursor-pointer"
-                  >
-                    {displayRespondent(recommendation)}
-                  </Link>
-                ) : (
-                  "Unknown volunteer"
-                )}
+                <span className="normal-case font-normal tracking-normal text-text-secondary">
+                  {recommendation.respondent ? (
+                    <Link
+                      href={`/volunteers/${recommendation.respondentId}`}
+                      className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {displayRespondent(recommendation)}
+                    </Link>
+                  ) : (
+                    "Unknown volunteer"
+                  )}
+                </span>
               </p>
               {canReport ? (
                 reportedIds.includes(recommendation.$id) ? (
@@ -81,7 +89,7 @@ export function RecommendationList({
                     type="button"
                     variant="ghost"
                   >
-                    <Flag className="size-4" aria-hidden="true" />
+                    <Flag className="size-3.5" aria-hidden="true" />
                     Report
                   </Button>
                 )
@@ -90,9 +98,11 @@ export function RecommendationList({
           </div>
         ))
       ) : (
-        <p className="text-sm text-text-secondary">No visible recommendations yet.</p>
+        <p className="py-4 text-center text-sm text-text-muted">
+          No recommendations have been written for this volunteer yet.
+        </p>
       )}
-      {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
+      {message ? <p className="mt-2 text-sm text-text-secondary">{message}</p> : null}
     </div>
   );
 }

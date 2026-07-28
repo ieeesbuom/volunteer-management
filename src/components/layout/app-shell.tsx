@@ -60,7 +60,7 @@ export function AppShell({
       ] as const)
     : [];
 
-  const SidebarContent = () => (
+  const renderSidebarContent = () => (
     <>
       <div className="flex h-16 shrink-0 items-center gap-3 px-6 border-b border-border-subtle">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary-soft text-primary">
@@ -184,12 +184,12 @@ export function AppShell({
             <X className="size-6" aria-hidden="true" />
           </button>
         </div>
-        <SidebarContent />
+        {renderSidebarContent()}
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-[240px] lg:flex-col lg:border-r lg:border-border-subtle lg:bg-surface-raised">
-        <SidebarContent />
+        {renderSidebarContent()}
       </div>
 
       {/* Main content area */}

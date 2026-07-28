@@ -41,7 +41,7 @@ import {
 type AppRow = Models.Row & Record<string, unknown>;
 
 const PUBLIC_STATUSES: EventStatus[] = ["published", "ongoing", "pending_conclusion"];
-const RESTRICTED_STATUSES: EventStatus[] = ["draft", "planning"];
+const RESTRICTED_STATUSES: EventStatus[] = ["draft", "planning", "closed"];
 
 export function toEvent(row: AppRow): Event {
   return {

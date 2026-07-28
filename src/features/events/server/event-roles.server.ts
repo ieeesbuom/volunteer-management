@@ -119,7 +119,11 @@ export async function assignEventRole(
 
   const existing = await getUserEventRoleAssignment(input.user_id, input.event_id);
 
-  if (existing && existing.role !== input.role) {
+  if (existing) {
+    if (existing.role === input.role && existing.committeeName === input.committee_name) {
+      throw new ValidationError("User is already assigned to this role and committee for this event.");
+    }
+
     return replaceEventRole({
       actorUserId: assignedByUserId,
       committeeName: input.committee_name,

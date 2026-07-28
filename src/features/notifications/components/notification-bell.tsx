@@ -251,7 +251,7 @@ export function NotificationList({
         <div className="flex size-12 items-center justify-center rounded-full bg-surface-muted mb-4">
           <Inbox className="size-6 text-text-muted" aria-hidden="true" />
         </div>
-        <p className="text-[15px] font-semibold text-text-strong">You're all caught up.</p>
+        <p className="text-[15px] font-semibold text-text-strong">You&apos;re all caught up.</p>
         <p className="mt-1 text-[13px] text-text-secondary">Check back later for updates.</p>
       </div>
     );

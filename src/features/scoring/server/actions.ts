@@ -1112,7 +1112,8 @@ export async function getLeaderboard(params: {
 
   if (validated.month !== undefined && validated.year !== undefined) {
     targetTerm = deriveTermFromDate(new Date(Date.UTC(validated.year, validated.month - 1, 1)).toISOString());
-    targetYear = Number(targetTerm.split("/")[0]);
+    const parsed = Number(targetTerm.split("/")[0]);
+    targetYear = parsed < 100 ? 2000 + parsed : parsed;
   } else if (validated.term !== undefined) {
     if (!validated.term.includes("/")) {
       const y = Number(validated.term);
@@ -1120,14 +1121,16 @@ export async function getLeaderboard(params: {
       targetYear = y;
     } else {
       targetTerm = validated.term;
-      targetYear = Number(validated.term.split("/")[0]);
+      const parsed = Number(validated.term.split("/")[0]);
+      targetYear = parsed < 100 ? 2000 + parsed : parsed;
     }
   } else if (validated.year !== undefined) {
     targetTerm = `${validated.year}/${validated.year + 1}`;
     targetYear = validated.year;
   } else {
     targetTerm = deriveTermFromDate(new Date().toISOString());
-    targetYear = Number(targetTerm.split("/")[0]);
+    const parsed = Number(targetTerm.split("/")[0]);
+    targetYear = parsed < 100 ? 2000 + parsed : parsed;
   }
 
   // Filter ledger

@@ -7,7 +7,7 @@ const PUBLICLY_VISIBLE_STATUSES: EventStatus[] = [
   "ongoing",
   "pending_conclusion",
 ];
-const RESTRICTED_STATUSES: EventStatus[] = ["draft", "planning"];
+const RESTRICTED_STATUSES: EventStatus[] = ["draft", "planning", "closed"];
 
 const VIEW_ONLY_PERMISSIONS: EventPermissions = {
   canApproveConclusion: false,

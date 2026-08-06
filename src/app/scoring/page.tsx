@@ -1,5 +1,6 @@
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { AppShell } from "@/components/layout/app-shell";
+import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { ScoringDashboard } from "@/features/scoring/components/scoring-dashboard";
 import { getReportsPageData } from "@/features/reports/server/page-data";
@@ -37,8 +38,8 @@ export default async function ScoringPage({ searchParams }: ScoringPageProps) {
   ]);
 
   return (
-    <AppShell active="scoring" user={user}>
-      <div className="space-y-6">
+    <AppShell active="scoring" pageTitle="Scoring & Leaderboard" user={user}>
+      <AppPage>
         <PageHeader
           title="Scoring & Leaderboard"
           description="Track volunteer contributions, manage participation, enter grades, and view points standings."
@@ -51,7 +52,7 @@ export default async function ScoringPage({ searchParams }: ScoringPageProps) {
           hallOfFame={recognitionData.hallOfFame}
           volunteerOfTheMonth={recognitionData.volunteerOfTheMonth}
         />
-      </div>
+      </AppPage>
     </AppShell>
   );
 }

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, Eye, MailCheck } from "lucide-react";
+import { CheckCircle2, Eye, MailCheck, UserRound } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 import { ExportActions } from "@/features/reports/components/export-actions";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { canVolunteer } from "@/features/access-control/lib/rules";
+import { ProfileAvatarEditor } from "@/features/access-control/components/profile-avatar-editor";
 import { VerificationPanel } from "@/features/access-control/components/verification-panel";
 import { getVolunteerProfileDetails } from "@/features/volunteers/server/profiles";
 import { ProfileDetailsForm } from "@/features/volunteers/components/profile-details-form";
@@ -41,7 +43,7 @@ export default async function MyVolunteerProfilePage() {
 
   return (
     <AppShell active="volunteers" user={user}>
-      <div className="space-y-6">
+      <AppPage>
         <PageHeader
           title="Volunteer Profile"
           description="Manage your verification, public profile details, and recommendation requests."
@@ -61,6 +63,25 @@ export default async function MyVolunteerProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <UserRound className="size-4 text-primary" aria-hidden="true" />
+              Profile Photo
+            </CardTitle>
+            <CardDescription>
+              Upload a custom photo or keep the one from your Google account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProfileAvatarEditor
+              hasCustomAvatar={Boolean(user.profile.avatarFileId)}
+              initialAvatarUrl={user.authUser.avatarUrl}
+              userName={user.authUser.name || user.authUser.email}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <MailCheck className="size-4 text-primary" aria-hidden="true" />
               UoM Verification
             </CardTitle>
@@ -70,21 +91,19 @@ export default async function MyVolunteerProfilePage() {
           </CardHeader>
           <CardContent>
             {user.profile.uomVerified ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border-subtle bg-bg-base/50 px-4 py-4">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-success/20 bg-success-soft text-success">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-surface-raised text-text-strong">
                     <CheckCircle2 className="size-5" aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="font-semibold text-text-primary">
+                    <p className="text-[13px] font-semibold text-text-strong">
                       University email verified
                     </p>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      {user.profile.uomEmail}
-                    </p>
+                    <p className="mt-1 text-[13px] text-text-muted">{user.profile.uomEmail}</p>
                   </div>
                 </div>
-                <Badge tone="success">Verified</Badge>
+                <span className="text-[12px] font-medium text-text-muted">Verified</span>
               </div>
             ) : (
               <VerificationPanel />
@@ -143,7 +162,7 @@ export default async function MyVolunteerProfilePage() {
             <NotificationPreferencesForm />
           </CardContent>
         </Card>
-      </div>
+      </AppPage>
     </AppShell>
   );
 }

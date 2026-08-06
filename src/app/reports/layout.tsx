@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AppShell } from "@/components/layout/app-shell";
+import { ReportsAppShell } from "@/features/reports/components/reports-app-shell";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,6 @@ export default async function ReportsLayout({
   }
 
   return (
-    <AppShell active="reports" user={user}>
-      {children}
-    </AppShell>
+    <ReportsAppShell user={user}>{children}</ReportsAppShell>
   );
 }

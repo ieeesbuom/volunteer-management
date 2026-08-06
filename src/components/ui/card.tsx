@@ -3,8 +3,9 @@ import { cn } from "@/lib/utils";
 type CardVariant = "default" | "highlight";
 
 const cardVariantClasses: Record<CardVariant, string> = {
-  default: "bg-surface text-text-primary border-border-subtle",
-  highlight: "bg-[linear-gradient(to_bottom_right,var(--color-surface),var(--color-primary-soft))] border-border-subtle border-l-[4px] border-l-primary",
+  default: "bg-surface-raised text-text-primary border-border-subtle",
+  highlight:
+    "bg-[linear-gradient(to_bottom_right,var(--color-surface),var(--color-primary-soft))] border-border-subtle border-l-[4px] border-l-primary",
 };
 
 export function Card({
@@ -21,9 +22,10 @@ export function Card({
   return (
     <section
       className={cn(
-        "rounded-lg border shadow-sm",
+        "rounded-2xl border",
         cardVariantClasses[variant],
-        navigable && "transition-all hover:-translate-y-[1px] hover:shadow-md cursor-pointer",
+        navigable &&
+          "cursor-pointer transition-colors hover:border-border-subtle hover:shadow-sm hover:bg-bg-base/50",
         className,
       )}
     >

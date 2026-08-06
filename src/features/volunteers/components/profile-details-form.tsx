@@ -135,7 +135,7 @@ export function ProfileDetailsForm({
 
   if (!isEditing) {
     return (
-      <div className="space-y-6 bg-surface p-6 rounded-[12px] border border-border-subtle shadow-sm">
+      <div className="space-y-4 rounded-2xl border border-border-subtle bg-surface-raised p-6">
         <div className="grid gap-6 md:grid-cols-2">
           <ReadOnlyField label="University Index" value={universityIndex} />
           <ReadOnlyField label="Batch / Year" value={batchYear} />

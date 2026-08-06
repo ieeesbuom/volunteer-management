@@ -26,7 +26,15 @@ function runAppwrite(args) {
   return runAppwriteCli(args);
 }
 
-const RUNTIME_SCOPES = ["sessions.write", "rows.read", "rows.write", "users.read"];
+const RUNTIME_SCOPES = [
+  "sessions.write",
+  "rows.read",
+  "rows.write",
+  "users.read",
+  // Profile avatar uploads/serving via server SDK (bucket stays client-locked)
+  "files.read",
+  "files.write",
+];
 const SETUP_SCOPES = [
   "databases.read",
   "databases.write",
@@ -40,6 +48,10 @@ const SETUP_SCOPES = [
   "rows.write",
   "users.read",
   "sessions.write",
+  "files.read",
+  "files.write",
+  "buckets.read",
+  "buckets.write",
   "keys.read",
   "keys.write",
 ];

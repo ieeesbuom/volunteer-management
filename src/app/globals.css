@@ -6,13 +6,13 @@
   --primary-soft: hsl(216, 80%, 97%);
   --primary-mid: hsl(216, 60%, 92%);
 
-  --bg-base: hsl(220, 16%, 96%);
+  --bg-base: hsl(220, 6%, 98.5%);
   --surface-raised: hsl(0, 0%, 100%);
   --surface-overlay: hsl(0, 0%, 100%);
 
-  --border-subtle: hsl(220, 13%, 91%);
-  --border-default: hsl(220, 13%, 84%);
-  --border-strong: hsl(220, 13%, 72%);
+  --border-subtle: hsl(220, 5%, 96%);
+  --border-default: hsl(220, 6%, 91%);
+  --border-strong: hsl(220, 8%, 80%);
 
   --text-strong: hsl(220, 26%, 14%);
   --text-body: hsl(220, 14%, 32%);
@@ -26,7 +26,7 @@
   --danger: hsl(0, 68%, 40%);
   --danger-soft: hsl(0, 80%, 97%);
   --neutral: hsl(220, 10%, 50%);
-  --neutral-soft: hsl(220, 12%, 94%);
+  --neutral-soft: hsl(220, 6%, 97%);
 
   --gold: hsl(43, 90%, 48%);
   --silver: hsl(220, 10%, 62%);
@@ -97,7 +97,12 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-overlay: var(--shadow-overlay);
 
-  --font-sans: "Inter", sans-serif;
+  --font-sans: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-nunito: var(--font-nunito-sans), "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.font-nunito {
+  font-family: var(--font-nunito-sans), "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -142,5 +147,104 @@ input[type="radio"] {
 a *,
 button * {
   cursor: pointer !important;
+}
+
+.dashboard-grid .react-grid-item.react-grid-placeholder {
+  background: hsl(216 80% 97%);
+  border: 2px dashed hsl(216 79% 50%);
+  border-radius: var(--radius-xl);
+  opacity: 0.9;
+}
+
+/* When NOT in edit mode, hide all react-resizable handles */
+.dashboard-grid:not(.edit-mode) .react-resizable-handle {
+  display: none !important;
+}
+
+/* Top-Right Positioned Custom Resize Handle for Dashboard Widgets strictly when in editMode */
+.dashboard-grid.edit-mode .react-resizable-handle.react-resizable-handle-se {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+  top: 10px !important;
+  right: 48px !important;
+  bottom: auto !important;
+  left: auto !important;
+  width: 72px !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  background-color: var(--surface-raised) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--primary-mid) !important;
+  border-radius: 8px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  cursor: se-resize !important;
+  z-index: 30 !important;
+  transition: all 150ms ease !important;
+  user-select: none !important;
+  background-image: none !important;
+}
+
+.dashboard-grid.edit-mode .react-resizable-handle.react-resizable-handle-se::before {
+  content: "Resize" !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  letter-spacing: -0.01em !important;
+  color: var(--primary) !important;
+}
+
+.dashboard-grid.edit-mode .react-resizable-handle.react-resizable-handle-se::after {
+  content: "↘" !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  margin-left: 2px !important;
+  color: var(--primary) !important;
+}
+
+.dashboard-grid.edit-mode .react-resizable-handle.react-resizable-handle-se:hover {
+  background-color: var(--primary-soft) !important;
+  color: var(--primary-hover) !important;
+  border-color: var(--primary) !important;
+  transform: scale(1.04) !important;
+}
+
+.dashboard-grid.edit-mode .react-resizable-handle.react-resizable-handle-se:hover {
+  background-color: var(--primary-soft);
+  color: var(--primary-hover);
+  border-color: var(--primary);
+  transform: scale(1.04);
+}
+
+.dashboard-grid.edit-mode .react-resizable-handle.react-resizable-handle-se:active {
+  transform: scale(0.96);
+  background-color: var(--primary-soft);
+}
+
+@keyframes dashboard-bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.dashboard-bar-fill {
+  animation: dashboard-bar-fill 650ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 

@@ -16,6 +16,8 @@ export type AuditAction =
   | "UOM_VERIFICATION_REQUESTED"
   | "UOM_VERIFICATION_CONFIRMED"
   | "VOLUNTEER_PROFILE_UPDATED"
+  | "PROFILE_AVATAR_UPDATED"
+  | "PROFILE_AVATAR_REMOVED"
   | "RECOMMENDATION_REQUESTED"
   | "RECOMMENDATION_ACCEPTED"
   | "RECOMMENDATION_REJECTED"
@@ -66,6 +68,7 @@ export type Profile = {
   uomVerifiedAt?: string;
   status: ProfileStatus;
   lastLoginAt?: string;
+  avatarFileId?: string;
 };
 
 export type RoleAssignment = {
@@ -97,6 +100,7 @@ export type AuthUser = {
   id: string;
   email: string;
   name: string;
+  avatarUrl?: string;
 };
 
 export type SessionUser = {

@@ -8,6 +8,7 @@ import { normalizeEmail } from "@/features/access-control/lib/rules";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { isAppwriteNotFound } from "@/server/errors";
+import { readAvatarUrlFromPrefs } from "@/features/access-control/server/google-avatar";
 import type { AuthUser, Profile } from "@/features/access-control/types";
 
 type AppwriteUser = Models.User<Models.Preferences>;
@@ -15,6 +16,7 @@ type AppRow = Models.Row & Record<string, unknown>;
 
 function toAuthUser(user: AppwriteUser): AuthUser {
   return {
+    avatarUrl: readAvatarUrlFromPrefs(user.prefs),
     email: normalizeEmail(user.email),
     id: user.$id,
     name: user.name ?? "",
@@ -25,6 +27,10 @@ export function toProfile(row: AppRow): Profile {
   return {
     $id: row.$id,
     authUserId: String(row.authUserId),
+    avatarFileId:
+      typeof row.avatarFileId === "string" && row.avatarFileId
+        ? row.avatarFileId
+        : undefined,
     googleEmail: String(row.googleEmail),
     lastLoginAt: typeof row.lastLoginAt === "string" ? row.lastLoginAt : undefined,
     name: typeof row.name === "string" ? row.name : undefined,

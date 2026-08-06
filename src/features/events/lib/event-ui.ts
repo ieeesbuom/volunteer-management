@@ -42,19 +42,6 @@ export function getEventStatusBadgeTone(status: EventStatus): BadgeTone {
   }
 }
 
-export function getEventStatusBadgeClassName(status: EventStatus) {
-  switch (status) {
-    case "draft":
-      return "border-border bg-surface-muted text-text-secondary";
-    case "published":
-      return "border-primary/30 bg-primary-soft text-primary";
-    case "closed":
-      return "border-border-strong bg-surface-subtle text-text-muted";
-    default:
-      return undefined;
-  }
-}
-
 export function getConclusionStatusBadgeTone(status: ConclusionStatus): BadgeTone {
   switch (status) {
     case "not_submitted":

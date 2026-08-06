@@ -1,5 +1,6 @@
 import { MessageSquareQuote, UserRound } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -97,7 +98,7 @@ function VolunteerProfileContent({
   const recommendationCount = profile.isPrivateView ? recommendations.length : null;
 
   return (
-    <div className="space-y-6">
+    <AppPage>
       <PageHeader
         title={profileDisplayName}
         description={profile.details?.headline ?? "Volunteer profile"}
@@ -228,7 +229,7 @@ function VolunteerProfileContent({
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </AppPage>
   );
 }
 

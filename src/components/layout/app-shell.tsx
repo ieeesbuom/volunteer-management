@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import {
   BellPlus,
   CalendarDays,
@@ -10,21 +10,50 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
-  ShieldCheck,
   UserRound,
   UsersRound,
   Trophy,
   Menu,
   X,
 } from "lucide-react";
-import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
+import { APP_NAME } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/features/access-control/types";
-import { NotificationBell } from "@/features/notifications/components/notification-bell";
+import {
+  AppPageNavProvider,
+  AppTopNavSpacer,
+} from "@/components/layout/app-page-nav-context";
+import { AppTopNav } from "@/components/layout/app-top-nav";
+
+const ACTIVE_PAGE_TITLES: Record<
+  | "dashboard"
+  | "notifications"
+  | "settings"
+  | "moderation"
+  | "events"
+  | "my-events"
+  | "users"
+  | "reports"
+  | "scoring"
+  | "volunteers",
+  string
+> = {
+  dashboard: "Overview",
+  events: "Events",
+  "my-events": "My Events",
+  scoring: "Scoring & Leaderboard",
+  volunteers: "Profile",
+  reports: "Reports",
+  users: "Access Control",
+  settings: "Settings",
+  moderation: "Moderation",
+  notifications: "Notifications",
+};
 
 export function AppShell({
   active,
   children,
+  pageTitle,
   user,
 }: Readonly<{
   active:
@@ -39,6 +68,8 @@ export function AppShell({
     | "scoring"
     | "volunteers";
   children: React.ReactNode;
+  /** Matches PageHeader title so SSR and hydration use the same top-nav label. */
+  pageTitle?: string;
   user: SessionUser;
 }>) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -62,20 +93,25 @@ export function AppShell({
 
   const renderSidebarContent = () => (
     <>
-      <div className="flex h-16 shrink-0 items-center gap-3 px-6 border-b border-border-subtle">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary-soft text-primary">
-          <ShieldCheck className="size-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            {ORGANIZATION_NAME}
-          </p>
-          <p className="truncate text-sm font-semibold text-text-primary">{APP_NAME}</p>
-        </div>
+      <div className="flex h-16 shrink-0 items-center border-b border-border-subtle px-6">
+        <Link
+          href="/dashboard"
+          className="flex min-w-0 items-center gap-2.5 text-xl font-black tracking-tight text-text-strong transition-opacity hover:opacity-90"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- favicon matches site icon */}
+          <img
+            src="/favicon.ico"
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 shrink-0 rounded-md object-contain"
+          />
+          <span className="truncate">IEEE SB UOM</span>
+        </Link>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
-        <nav className="flex-1 space-y-1 px-3">
+        <nav className="flex-1 space-y-1.5 px-3">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.id === active;
@@ -85,14 +121,17 @@ export function AppShell({
                 href={item.href}
                 prefetch={false}
                 className={cn(
-                  "group flex h-10 items-center gap-3 rounded-md px-3 text-[14px] font-medium transition-colors cursor-pointer",
+                  "group flex h-10 items-center gap-3 rounded-xl px-3.5 text-[13px] font-semibold transition-all cursor-pointer",
                   isActive
-                    ? "bg-primary-mid text-primary"
-                    : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+                    ? "bg-primary text-white"
+                    : "text-text-muted hover:bg-bg-base hover:text-text-strong"
                 )}
               >
                 <Icon
-                  className={cn("size-4 shrink-0", isActive ? "text-primary" : "text-text-muted group-hover:text-text-primary")}
+                  className={cn(
+                    "size-4 shrink-0",
+                    isActive ? "text-white" : "text-text-placeholder group-hover:text-text-strong",
+                  )}
                   aria-hidden="true"
                 />
                 {item.label}
@@ -101,8 +140,8 @@ export function AppShell({
           })}
 
           {adminNavItems.length > 0 && (
-            <div className="mt-8">
-              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+            <div className="mt-6 border-t border-border-subtle pt-4">
+              <p className="px-3.5 pb-2 text-[11px] font-bold uppercase tracking-wider text-text-placeholder">
                 Administration
               </p>
               <div className="space-y-1">
@@ -115,14 +154,17 @@ export function AppShell({
                       href={item.href}
                       prefetch={false}
                       className={cn(
-                        "group flex h-10 items-center gap-3 rounded-md px-3 text-[14px] font-medium transition-colors cursor-pointer",
+                        "group flex h-10 items-center gap-3 rounded-xl px-3.5 text-[13px] font-semibold transition-all cursor-pointer",
                         isActive
-                          ? "bg-primary-mid text-primary"
-                          : "text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+                          ? "bg-primary text-white"
+                          : "text-text-muted hover:bg-bg-base hover:text-text-strong"
                       )}
                     >
                       <Icon
-                        className={cn("size-[18px] shrink-0", isActive ? "text-primary" : "text-text-muted group-hover:text-text-primary")}
+                        className={cn(
+                    "size-4 shrink-0",
+                    isActive ? "text-white" : "text-text-placeholder group-hover:text-text-strong",
+                  )}
                         aria-hidden="true"
                       />
                       {item.label}
@@ -135,36 +177,45 @@ export function AppShell({
         </nav>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3 border-t border-border-subtle p-4">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-sm font-bold text-text-secondary">
-          {user.authUser.name ? user.authUser.name.charAt(0).toUpperCase() : user.authUser.email.charAt(0).toUpperCase()}
-        </div>
+      <div className="flex shrink-0 items-center gap-3 border-t border-border-subtle bg-surface-raised p-4">
+        {user.authUser.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- custom avatars are same-origin; Google photos need no-referrer
+          <img
+            src={user.authUser.avatarUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="size-9 shrink-0 rounded-full bg-text-strong object-cover"
+          />
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-text-strong text-xs font-bold text-white">
+            {user.authUser.name
+              ? user.authUser.name.charAt(0).toUpperCase()
+              : user.authUser.email.charAt(0).toUpperCase()}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium text-text-primary">{user.authUser.name || "Volunteer"}</p>
-          <p className="truncate text-[12px] text-text-muted">{user.authUser.email}</p>
+          <p className="truncate text-[13px] font-semibold text-text-strong">{user.authUser.name || "Volunteer"}</p>
+          <p className="truncate text-[11px] text-text-muted">{user.authUser.email}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <NotificationBell initialNotifications={[]} initialUnreadCount={0} />
-          <form action="/api/auth/logout" method="post">
-            <button
-              type="submit"
-              className="flex size-8 items-center justify-center rounded-md text-text-muted hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
-              title="Sign out"
-            >
-              <LogOut className="size-[18px]" aria-hidden="true" />
-            </button>
-          </form>
-        </div>
+        <form action="/api/auth/logout" method="post">
+          <button
+            type="submit"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-base hover:text-text-strong"
+            title="Sign out"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+          </button>
+        </form>
       </div>
     </>
   );
 
   return (
-    <div className="flex min-h-screen bg-bg-base text-text-primary">
+    <div className="flex min-h-screen bg-bg-base text-text-strong antialiased">
       {/* Mobile sidebar backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs lg:hidden transition-opacity"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -172,14 +223,14 @@ export function AppShell({
       {/* Mobile sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[280px] transform flex-col bg-surface-raised border-r border-border-subtle transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-65 flex transform flex-col border-r border-border-subtle bg-surface-raised transition-transform duration-300 ease-in-out lg:hidden",
           mobileMenuOpen ? "translate-x-0 flex" : "-translate-x-full flex"
         )}
       >
         <div className="absolute right-0 top-0 -mr-12 pt-4">
           <button
             type="button"
-            className="flex size-10 items-center justify-center rounded-full bg-black/50 text-white focus:outline-none focus:ring-2 focus:ring-white"
+            className="flex size-10 items-center justify-center rounded-full bg-black/50 text-white focus:outline-none"
             onClick={() => setMobileMenuOpen(false)}
           >
             <span className="sr-only">Close sidebar</span>
@@ -190,36 +241,38 @@ export function AppShell({
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-[240px] lg:flex-col lg:border-r lg:border-border-subtle lg:bg-surface-raised">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-border-subtle lg:bg-surface-raised">
         {renderSidebarContent()}
       </div>
 
       {/* Main content area */}
-      <div className="flex flex-1 flex-col lg:pl-[240px]">
-        {/* Mobile top bar */}
-        <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-x-4 border-b border-border-subtle bg-surface-raised px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:hidden">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-text-secondary cursor-pointer hover:text-text-primary"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <Menu className="size-6" aria-hidden="true" />
-          </button>
-          <div className="flex flex-1 items-center justify-between gap-x-4 lg:hidden">
-            <span className="text-sm font-semibold text-text-primary">{APP_NAME}</span>
-            <div className="flex items-center gap-3">
-              <NotificationBell initialNotifications={[]} initialUnreadCount={0} />
+      <AppPageNavProvider defaultTitle={pageTitle ?? ACTIVE_PAGE_TITLES[active]}>
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
+          {/* Mobile top bar */}
+          <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-x-4 border-b border-border-subtle bg-surface-raised px-4 sm:gap-x-6 sm:px-6 lg:hidden">
+            <button
+              type="button"
+              className="-m-2.5 cursor-pointer p-2.5 text-text-muted hover:text-text-strong"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <span className="sr-only">Open sidebar</span>
+              <Menu className="size-6" aria-hidden="true" />
+            </button>
+            <div className="flex flex-1 items-center justify-between gap-x-4 lg:hidden">
+              <span className="text-sm font-bold text-text-strong">{APP_NAME}</span>
             </div>
           </div>
-        </div>
 
-        <main className="flex-1">
-          <div className="mx-auto w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+          <Suspense fallback={<div aria-hidden className="h-[7.5rem] shrink-0 lg:h-[4.5rem]" />}>
+            <AppTopNav user={user} />
+          </Suspense>
+          <AppTopNavSpacer />
+
+          <main className="min-w-0 max-w-full flex-1 overflow-x-hidden px-4 py-4 font-nunito text-text-strong antialiased sm:px-6 lg:px-6">
             {children}
-          </div>
-        </main>
-      </div>
+          </main>
+        </div>
+      </AppPageNavProvider>
     </div>
   );
 }

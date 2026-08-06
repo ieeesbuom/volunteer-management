@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  CalendarDays,
   CalendarRange,
   Check,
   Edit,
@@ -13,8 +14,18 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { eventInputClasses, eventTextareaClasses } from "@/features/events/lib/event-ui";
+import { ReportsMetricCard } from "@/features/reports/components/reports-metric-card";
 import { cn, formatUserFacingError } from "@/lib/utils";
 import {
   formatDisplayDate,
@@ -79,8 +90,9 @@ const auditActionOptions = [
   "TOP_BOARD_EXCLUSION_REMOVED",
   "SYSTEM_SETTING_UPDATED",
 ];
-const inputClasses =
-  "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
+const inputClasses = cn(eventInputClasses, "h-[38px]");
+const labelClasses =
+  "mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted";
 
 export function SystemSettingsPanel({
   initialActiveTermId,
@@ -118,7 +130,7 @@ export function SystemSettingsPanel({
   const [permissions, setPermissions] = useState(initialPermissions);
   const [selectedTermId, setSelectedTermId] = useState(initialSelectedTermId);
   const [status, setStatus] = useState<NoticeStatus>("idle");
-  const [tab, setTab] = useState<PanelTab>("permissions");
+  const [tab, setTab] = useState<PanelTab>("terms");
   const [termForm, setTermForm] = useState<TermFormState>(emptyTermForm);
   const [terms, setTerms] = useState(initialTerms);
 
@@ -381,60 +393,124 @@ export function SystemSettingsPanel({
     }
   }
 
+  const activeTermLabel =
+    terms.find((term) => term.active)?.label ?? deriveTermFromDate(new Date().toISOString());
+
   return (
-    <div className="space-y-5">
-      <section className="grid gap-3 md:grid-cols-2">
-        <SummaryTile
-          label="Active term"
-          value={deriveTermFromDate(new Date().toISOString())}
+    <div className="min-w-0 space-y-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ReportsMetricCard
+          accent="primary"
+          icon={CalendarRange}
+          label="Active IEEE term"
+          value={activeTermLabel}
         />
-        <SummaryTile label="Audit records" value={auditLoaded ? String(auditTotal) : "On demand"} />
+        <ReportsMetricCard
+          accent="neutral"
+          icon={ShieldCheck}
+          label="Configured terms"
+          value={String(terms.length)}
+        />
+        <ReportsMetricCard
+          accent="warning"
+          icon={History}
+          label="Audit records"
+          value={auditLoaded ? String(auditTotal) : "On demand"}
+        />
       </section>
 
-      <div className="inline-flex flex-wrap rounded-md border border-border bg-surface p-1">
-        <TabButton active={tab === "permissions"} icon={ShieldCheck} label="Permissions" onClick={() => openTab("permissions")} />
-        <TabButton active={tab === "audit"} icon={History} label="Audit" onClick={() => openTab("audit")} />
+      <div className="border-b border-border-subtle">
+        <nav aria-label="Settings sections" className="-mb-px flex flex-wrap gap-0">
+          <SettingsTab
+            active={tab === "terms"}
+            icon={CalendarRange}
+            label="IEEE terms"
+            onClick={() => openTab("terms")}
+          />
+          <SettingsTab
+            active={tab === "permissions"}
+            icon={ShieldCheck}
+            label="Permissions"
+            onClick={() => openTab("permissions")}
+          />
+          <SettingsTab
+            active={tab === "audit"}
+            icon={History}
+            label="Audit trail"
+            onClick={() => openTab("audit")}
+          />
+        </nav>
       </div>
 
       {message ? <Notice message={message} status={status} /> : null}
 
-      {tab === "terms" ? (
-        <TermsPanel
-          activeTermId={activeTermId}
-          editingTermId={editingTermId}
-          pendingAction={pendingAction}
-          requestActivate={(term) => setConfirmation({ kind: "activate-term", term })}
-          requestClose={(term) => setConfirmation({ kind: "close-term", term })}
-          resetTermForm={resetTermForm}
-          setEditingTermId={setEditingTermId}
-          setTermForm={setTermForm}
-          submitTerm={submitTerm}
-          termForm={termForm}
-          terms={terms}
-          useSuggestedTermDates={useSuggestedTermDates}
-        />
-      ) : null}
+      <Card className="min-w-0">
+        {tab === "terms" ? (
+          <CardHeader className="border-b border-border-subtle">
+            <CardTitle>IEEE term lifecycle</CardTitle>
+            <CardDescription>
+              Term dates follow October 1 to September 30 by default. Adjust after each AGM and set
+              one active term for branch operations.
+            </CardDescription>
+          </CardHeader>
+        ) : null}
+        {tab === "permissions" ? (
+          <CardHeader className="border-b border-border-subtle">
+            <CardTitle>Role capabilities</CardTitle>
+            <CardDescription>
+              Predefined Student Branch and event role permissions. Edit only when policy requires a
+              change.
+            </CardDescription>
+          </CardHeader>
+        ) : null}
+        {tab === "audit" ? (
+          <CardHeader className="border-b border-border-subtle">
+            <CardTitle>System audit trail</CardTitle>
+            <CardDescription>
+              Filter and review privileged actions across access control, terms, and configuration.
+            </CardDescription>
+          </CardHeader>
+        ) : null}
+        <CardContent className={cn("min-w-0", tab === "audit" ? "p-0" : "p-5")}>
+          {tab === "terms" ? (
+            <TermsPanel
+              activeTermId={activeTermId}
+              editingTermId={editingTermId}
+              pendingAction={pendingAction}
+              requestActivate={(term) => setConfirmation({ kind: "activate-term", term })}
+              requestClose={(term) => setConfirmation({ kind: "close-term", term })}
+              resetTermForm={resetTermForm}
+              setEditingTermId={setEditingTermId}
+              setTermForm={setTermForm}
+              submitTerm={submitTerm}
+              termForm={termForm}
+              terms={terms}
+              useSuggestedTermDates={useSuggestedTermDates}
+            />
+          ) : null}
 
-      {tab === "permissions" ? (
-        <PermissionsPanel
-          onSavePermissions={handleSavePermissions}
-          pendingAction={pendingAction}
-          permissions={permissions}
-        />
-      ) : null}
+          {tab === "permissions" ? (
+            <PermissionsPanel
+              onSavePermissions={handleSavePermissions}
+              pendingAction={pendingAction}
+              permissions={permissions}
+            />
+          ) : null}
 
-      {tab === "audit" ? (
-        <AuditPanel
-          auditFilters={auditFilters}
-          auditLogs={auditLogs}
-          auditNextCursor={auditNextCursor}
-          auditTotal={auditTotal}
-          loadMoreAuditLogs={loadMoreAuditLogs}
-          pendingAction={pendingAction}
-          refreshAuditLogs={refreshAuditLogs}
-          setAuditFilters={setAuditFilters}
-        />
-      ) : null}
+          {tab === "audit" ? (
+            <AuditPanel
+              auditFilters={auditFilters}
+              auditLogs={auditLogs}
+              auditNextCursor={auditNextCursor}
+              auditTotal={auditTotal}
+              loadMoreAuditLogs={loadMoreAuditLogs}
+              pendingAction={pendingAction}
+              refreshAuditLogs={refreshAuditLogs}
+              setAuditFilters={setAuditFilters}
+            />
+          ) : null}
+        </CardContent>
+      </Card>
 
       <ConfirmationDialog
         confirmation={confirmation}
@@ -474,40 +550,40 @@ function TermsPanel({
   useSuggestedTermDates: () => void;
 }) {
   return (
-    <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
+    <div className="grid min-w-0 gap-5 lg:grid-cols-1 xl:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]">
       <form
-        className="rounded-md border border-border bg-surface-subtle p-4"
+        className="min-w-0 rounded-2xl border border-border-subtle bg-bg-base/50 p-5 shadow-sm"
         onSubmit={submitTerm}
       >
         <div className="flex items-center gap-2">
           <CalendarRange className="size-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-text-primary">
+          <h3 className="text-[15px] font-semibold text-text-strong">
             {editingTermId ? "Edit IEEE term" : "Create IEEE term"}
           </h3>
         </div>
-        <p className="mt-2 text-xs leading-5 text-text-secondary">
+        <p className="mt-2 text-[12px] leading-relaxed text-text-muted">
           Suggested terms use October 1 to September 30. Admin can edit exact dates after each AGM.
         </p>
 
         <div className="mt-4 space-y-3">
-          <label className="block text-sm font-medium text-text-secondary">
-            Label
+          <label className="block">
+            <span className={labelClasses}>Label</span>
             <input
-              className={cn(inputClasses, "mt-1 bg-surface-muted")}
+              className={cn(inputClasses, "mt-0 bg-neutral-soft")}
               readOnly
               required
               value={formatSafeTermLabel(termForm.startDate)}
             />
-            <span className="mt-1 block text-xs text-text-muted">
+            <span className="mt-1 block text-[11px] text-text-muted">
               Automatically derived from the selected start year.
             </span>
           </label>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-            <label className="block text-sm font-medium text-text-secondary">
-              Start date
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <label className="block">
+              <span className={labelClasses}>Start date</span>
               <input
-                className={cn(inputClasses, "mt-1")}
+                className={inputClasses}
                 onChange={(event) =>
                   setTermForm((current) => ({
                     ...current,
@@ -520,10 +596,10 @@ function TermsPanel({
               />
             </label>
 
-            <label className="block text-sm font-medium text-text-secondary">
-              End date
+            <label className="block">
+              <span className={labelClasses}>End date</span>
               <input
-                className={cn(inputClasses, "mt-1")}
+                className={inputClasses}
                 onChange={(event) =>
                   setTermForm((current) => ({ ...current, endDate: event.target.value }))
                 }
@@ -534,10 +610,10 @@ function TermsPanel({
             </label>
           </div>
 
-          <label className="block text-sm font-medium text-text-secondary">
-            Notes
+          <label className="block">
+            <span className={labelClasses}>Notes</span>
             <textarea
-              className="min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary"
+              className={eventTextareaClasses}
               onChange={(event) =>
                 setTermForm((current) => ({ ...current, notes: event.target.value }))
               }
@@ -549,6 +625,7 @@ function TermsPanel({
 
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
+            className="cursor-pointer"
             disabled={pendingAction === "term:save"}
             type="submit"
             variant="primary"
@@ -556,111 +633,173 @@ function TermsPanel({
             <Check className="size-4" aria-hidden="true" />
             {editingTermId ? "Update Term" : "Create Term"}
           </Button>
-          <Button onClick={useSuggestedTermDates} type="button">
+          <Button className="cursor-pointer" onClick={useSuggestedTermDates} type="button">
             <RefreshCw className="size-4" aria-hidden="true" />
             Suggested Dates
           </Button>
           {editingTermId ? (
-            <Button onClick={resetTermForm} type="button" variant="ghost">
+            <Button className="cursor-pointer" onClick={resetTermForm} type="button" variant="ghost">
               Cancel Edit
             </Button>
           ) : null}
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="min-w-[900px] divide-y divide-border text-left text-sm">
-          <thead className="bg-surface-muted text-text-secondary">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Term</th>
-              <th className="px-4 py-3 font-semibold">Dates</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Updated</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border bg-surface">
-            {terms.map((term) => (
-              <tr key={term.$id}>
-                <td className="px-4 py-4">
-                  <p className="font-medium text-text-primary">{term.label}</p>
-                  {term.notes ? (
-                    <p className="mt-1 max-w-72 text-xs leading-5 text-text-muted">
-                      {term.notes}
-                    </p>
-                  ) : null}
-                </td>
-                <td className="px-4 py-4 text-text-secondary">
-                  {term.startDate} to {term.endDate}
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone={term.active ? "success" : term.status === "CLOSED" ? "neutral" : "warning"}>
-                      {term.active ? "Active" : term.status}
-                    </Badge>
-                    {term.$id === activeTermId ? <Badge tone="primary">Selected</Badge> : null}
-                  </div>
-                </td>
-                <td className="px-4 py-4 text-text-secondary">
-                  {formatDisplayDate(term.updatedAt)}
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    {term.status !== "CLOSED" ? (
-                      <Button
-                        onClick={() => {
-                          setEditingTermId(term.$id);
-                          setTermForm({
-                            endDate: term.endDate,
-                            notes: term.notes ?? "",
-                            startDate: term.startDate,
-                            status: "DRAFT",
-                          });
-                        }}
-                        type="button"
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <span className="text-xs font-medium text-text-muted">
-                        Historical record
+      <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border-subtle bg-surface-raised">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full min-w-0 table-fixed border-collapse text-left text-sm">
+            <colgroup>
+              <col className="w-[26%]" />
+              <col className="w-[22%]" />
+              <col className="w-[18%]" />
+              <col className="w-[14%]" />
+              <col className="w-[20%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-border-subtle bg-primary-soft/50">
+                {["Term", "Dates", "Status", "Updated", "Actions"].map((heading) => (
+                  <th
+                    key={heading}
+                    className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted xl:px-4"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {terms.map((term, rowIndex) => (
+                <tr
+                  key={term.$id}
+                  className={cn(
+                    "border-b border-border-subtle/80 transition-colors last:border-b-0 hover:bg-primary-soft/30",
+                    rowIndex % 2 === 1 ? "bg-bg-base/60" : "bg-surface-raised",
+                  )}
+                >
+                  <td className="px-3 py-3.5 align-top xl:px-4 xl:py-4">
+                    <p className="truncate font-semibold text-text-strong">{term.label}</p>
+                    {term.notes ? (
+                      <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-text-muted">
+                        {term.notes}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-3.5 align-top xl:px-4 xl:py-4">
+                    <div className="text-[12px] leading-snug tabular-nums text-text-body">
+                      <span className="block truncate">{term.startDate}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-text-muted">
+                        to {term.endDate}
                       </span>
-                    )}
-                    {!term.active && term.status !== "CLOSED" ? (
-                      <Button
-                        disabled={pendingAction === `term:activate:${term.$id}`}
-                        onClick={() => requestActivate(term)}
-                        type="button"
-                        variant="primary"
-                      >
-                        Set Active
-                      </Button>
-                    ) : null}
-                    {term.status !== "CLOSED" ? (
-                      <Button
-                        disabled={pendingAction === `term:close:${term.$id}`}
-                        onClick={() => requestClose(term)}
-                        type="button"
-                        variant="ghost"
-                      >
-                        Close
-                      </Button>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {terms.length === 0 ? (
-              <tr>
-                <td className="px-4 py-8 text-center text-text-secondary" colSpan={5}>
-                  No IEEE terms are configured yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3.5 align-top xl:px-4 xl:py-4">
+                    <div className="flex min-w-0 flex-col items-start gap-1.5">
+                      <TermStatusBadge active={term.active} status={term.status} />
+                      {term.$id === activeTermId ? (
+                        <Badge className="max-w-full truncate" tone="primary">
+                          Selected
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3.5 align-top text-[12px] text-text-muted xl:px-4 xl:py-4">
+                    {formatDisplayDate(term.updatedAt)}
+                  </td>
+                  <td className="px-3 py-3.5 align-top xl:px-4 xl:py-4">
+                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:flex-wrap">
+                      {term.status !== "CLOSED" ? (
+                        <Button
+                          className="h-8 w-full cursor-pointer px-2 text-[11px] sm:w-auto sm:px-3"
+                          onClick={() => {
+                            setEditingTermId(term.$id);
+                            setTermForm({
+                              endDate: term.endDate,
+                              notes: term.notes ?? "",
+                              startDate: term.startDate,
+                              status: "DRAFT",
+                            });
+                          }}
+                          type="button"
+                          variant="secondary"
+                        >
+                          Edit
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] font-medium leading-snug text-text-muted">
+                          Historical record
+                        </span>
+                      )}
+                      {!term.active && term.status !== "CLOSED" ? (
+                        <Button
+                          className="h-8 w-full cursor-pointer px-2 text-[11px] sm:w-auto sm:px-3"
+                          disabled={pendingAction === `term:activate:${term.$id}`}
+                          onClick={() => requestActivate(term)}
+                          type="button"
+                          variant="primary"
+                        >
+                          Set Active
+                        </Button>
+                      ) : null}
+                      {term.status !== "CLOSED" ? (
+                        <Button
+                          className="h-8 w-full cursor-pointer px-2 text-[11px] sm:w-auto sm:px-3"
+                          disabled={pendingAction === `term:close:${term.$id}`}
+                          onClick={() => requestClose(term)}
+                          type="button"
+                          variant="ghost"
+                        >
+                          Close
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {terms.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-12 text-center text-[13px] text-text-muted" colSpan={5}>
+                    No IEEE terms are configured yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+  );
+}
+
+function TermStatusBadge({
+  active,
+  status,
+}: {
+  active: boolean;
+  status: IeeeTermStatus;
+}) {
+  if (active) {
+    return (
+      <span className="inline-flex items-center gap-2 text-[13px] font-medium text-text-body">
+        <span className="size-2 rounded-full bg-success" aria-hidden="true" />
+        Active
+      </span>
+    );
+  }
+
+  if (status === "CLOSED") {
+    return (
+      <span className="inline-flex items-center gap-2 text-[13px] font-medium text-text-muted">
+        <span className="size-2 rounded-full bg-text-muted" aria-hidden="true" />
+        Closed
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 text-[13px] font-medium text-text-body">
+      <span className="size-2 rounded-full bg-warning" aria-hidden="true" />
+      {status}
+    </span>
   );
 }
 
@@ -676,6 +815,10 @@ function PermissionsPanel({
   pendingAction: string | null;
   permissions: PermissionOverview;
 }) {
+  const [category, setCategory] = useState<"event" | "sb">("sb");
+  const [selectedRole, setSelectedRole] = useState<string>(
+    () => permissions.sbRoles[0]?.role ?? permissions.eventRoles[0]?.role ?? "",
+  );
   const [sbPowers, setSbPowers] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(permissions.sbRoles.map((r) => [r.role, r.powers ?? []])),
   );
@@ -688,6 +831,15 @@ function PermissionsPanel({
   const [confirmSave, setConfirmSave] = useState<{ role: string; type: "event" | "sb" } | null>(
     null,
   );
+
+  const rows = category === "sb" ? permissions.sbRoles : permissions.eventRoles;
+  const powerOptions = category === "sb" ? SB_ROLE_POWERS : EVENT_ROLE_POWERS;
+  const powersMap = category === "sb" ? sbPowers : eventPowers;
+  const selectedRow = rows.find((row) => row.role === selectedRole) ?? rows[0];
+  const isEditing =
+    Boolean(editingRole) &&
+    editingRole?.type === category &&
+    editingRole.role === selectedRow?.role;
 
   function toggleSbPower(role: string, powerId: string) {
     setSbPowers((prev) => {
@@ -720,6 +872,22 @@ function PermissionsPanel({
     setEditingRole(null);
   }
 
+  function switchCategory(next: "event" | "sb") {
+    if (editingRole) {
+      handleCancelEdit(editingRole.role, editingRole.type);
+    }
+    setCategory(next);
+    const nextRows = next === "sb" ? permissions.sbRoles : permissions.eventRoles;
+    setSelectedRole(nextRows[0]?.role ?? "");
+  }
+
+  function selectRole(role: string) {
+    if (editingRole && (editingRole.role !== role || editingRole.type !== category)) {
+      handleCancelEdit(editingRole.role, editingRole.type);
+    }
+    setSelectedRole(role);
+  }
+
   async function executeConfirmedSave() {
     if (!confirmSave) {
       return;
@@ -729,88 +897,217 @@ function PermissionsPanel({
     setEditingRole(null);
   }
 
+  if (!selectedRow) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border-subtle bg-bg-base/40 px-6 py-12 text-center text-[13px] text-text-muted">
+        No roles are configured for this category.
+      </div>
+    );
+  }
+
+  const activePowers = powersMap[selectedRow.role] ?? [];
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-md border border-border bg-surface-subtle p-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
-            <Lock className="size-4" aria-hidden="true" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold text-text-primary">
-              Predefined Role & System Capabilities
-            </h3>
-            <p className="mt-1 text-xs leading-5 text-text-secondary">
-              Role permissions are predefined by default to ensure secure access control. To inspect what capabilities each role grants, view the active capability list below. If you explicitly need to add or reduce capabilities for a specific role, click <strong>Edit Permissions</strong> next to that role and confirm your changes.
-            </p>
-          </div>
-        </div>
+    <div className="min-w-0 space-y-4">
+      <p className="text-[13px] leading-relaxed text-text-muted">
+        Capabilities are predefined for each role. Select a role to review what it can do, or edit
+        permissions when branch policy requires a change.
+      </p>
+
+      <div className="inline-flex rounded-xl border border-border-subtle bg-bg-base p-1">
+        <CategorySwitch
+          active={category === "sb"}
+          icon={ShieldCheck}
+          label="Student Branch"
+          onClick={() => switchCategory("sb")}
+        />
+        <CategorySwitch
+          active={category === "event"}
+          icon={CalendarDays}
+          label="Event roles"
+          onClick={() => switchCategory("event")}
+        />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RoleTable
-          editingRole={editingRole?.type === "sb" ? editingRole.role : null}
-          onCancelEdit={(role) => handleCancelEdit(role, "sb")}
-          onRequestSave={(role) => setConfirmSave({ role, type: "sb" })}
-          onStartEdit={(role) => setEditingRole({ role, type: "sb" })}
-          onTogglePower={toggleSbPower}
-          powerOptions={SB_ROLE_POWERS}
-          powersMap={sbPowers}
-          rows={permissions.sbRoles}
-          title="Student Branch Roles"
-        />
-        <RoleTable
-          editingRole={editingRole?.type === "event" ? editingRole.role : null}
-          onCancelEdit={(role) => handleCancelEdit(role, "event")}
-          onRequestSave={(role) => setConfirmSave({ role, type: "event" })}
-          onStartEdit={(role) => setEditingRole({ role, type: "event" })}
-          onTogglePower={toggleEventPower}
-          powerOptions={EVENT_ROLE_POWERS}
-          powersMap={eventPowers}
-          rows={permissions.eventRoles}
-          title="Event Roles"
-        />
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-border-subtle bg-surface-raised shadow-sm lg:grid lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)]">
+        <div className="max-h-[420px] overflow-y-auto border-b border-border-subtle lg:max-h-none lg:border-b-0 lg:border-r">
+          <p className="border-b border-border-subtle bg-bg-base/50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+            Roles
+          </p>
+          <ul>
+            {rows.map((row) => {
+              const count = (powersMap[row.role] ?? []).length;
+              const isSelected = row.role === selectedRow.role;
+
+              return (
+                <li key={row.role}>
+                  <button
+                    className={cn(
+                      "flex w-full cursor-pointer flex-col gap-0.5 border-b border-border-subtle/80 px-4 py-3 text-left transition-colors last:border-b-0",
+                      isSelected
+                        ? "bg-primary-soft/70"
+                        : "hover:bg-bg-base/60",
+                    )}
+                    onClick={() => selectRole(row.role)}
+                    type="button"
+                  >
+                    <span className="text-[13px] font-semibold text-text-strong">{row.role}</span>
+                    <span className="text-[11px] tabular-nums text-text-muted">
+                      {count} of {powerOptions.length} enabled
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="min-w-0 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-[16px] font-semibold text-text-strong">{selectedRow.role}</h3>
+                <Badge tone="neutral">{selectedRow.scope}</Badge>
+              </div>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-text-muted">{selectedRow.notes}</p>
+            </div>
+            {!isEditing ? (
+              <Button
+                className="h-9 shrink-0 cursor-pointer px-3"
+                onClick={() => setEditingRole({ role: selectedRow.role, type: category })}
+                type="button"
+                variant="secondary"
+              >
+                <Edit className="size-3.5" aria-hidden="true" />
+                Edit permissions
+              </Button>
+            ) : (
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button
+                  className="h-9 cursor-pointer px-3"
+                  onClick={() => handleCancelEdit(selectedRow.role, category)}
+                  type="button"
+                  variant="ghost"
+                >
+                  <X className="size-3.5" aria-hidden="true" />
+                  Cancel
+                </Button>
+                <Button
+                  className="h-9 cursor-pointer px-3"
+                  onClick={() => setConfirmSave({ role: selectedRow.role, type: category })}
+                  type="button"
+                  variant="primary"
+                >
+                  <Check className="size-3.5" aria-hidden="true" />
+                  Review & save
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+              Capabilities
+            </p>
+            <span className="rounded-full border border-border-subtle bg-bg-base px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-text-body">
+              {activePowers.length} / {powerOptions.length}
+            </span>
+          </div>
+
+          <ul className="mt-3 divide-y divide-border-subtle rounded-xl border border-border-subtle">
+            {powerOptions.map((power) => {
+              const enabled = activePowers.includes(power.id);
+
+              return (
+                <li
+                  className={cn(
+                    "flex gap-3 px-3 py-3 sm:px-4",
+                    enabled ? "bg-surface-raised" : "bg-bg-base/30",
+                  )}
+                  key={power.id}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border",
+                      enabled
+                        ? "border-success/25 bg-success-soft text-success"
+                        : "border-border-subtle bg-neutral-soft text-text-placeholder",
+                    )}
+                    aria-hidden
+                  >
+                    {enabled ? <Check className="size-3.5" /> : null}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-text-strong">{power.label}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-text-muted">
+                      {power.description}
+                    </p>
+                  </div>
+                  {isEditing ? (
+                    <Toggle
+                      aria-label={power.label}
+                      checked={enabled}
+                      className="shrink-0"
+                      onCheckedChange={() =>
+                        category === "sb"
+                          ? toggleSbPower(selectedRow.role, power.id)
+                          : toggleEventPower(selectedRow.role, power.id)
+                      }
+                    />
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+
+          {isEditing ? (
+            <p className="mt-3 flex items-start gap-2 rounded-xl border border-warning/20 bg-warning-soft/60 px-3 py-2.5 text-[12px] leading-relaxed text-text-body">
+              <Lock className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
+              Changes apply to every volunteer with this role after you confirm and save.
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {confirmSave ? (
         <div
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
           role="dialog"
         >
-          <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-            <div className="border-b border-border px-5 py-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border-subtle bg-surface-raised shadow-overlay">
+            <div className="border-b border-border-subtle px-5 py-4">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
+                <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-warning/25 bg-warning-soft text-warning">
                   <AlertTriangle className="size-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary">
-                    Confirm Role Capabilities Update
+                  <h3 className="text-[15px] font-semibold text-text-strong">
+                    Confirm role capabilities update
                   </h3>
-                  <p className="mt-1 text-sm leading-6 text-text-secondary">
+                  <p className="mt-1 text-[13px] leading-relaxed text-text-muted">
                     Review this action before applying it across the system.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3 px-5 py-4 text-sm">
-              <div className="flex items-start justify-between gap-4 border-b border-border pb-2">
-                <span className="font-medium text-text-secondary">Role</span>
-                <span className="text-right font-semibold text-text-primary">
+            <div className="space-y-3 px-5 py-4 text-[13px]">
+              <div className="flex items-start justify-between gap-4 border-b border-border-subtle pb-2">
+                <span className="font-medium text-text-muted">Role</span>
+                <span className="text-right font-semibold text-text-strong">
                   {confirmSave.role}
                 </span>
               </div>
-              <div className="flex items-start justify-between gap-4 border-b border-border pb-2">
-                <span className="font-medium text-text-secondary">Category</span>
-                <span className="text-right font-medium text-text-primary">
+              <div className="flex items-start justify-between gap-4 border-b border-border-subtle pb-2">
+                <span className="font-medium text-text-muted">Category</span>
+                <span className="text-right font-medium text-text-body">
                   {confirmSave.type === "sb" ? "Student Branch Role" : "Event Role"}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <span className="font-medium text-text-secondary">Assigned Powers</span>
-                <span className="text-right font-medium text-text-primary">
+                <span className="font-medium text-text-muted">Assigned powers</span>
+                <span className="text-right font-medium text-text-body">
                   {
                     (confirmSave.type === "sb" ? sbPowers : eventPowers)[confirmSave.role]
                       ?.length
@@ -822,12 +1119,14 @@ function PermissionsPanel({
                   capabilities
                 </span>
               </div>
-              <p className="mt-2 rounded-md bg-surface-muted p-3 text-xs leading-5 text-text-secondary">
-                <strong>Important:</strong> Modifying predefined role permissions immediately impacts all volunteers holding this role. Please ensure these capability updates align with IEEE branch security policies.
+              <p className="mt-2 rounded-xl border border-border-subtle bg-bg-base p-3 text-[12px] leading-relaxed text-text-muted">
+                <strong className="font-semibold text-text-body">Important:</strong> Modifying
+                predefined role permissions immediately impacts all volunteers holding this role.
+                Please ensure these capability updates align with IEEE branch security policies.
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4">
               <Button
                 className="cursor-pointer"
                 disabled={pendingAction === "permissions:save"}
@@ -861,151 +1160,31 @@ function PermissionsPanel({
   );
 }
 
-function RoleTable({
-  editingRole,
-  onCancelEdit,
-  onRequestSave,
-  onStartEdit,
-  onTogglePower,
-  powerOptions,
-  powersMap,
-  rows,
-  title,
+function CategorySwitch({
+  active,
+  icon: Icon,
+  label,
+  onClick,
 }: {
-  editingRole: string | null;
-  onCancelEdit: (role: string) => void;
-  onRequestSave: (role: string) => void;
-  onStartEdit: (role: string) => void;
-  onTogglePower: (role: string, powerId: string) => void;
-  powerOptions: Array<{ description: string; id: string; label: string }>;
-  powersMap: Record<string, string[]>;
-  rows: Array<{ notes: string; role: string; scope: string }>;
-  title: string;
+  active: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-surface">
-      <div className="border-b border-border bg-surface-muted px-4 py-3">
-        <h4 className="font-semibold text-text-primary">{title}</h4>
-      </div>
-      <div className="divide-y divide-border">
-        {rows.map((row) => {
-          const activePowers = powersMap[row.role] ?? [];
-          const isEditing = editingRole === row.role;
-
-          return (
-            <div className="p-4 transition-colors hover:bg-surface-subtle/50" key={row.role}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Badge tone="primary">{row.role}</Badge>
-                  <span className="text-xs font-medium text-text-muted">({row.scope})</span>
-                </div>
-                {!isEditing ? (
-                  <Button
-                    className="cursor-pointer text-xs h-8 px-2.5"
-                    onClick={() => onStartEdit(row.role)}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <Edit className="mr-1.5 size-3.5" aria-hidden="true" />
-                    Edit Permissions
-                  </Button>
-                ) : null}
-              </div>
-
-              <p className="mt-1.5 text-xs text-text-secondary">{row.notes}</p>
-
-              {isEditing ? (
-                <div className="mt-4 rounded-md border border-primary/25 bg-primary/5 p-3">
-                  <div className="flex items-center justify-between border-b border-primary/15 pb-2 text-xs font-medium text-primary">
-                    <span>Select or deselect capabilities for {row.role}</span>
-                    <span>
-                      {activePowers.length} / {powerOptions.length} active
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {powerOptions.map((power) => {
-                      const isChecked = activePowers.includes(power.id);
-                      return (
-                        <label
-                          className={cn(
-                            "flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs transition-colors",
-                            isChecked
-                              ? "border-primary/50 bg-surface text-text-primary shadow-2xs"
-                              : "border-border/60 bg-surface/60 text-text-secondary hover:bg-surface",
-                          )}
-                          key={power.id}
-                        >
-                          <input
-                            checked={isChecked}
-                            className="mt-0.5 cursor-pointer accent-primary"
-                            onChange={() => onTogglePower(row.role, power.id)}
-                            type="checkbox"
-                          />
-                          <div>
-                            <span className="block font-medium text-text-primary">
-                              {power.label}
-                            </span>
-                            <span className="block text-[11px] leading-4 text-text-muted">
-                              {power.description}
-                            </span>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-primary/15 pt-3">
-                    <Button
-                      className="cursor-pointer text-xs h-8 px-2.5"
-                      onClick={() => onCancelEdit(row.role)}
-                      type="button"
-                      variant="ghost"
-                    >
-                      <X className="mr-1.5 size-3.5" aria-hidden="true" />
-                      Cancel
-                    </Button>
-                    <Button
-                      className="cursor-pointer text-xs h-8 px-2.5"
-                      onClick={() => onRequestSave(row.role)}
-                      type="button"
-                      variant="primary"
-                    >
-                      <Check className="mr-1.5 size-3.5" aria-hidden="true" />
-                      Review & Save Changes
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                    Assigned Capabilities ({activePowers.length})
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {powerOptions
-                      .filter((power) => activePowers.includes(power.id))
-                      .map((power) => (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-subtle px-2 py-1 text-xs font-medium text-text-secondary"
-                          key={power.id}
-                        >
-                          <Check className="size-3 text-primary" aria-hidden="true" />
-                          {power.label}
-                        </span>
-                      ))}
-                    {activePowers.length === 0 ? (
-                      <span className="text-xs italic text-text-muted">
-                        No predefined capabilities assigned. Click Edit Permissions to configure.
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <button
+      className={cn(
+        "inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors",
+        active
+          ? "bg-surface-raised text-text-strong shadow-sm"
+          : "text-text-muted hover:text-text-body",
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon className="size-4" aria-hidden="true" />
+      {label}
+    </button>
   );
 }
 
@@ -1033,15 +1212,15 @@ function AuditPanel({
   ).sort();
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0">
       <form
-        className="grid gap-3 rounded-md border border-border bg-surface-subtle p-4 lg:grid-cols-6"
+        className="grid gap-3 border-b border-border-subtle bg-bg-base/40 px-4 py-4 lg:grid-cols-6 sm:px-5"
         onSubmit={refreshAuditLogs}
       >
-        <label className="block text-sm font-medium text-text-secondary lg:col-span-2">
-          Action
+        <label className="block lg:col-span-2">
+          <span className={labelClasses}>Action</span>
           <select
-            className={cn(inputClasses, "mt-1")}
+            className={cn(inputClasses, "cursor-pointer")}
             onChange={(event) =>
               setAuditFilters((current) => ({ ...current, action: event.target.value }))
             }
@@ -1055,10 +1234,10 @@ function AuditPanel({
             ))}
           </select>
         </label>
-        <label className="block text-sm font-medium text-text-secondary">
-          Actor reference
+        <label className="block">
+          <span className={labelClasses}>Actor reference</span>
           <input
-            className={cn(inputClasses, "mt-1")}
+            className={inputClasses}
             onChange={(event) =>
               setAuditFilters((current) => ({
                 ...current,
@@ -1069,10 +1248,10 @@ function AuditPanel({
             value={auditFilters.actorUserId}
           />
         </label>
-        <label className="block text-sm font-medium text-text-secondary">
-          Target reference
+        <label className="block">
+          <span className={labelClasses}>Target reference</span>
           <input
-            className={cn(inputClasses, "mt-1")}
+            className={inputClasses}
             onChange={(event) =>
               setAuditFilters((current) => ({
                 ...current,
@@ -1083,10 +1262,10 @@ function AuditPanel({
             value={auditFilters.targetId}
           />
         </label>
-        <label className="block text-sm font-medium text-text-secondary">
-          From
+        <label className="block">
+          <span className={labelClasses}>From</span>
           <input
-            className={cn(inputClasses, "mt-1")}
+            className={inputClasses}
             onChange={(event) =>
               setAuditFilters((current) => ({ ...current, dateFrom: event.target.value }))
             }
@@ -1094,10 +1273,10 @@ function AuditPanel({
             value={auditFilters.dateFrom}
           />
         </label>
-        <label className="block text-sm font-medium text-text-secondary">
-          To
+        <label className="block">
+          <span className={labelClasses}>To</span>
           <input
-            className={cn(inputClasses, "mt-1")}
+            className={inputClasses}
             onChange={(event) =>
               setAuditFilters((current) => ({ ...current, dateTo: event.target.value }))
             }
@@ -1107,7 +1286,7 @@ function AuditPanel({
         </label>
         <div className="flex items-end">
           <Button
-            className="w-full"
+            className="h-[38px] w-full cursor-pointer"
             disabled={pendingAction === "audit:refresh"}
             type="submit"
             variant="primary"
@@ -1118,41 +1297,54 @@ function AuditPanel({
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="min-w-[980px] divide-y divide-border text-left text-sm">
-          <thead className="bg-surface-muted text-text-secondary">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Created</th>
-              <th className="px-4 py-3 font-semibold">Action</th>
-              <th className="px-4 py-3 font-semibold">Actor</th>
-              <th className="px-4 py-3 font-semibold">Target</th>
-              <th className="px-4 py-3 font-semibold">Metadata</th>
+      <div className="overflow-x-auto">
+        <table className="min-w-[980px] w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-border-subtle bg-primary-soft/50">
+              {["Created", "Action", "Actor", "Target", "Metadata"].map((heading) => (
+                <th
+                  key={heading}
+                  className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted"
+                >
+                  {heading}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border bg-surface">
-            {auditLogs.map((log) => (
-              <tr key={log.$id}>
-                <td className="px-4 py-4 text-text-secondary">
+          <tbody>
+            {auditLogs.map((log, rowIndex) => (
+              <tr
+                key={log.$id}
+                className={cn(
+                  "border-b border-border-subtle/80 transition-colors last:border-b-0 hover:bg-primary-soft/30",
+                  rowIndex % 2 === 1 ? "bg-bg-base/60" : "bg-surface-raised",
+                )}
+              >
+                <td className="px-4 py-3.5 text-[13px] tabular-nums text-text-muted">
                   {formatDisplayDateTime(log.createdAt)}
                 </td>
-                <td className="px-4 py-4">
-                  <Badge tone="primary">{log.action}</Badge>
+                <td className="px-4 py-3.5">
+                  <span className="inline-flex max-w-[220px] truncate rounded-full border border-primary/15 bg-primary-soft px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                    {log.action}
+                  </span>
                 </td>
-                <td className="px-4 py-4 text-text-secondary">
+                <td className="px-4 py-3.5 text-[13px] text-text-body">
                   {log.actorUserId ?? "System"}
                 </td>
-                <td className="px-4 py-4 text-text-secondary">
+                <td className="px-4 py-3.5 text-[13px] text-text-body">
                   <p>{log.targetType}</p>
-                  <p className="mt-1 max-w-48 truncate text-xs">{log.targetId}</p>
+                  <p className="mt-0.5 max-w-48 truncate text-[12px] text-text-muted">
+                    {log.targetId}
+                  </p>
                 </td>
-                <td className="max-w-96 break-words px-4 py-4 text-xs leading-5 text-text-secondary">
+                <td className="max-w-96 break-words px-4 py-3.5 text-[12px] leading-relaxed text-text-muted">
                   {log.metadata ? JSON.stringify(log.metadata) : "None"}
                 </td>
               </tr>
             ))}
             {auditLogs.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-text-secondary" colSpan={5}>
+                <td className="px-4 py-14 text-center text-[13px] text-text-muted" colSpan={5}>
                   No audit logs found for the current filters.
                 </td>
               </tr>
@@ -1160,18 +1352,23 @@ function AuditPanel({
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-text-secondary">
-          Showing {auditLogs.length} of {auditTotal} records
+
+      <div className="flex flex-col gap-3 border-t border-border-subtle bg-bg-base/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <p className="text-[13px] text-text-body">
+          Total{" "}
+          <span className="font-semibold tabular-nums text-text-strong">{auditTotal}</span>
+          <span className="text-text-muted"> · showing {auditLogs.length} loaded</span>
         </p>
         {auditNextCursor ? (
           <Button
+            className="cursor-pointer"
             disabled={pendingAction === "audit:load-more"}
             onClick={loadMoreAuditLogs}
             type="button"
+            variant="secondary"
           >
             <RefreshCw className="size-4" aria-hidden="true" />
-            Load More
+            Load more
           </Button>
         ) : null}
       </div>
@@ -1201,45 +1398,41 @@ function ConfirmationDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-        <div className="border-b border-border px-5 py-4">
+      <div className="w-full max-w-lg rounded-2xl border border-border-subtle bg-surface-raised shadow-overlay">
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-warning/25 bg-warning-soft text-warning">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="text-base font-semibold text-text-primary">
-                Confirm System Change
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary">
+              <h3 className="text-[15px] font-semibold text-text-strong">Confirm system change</h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-text-muted">
                 Review this action before it is written to the system audit trail.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-3 px-5 py-4 text-sm">
+        <div className="space-y-3 px-5 py-4 text-[13px]">
           {details.map((detail) => (
             <div
-              className="flex items-start justify-between gap-4 border-b border-border pb-2 last:border-0 last:pb-0"
+              className="flex items-start justify-between gap-4 border-b border-border-subtle pb-2 last:border-0 last:pb-0"
               key={detail.label}
             >
-              <span className="font-medium text-text-secondary">{detail.label}</span>
-              <span className="text-right font-medium text-text-primary">
-                {detail.value}
-              </span>
+              <span className="font-medium text-text-muted">{detail.label}</span>
+              <span className="text-right font-semibold text-text-strong">{detail.value}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
-          <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost">
+        <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4">
+          <Button className="cursor-pointer" disabled={isBusy} onClick={onCancel} type="button" variant="ghost">
             Cancel
           </Button>
-          <Button disabled={isBusy} onClick={onConfirm} type="button" variant="primary">
+          <Button className="cursor-pointer" disabled={isBusy} onClick={onConfirm} type="button" variant="primary">
             Confirm
           </Button>
         </div>
@@ -1268,16 +1461,7 @@ function getConfirmationDetails(confirmation: Confirmation) {
   ];
 }
 
-function SummaryTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border bg-surface-subtle px-4 py-3">
-      <p className="text-xs font-semibold uppercase text-text-muted">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-text-primary">{value}</p>
-    </div>
-  );
-}
-
-function TabButton({
+function SettingsTab({
   active,
   icon: Icon,
   label,
@@ -1291,10 +1475,10 @@ function TabButton({
   return (
     <button
       className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
+        "inline-flex cursor-pointer items-center gap-2 border-b-2 px-4 py-3 text-[13px] font-semibold transition-colors",
         active
-          ? "bg-primary text-white"
-          : "text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+          ? "border-text-strong text-text-strong"
+          : "border-transparent text-text-muted hover:border-border-default hover:text-text-body",
       )}
       onClick={onClick}
       type="button"
@@ -1309,10 +1493,10 @@ function Notice({ message, status }: { message: string; status: NoticeStatus }) 
   return (
     <div
       className={cn(
-        "rounded-md border px-4 py-3 text-sm",
+        "rounded-xl border px-4 py-3 text-[13px]",
         status === "error" && "border-danger/25 bg-danger-soft text-danger",
         status === "success" && "border-success/25 bg-success-soft text-success",
-        status === "idle" && "border-border bg-surface-muted text-text-secondary",
+        status === "idle" && "border-border-subtle bg-bg-base text-text-muted",
       )}
     >
       {message}

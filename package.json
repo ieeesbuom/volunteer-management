@@ -25,6 +25,8 @@
     "appwrite:backups": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/configure-backups.mjs"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@types/pdfkit": "^0.17.6",
     "appwrite": "^25.2.0",
     "clsx": "^2.1.1",
@@ -35,6 +37,9 @@
     "pdfkit": "^0.18.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-grid-layout": "^2.2.4",
+    "recharts": "^3.10.1",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
@@ -47,10 +52,11 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-grid-layout": "^1.3.6",
+    "appwrite-cli": "25.1.0",
     "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
-    "appwrite-cli": "25.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.8"

@@ -98,6 +98,7 @@ const tableDefinitions = [
       ["datetime", "uomVerifiedAt", false],
       ["enum", "status", ["ACTIVE", "DISABLED"], false, "ACTIVE"],
       ["datetime", "lastLoginAt", false],
+      ["string", "avatarFileId", 64, false],
     ],
     indexes: [
       ["profiles_google_email_idx", ["googleEmail"]],
@@ -585,6 +586,17 @@ const tableDefinitions = [
     indexes: [
       ["notification_preferences_user_idx", ["userId"]],
     ],
+  },
+  {
+    id: "dashboard_layouts",
+    name: "Dashboard Layouts",
+    columns: [
+      ["string", "userId", 64, true],
+      ["string", "layoutJson", 12000, true],
+      ["datetime", "createdAt", true],
+      ["datetime", "updatedAt", true],
+    ],
+    indexes: [["dashboard_layouts_user_idx", ["userId"]]],
   },
   {
     id: "form_connections",

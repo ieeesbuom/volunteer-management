@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { FileText } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
 import {
   Card,
   CardContent,
@@ -10,7 +9,8 @@ import {
 } from "@/components/ui/card";
 import { ConclusionApprovalPanel } from "@/features/reports/components/conclusion-approval-panel";
 import { ConclusionsPageContent } from "@/features/reports/components/conclusions-page-content";
-import { ReportsNav } from "@/features/reports/components/reports-nav";
+import { ReportsSection } from "@/features/reports/components/reports-section";
+import { REPORTS_ROUTE_TITLES } from "@/features/reports/lib/page-titles";
 import { canAccessConclusionsTab } from "@/features/reports/lib/access";
 import { getReportsPageData } from "@/features/reports/server/page-data";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
@@ -53,22 +53,16 @@ export default async function ConclusionsPage({
     data.reports.find((report) => report.eventId === draftEvent?.eventId) ?? null;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Reporting"
-        title="Conclusion Reports"
-        description={
-          user.isAdmin
-            ? "Create, review, approve, and export event conclusion reports."
-            : "Create and submit structured event conclusion reports."
-        }
-      />
-
-      <ReportsNav
-        canAccessConclusions={canAccessConclusionsTab(user)}
-        isAdmin={user.isAdmin}
-      />
-
+    <ReportsSection
+      canAccessConclusions={canAccessConclusionsTab(user)}
+      isAdmin={user.isAdmin}
+      title={REPORTS_ROUTE_TITLES["/reports/conclusions"]}
+      description={
+        user.isAdmin
+          ? "Create, review, approve, and export event conclusion reports."
+          : "Create and submit structured event conclusion reports."
+      }
+    >
       <ConclusionsPageContent
         events={orderedEvents}
         initialReport={draftReport}
@@ -92,6 +86,6 @@ export default async function ConclusionsPage({
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </ReportsSection>
   );
 }

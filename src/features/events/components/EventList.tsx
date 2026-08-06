@@ -4,19 +4,15 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CalendarDays, Plus, UserRound, Inbox } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
+import { AppPage } from "@/components/layout/app-page";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EventListingCard } from "@/features/events/components/event-listing-card";
 import {
   formatConclusionStatus,
-  formatEventDate,
   formatEventStatus,
-  getConclusionStatusBadgeTone,
-  getEventStatusBadgeClassName,
-  getEventStatusBadgeTone,
 } from "@/features/events/lib/event-ui";
-import type { Event, EventStatus } from "@/features/events/types";
-
+import type { Event } from "@/features/events/types";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import type { EventRoleAssignment, SessionUser } from "@/features/access-control/types";
@@ -33,16 +29,26 @@ function formatRoleLabel(role: EventRoleAssignment) {
   });
 }
 
-function getEventBorderClass(status: EventStatus) {
-  switch (status) {
-    case "draft": return "border-l-neutral";
-    case "planning": return "border-l-primary";
-    case "published": return "border-l-primary";
-    case "ongoing": return "border-l-success";
-    case "pending_conclusion": return "border-l-warning";
-    case "closed": return "border-l-border-strong";
-    default: return "border-l-border-strong";
+function buildAllEventsTags(event: Event) {
+  return [
+    event.term,
+    String(event.year),
+    formatConclusionStatus(event.conclusion_status),
+    event.reference,
+  ].filter(Boolean);
+}
+
+function buildMyEventsTags(event: Event, role: EventRoleAssignment) {
+  const tags = [
+    formatRoleLabel(role),
+    event.term,
+    String(event.year),
+    formatEventStatus(event.status),
+  ];
+  if (role.committeeName) {
+    tags.push(role.committeeName);
   }
+  return tags;
 }
 
 export function EventList({
@@ -62,10 +68,9 @@ export function EventList({
   const userRoles = user?.eventRoles ?? [];
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // Derive activeTab from URL search parameters to avoid setState in effect
+
   const tabParam = searchParams.get("tab");
-  const activeTab = (tabParam === "my" && showMyEventsTab) ? "my" : "all";
+  const activeTab = tabParam === "my" && showMyEventsTab ? "my" : "all";
 
   const handleTabChange = (tab: "all" | "my") => {
     const params = new URLSearchParams(searchParams.toString());
@@ -78,7 +83,7 @@ export function EventList({
   };
 
   return (
-    <div className="space-y-6">
+    <AppPage>
       <PageHeader
         title="Events"
         description="Branch events and their lifecycle status."
@@ -93,15 +98,15 @@ export function EventList({
       />
 
       {showMyEventsTab && (
-        <div className="flex border-b border-border-subtle mb-6">
+        <div className="mb-4 flex overflow-x-auto border-b border-border-subtle">
           <button
             type="button"
             onClick={() => handleTabChange("all")}
             className={cn(
-              "h-10 px-4 text-[14px] font-medium relative transition-colors cursor-pointer",
+              "relative h-10 cursor-pointer px-4 text-[14px] font-medium transition-colors",
               activeTab === "all"
                 ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
-                : "text-text-muted hover:text-text-body"
+                : "text-text-muted hover:text-text-body",
             )}
           >
             <div className="flex items-center gap-2">
@@ -113,10 +118,10 @@ export function EventList({
             type="button"
             onClick={() => handleTabChange("my")}
             className={cn(
-              "h-10 px-4 text-[14px] font-medium relative transition-colors cursor-pointer",
+              "relative h-10 cursor-pointer px-4 text-[14px] font-medium transition-colors",
               activeTab === "my"
                 ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
-                : "text-text-muted hover:text-text-body"
+                : "text-text-muted hover:text-text-body",
             )}
           >
             <div className="flex items-center gap-2">
@@ -135,7 +140,9 @@ export function EventList({
             </div>
             <div>
               <p className="text-[16px] font-semibold text-text-strong">No events found</p>
-              <p className="mt-1 text-[14px] text-text-muted">There are no events available to display right now.</p>
+              <p className="mt-1 text-[14px] text-text-muted">
+                There are no events available to display right now.
+              </p>
             </div>
             {canCreate && (
               <Link className={buttonClasses({ variant: "primary", className: "mt-2" })} href="/events/new">
@@ -155,114 +162,61 @@ export function EventList({
             </div>
             <div>
               <p className="text-[16px] font-semibold text-text-strong">No assigned events</p>
-              <p className="mt-1 text-[14px] text-text-muted">You are not assigned to any events at this time.</p>
+              <p className="mt-1 text-[14px] text-text-muted">
+                You are not assigned to any events at this time.
+              </p>
             </div>
           </CardContent>
         </Card>
       ) : null}
 
       {activeTab === "all" && allEvents.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {allEvents.map((event) => (
-            <Link href={`/events/${event.$id}`} key={event.$id} className="group outline-none">
-              <Card navigable className={cn("h-full border-l-[4px]", getEventBorderClass(event.status))}>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors">{event.title}</h3>
-                      {isAdmin || userRoles.some((r) => r.eventId === event.$id && r.role === "Chair") ? (
-                        <p className="mt-1 text-[12px] text-text-muted">{event.reference}</p>
-                      ) : null}
-                      {event.description && (
-                        <p className="mt-1.5 text-[13px] text-text-muted line-clamp-2">{event.description}</p>
-                      )}
-                    </div>
-                    <Badge
-                      className={getEventStatusBadgeClassName(event.status)}
-                      tone={getEventStatusBadgeTone(event.status)}
-                    >
-                      {formatEventStatus(event.status)}
-                    </Badge>
-                  </div>
-
-                  <dl className="grid gap-2 text-[13px]">
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-text-secondary">Term / Year</dt>
-                      <dd>
-                        <Badge tone="neutral">{event.term} · {event.year}</Badge>
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3 pt-1">
-                      <dt className="text-text-secondary">Start date</dt>
-                      <dd className="font-medium text-text-primary">
-                        {formatEventDate(event.start_date)}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 pt-1">
-                      <dt className="text-text-secondary">Conclusion</dt>
-                      <dd>
-                        <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
-                          {formatConclusionStatus(event.conclusion_status)}
-                        </Badge>
-                      </dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {allEvents.map((event) => {
+            const showReference =
+              isAdmin || userRoles.some((r) => r.eventId === event.$id && r.role === "Chair");
+            return (
+              <EventListingCard
+                key={event.$id}
+                event={event}
+                href={`/events/${event.$id}`}
+                subtitle={
+                  showReference
+                    ? `${event.reference} · IEEE SB UoM`
+                    : `IEEE SB UoM · ${event.term} ${event.year}`
+                }
+                tagLabels={buildAllEventsTags(event).filter((tag) => tag !== event.reference)}
+              />
+            );
+          })}
         </div>
       ) : null}
 
       {activeTab === "my" && myEvents.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {myEvents.map(({ event, role }) => (
-            <Link href={`/events/${event.$id}`} key={event.$id} className="group outline-none">
-              <Card navigable className={cn("h-full border-l-[4px]", getEventBorderClass(event.status))}>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors">{event.title}</h3>
-                      {isAdmin || role.role === "Chair" ? (
-                        <p className="mt-1 text-[12px] text-text-muted">{event.reference}</p>
-                      ) : null}
-                      {event.description && (
-                        <p className="mt-1.5 text-[13px] text-text-muted line-clamp-2">{event.description}</p>
-                      )}
-                    </div>
-                    <Badge tone="primary">{formatRoleLabel(role)}</Badge>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      className={getEventStatusBadgeClassName(event.status)}
-                      tone={getEventStatusBadgeTone(event.status)}
-                    >
-                      {formatEventStatus(event.status)}
-                    </Badge>
-                    {role.committeeName ? <Badge>{role.committeeName}</Badge> : null}
-                  </div>
-
-                  <dl className="grid gap-2 text-[13px]">
-                    <div className="flex items-center justify-between gap-3 pt-2">
-                      <dt className="text-text-secondary">Term / Year</dt>
-                      <dd>
-                        <Badge tone="neutral">{event.term} · {event.year}</Badge>
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3 pt-1">
-                      <dt className="text-text-secondary">Start date</dt>
-                      <dd className="font-medium text-text-primary">
-                        {formatEventDate(event.start_date)}
-                      </dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {myEvents.map(({ event, role }) => {
+            const showReference = isAdmin || role.role === "Chair";
+            return (
+              <EventListingCard
+                key={event.$id}
+                event={event}
+                href={`/events/${event.$id}`}
+                subtitle={
+                  showReference
+                    ? `${event.reference} · ${formatRoleLabel(role)}`
+                    : `${formatRoleLabel(role)} · IEEE SB UoM`
+                }
+                primaryPills={[
+                  formatEventStatus(event.status).toUpperCase(),
+                  formatRoleLabel(role).toUpperCase(),
+                ]}
+                tagLabels={buildMyEventsTags(event, role)}
+                showConclusionInInfo={false}
+              />
+            );
+          })}
         </div>
       ) : null}
-    </div>
+    </AppPage>
   );
 }

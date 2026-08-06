@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { listProfiles } from "@/features/access-control/server/profiles";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function GET() {
   try {
@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ profiles });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not load profiles.",
+      routeErrorMessage(error, "Could not load profiles."),
       routeErrorStatus(error),
     );
   }

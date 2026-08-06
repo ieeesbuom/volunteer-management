@@ -11,10 +11,6 @@ const clearCookieOptions = {
   secure: process.env.NODE_ENV === "production",
 };
 
-export async function GET(request: Request) {
-  return logout(request);
-}
-
 export async function POST(request: Request) {
   return logout(request);
 }

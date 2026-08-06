@@ -1,16 +1,24 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { AlertCircle, Building2, ShieldCheck } from "lucide-react";
-import { buttonClasses } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import { LoginPromoSlider } from "@/components/login/login-promo-slider";
 import { getLoginErrorMessage } from "@/features/access-control/lib/login-error";
 import { APP_NAME, ORGANIZATION_NAME } from "@/lib/config";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 
 export const dynamic = "force-dynamic";
 
-function GoogleIcon() {
+function GoogleIcon({ size = 22 }: { size?: number }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="shrink-0"
+    >
       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -34,80 +42,106 @@ export default async function LoginPage({
   const errorMessage = getLoginErrorMessage(params.error);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_center,hsl(216,40%,96%),hsl(220,16%,92%))] px-4 py-8">
-      <div className="w-full max-w-[940px]">
-        <div className="grid overflow-hidden rounded-[16px] border border-border-subtle bg-surface shadow-overlay lg:grid-cols-[1fr_420px]">
-          <section className="flex min-h-[420px] flex-col justify-between border-b border-border bg-[linear-gradient(145deg,hsl(216,79%,28%),hsl(216,79%,18%))] p-8 lg:border-b-0 lg:p-10 relative overflow-hidden">
-            <div className="relative z-10">
-              <div className="flex size-11 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white">
-                <ShieldCheck className="size-6" aria-hidden="true" />
-              </div>
-              <p className="mt-8 text-[11px] font-semibold uppercase tracking-widest text-white/70">
-                {ORGANIZATION_NAME}
-              </p>
-              <h1 className="mt-2 max-w-xl text-[28px] font-semibold text-white/90 leading-tight">
-                {APP_NAME}
-              </h1>
-              <p className="mt-4 max-w-sm text-[14px] leading-6 text-white/60">
-                Secure access for account verification and Student Branch role
-                administration.
-              </p>
-            </div>
-            <div className="mt-10 grid gap-3 text-[13px] text-white/80 relative z-10 sm:grid-cols-2">
-              <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-                <Building2 className="mb-2 size-4 text-white/70" aria-hidden="true" />
-                Google account sign-in
-              </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
-                <ShieldCheck className="mb-2 size-4 text-white/70" aria-hidden="true" />
-                UoM email verification
-              </div>
-            </div>
-            
-            {/* Background decorative elements */}
-            <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-64 h-64 rounded-full bg-primary-mid/10 blur-3xl pointer-events-none" />
-          </section>
+    <main className="relative min-h-screen bg-surface-raised lg:grid lg:grid-cols-2">
+      <a
+        href="https://knurdz.org"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute right-6 top-8 z-20 cursor-pointer transition-opacity hover:opacity-80 sm:right-10 lg:right-14 xl:right-16"
+        aria-label="Visit Knurdz Community website"
+      >
+        <Image
+          src="/images/powered-by-knurdz-light.png"
+          alt="Powered by Knurdz"
+          width={1024}
+          height={340}
+          className="h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right sm:h-10 sm:max-w-[240px]"
+        />
+      </a>
 
-          <section className="flex items-center p-8 lg:p-10 bg-surface">
-            <div className="w-full">
-              <div>
-                <h2 className="text-[20px] font-semibold text-text-strong">Sign in</h2>
-                <p className="mt-1 text-[14px] leading-6 text-text-secondary">
-                  Continue with the Google account used for this system.
-                </p>
+      <section className="relative flex min-h-screen flex-col lg:border-r lg:border-border-subtle">
+        <header className="px-8 pt-10 sm:px-12 lg:px-14 xl:px-16">
+          <Image
+            src="/images/ieee-sb-uom-logo-transparent.png"
+            alt={ORGANIZATION_NAME}
+            width={1024}
+            height={223}
+            className="h-8 w-auto max-w-[min(100%,280px)] object-contain object-left sm:h-9"
+            priority
+          />
+        </header>
+
+        <div className="flex flex-1 flex-col justify-center px-8 py-10 sm:px-12 lg:px-14 xl:px-16">
+          <div className="mx-auto w-full max-w-[440px]">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{APP_NAME}</p>
+            <h1 className="mt-3 text-[38px] font-bold leading-[1.1] tracking-tight text-text-strong sm:text-[44px]">
+              Welcome back!
+            </h1>
+            <p className="mt-5 text-[15px] leading-7 text-text-muted">
+              Sign in with Google to manage events, committees, roles, and volunteer recognition for the IEEE Student
+              Branch at University of Moratuwa.
+            </p>
+
+            {errorMessage ? (
+              <div className="mt-8 flex items-start gap-3 rounded-lg border border-danger/25 bg-danger-soft px-4 py-3.5 text-[13px] text-danger">
+                <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">{errorMessage.title}</p>
+                  {errorMessage.details ? <p className="mt-1 leading-5 opacity-90">{errorMessage.details}</p> : null}
+                </div>
               </div>
-              <div className="mt-6 space-y-4">
-                {errorMessage ? (
-                  <div className="rounded-md border border-danger/25 bg-danger-soft px-3 py-3 text-[13px] text-danger flex items-start gap-3">
-                    <AlertCircle className="size-5 shrink-0 mt-0.5" aria-hidden="true" />
-                    <div>
-                      <p className="font-semibold">{errorMessage.title}</p>
-                      {errorMessage.details ? (
-                        <p className="mt-1 leading-5 opacity-90">{errorMessage.details}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-                <Link
-                  className={buttonClasses({
-                    className: "w-full h-10 hover:border-primary transition-colors",
-                    variant: "secondary",
-                  })}
-                  href="/api/auth/google"
-                >
-                  <GoogleIcon />
-                  Continue with Google
-                </Link>
-                <p className="text-[12px] leading-5 text-text-muted text-center pt-2">
-                  Volunteer actions require a verified{" "}
-                  <code className="font-mono bg-neutral-soft px-1.5 py-0.5 rounded text-[11px] text-text-body">@uom.lk</code> email after sign-in.
-                </p>
-              </div>
+            ) : null}
+
+            <div className="mt-10 flex items-center gap-3">
+              <span className="h-px flex-1 bg-border-subtle" />
+              <span className="shrink-0 text-[13px] font-medium text-text-muted">Continue with</span>
+              <span className="h-px flex-1 bg-border-subtle" />
             </div>
-          </section>
+
+            <Link
+              href="/api/auth/google"
+              className="mt-8 inline-flex h-[3.25rem] w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-text-strong px-6 text-[15px] font-semibold text-white shadow-md transition-[transform,box-shadow,opacity] duration-200 hover:opacity-95 hover:shadow-lg active:scale-[0.99]"
+              aria-label="Continue with Google"
+            >
+              <GoogleIcon size={24} />
+              Continue with Google
+            </Link>
+
+            <div className="mt-8 rounded-lg border border-primary-mid bg-primary-soft px-4 py-3.5">
+              <p className="text-[13px] leading-6 text-text-body">
+                Volunteer actions require a verified{" "}
+                <code className="rounded-md bg-surface-raised px-1.5 py-0.5 font-mono text-[11px] font-medium text-text-strong">
+                  @uom.lk
+                </code>{" "}
+                email after sign-in.
+              </p>
+            </div>
+
+            <div className="mt-12 border-t border-border-subtle pt-10 lg:hidden">
+              <LoginPromoSlider appName={APP_NAME} />
+            </div>
+          </div>
         </div>
-      </div>
+
+        <footer className="mt-auto border-t border-border-subtle px-8 py-8 sm:px-12 lg:px-14 xl:px-16">
+          <div className="mx-auto flex w-full max-w-[440px] justify-center text-center">
+            <a
+              href="https://knurdz.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cursor-pointer text-[13px] font-medium leading-snug text-text-muted transition-colors hover:text-primary"
+            >
+              Designed & Developed by Knurdz Community
+            </a>
+          </div>
+        </footer>
+      </section>
+
+      <section className="relative hidden min-h-screen flex-col bg-surface-raised lg:flex">
+        <div className="flex flex-1 flex-col items-center justify-center px-10 py-16 xl:px-14">
+          <LoginPromoSlider appName={APP_NAME} className="max-w-lg" />
+        </div>
+      </section>
     </main>
   );
 }

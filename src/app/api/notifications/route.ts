@@ -12,7 +12,7 @@ import {
   createNotificationSchema,
   listNotificationsQuerySchema,
 } from "@/features/notifications/validation";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function GET(request: Request) {
   try {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not load notifications.",
+      routeErrorMessage(error, "Could not load notifications."),
       routeErrorStatus(error),
     );
   }
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Notification creation failed.",
+      routeErrorMessage(error, "Notification creation failed."),
       routeErrorStatus(error),
     );
   }

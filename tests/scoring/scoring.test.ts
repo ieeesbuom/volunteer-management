@@ -384,16 +384,16 @@ describe("Scoring Server Actions & Access Control", () => {
     const result = await finalizeGrade("request-1");
 
     expect(result.status).toBe("finalized");
-    expect(mockTables.createRow).toHaveBeenCalledWith(
+    expect(mockTables.updateRow).toHaveBeenCalledWith(
       "database-1",
       "point_ledger",
       expect.any(String),
       expect.objectContaining({
         conclusionApprovalDate: expect.any(String),
         createdAt: "2026-06-15T10:00:00.000Z",
-        points: 9, // average of 8 and 9 (rounded)
+        points: 9,
         source: "grade",
-      })
+      }),
     );
   });
 
@@ -569,16 +569,41 @@ describe("Scoring Server Actions & Access Control", () => {
       status: "reviewed",
     });
 
-    // Mock existing point ledger records
-    mockTables.listRows.mockImplementation((db: string, table: string) => {
+    // Mock existing point ledger records (deterministic IDs — no legacy migration deletes)
+    const gradeLedgerId = "pl_test_grade_row";
+    const roleLedgerId = "pl_test_role_row";
+    mockTables.listRows.mockImplementation((db: string, table: string, queries?: unknown[]) => {
       if (table === "point_ledger") {
+        const queryList = Array.isArray(queries) ? queries : [];
+        const hasSourceFilter = queryList.some(
+          (query) => typeof query === "string" && query.includes("source"),
+        );
+
+        if (hasSourceFilter) {
+          return Promise.resolve({ total: 0, rows: [] });
+        }
+
         return Promise.resolve({
           total: 2,
           rows: [
-            // Already has 5 points from grade
-            { $id: "l1", userId: "volunteer-1", eventId: "event-1", points: 5, source: "grade", conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "26/27" },
-            // Already has 10 points from role
-            { $id: "l2", userId: "volunteer-1", eventId: "event-1", points: 10, source: "role", conclusionApprovalDate: "2026-06-15T00:00:00.000Z", term: "26/27" },
+            {
+              $id: gradeLedgerId,
+              userId: "volunteer-1",
+              eventId: "event-1",
+              points: 5,
+              source: "grade",
+              conclusionApprovalDate: "2026-06-15T00:00:00.000Z",
+              term: "26/27",
+            },
+            {
+              $id: roleLedgerId,
+              userId: "volunteer-1",
+              eventId: "event-1",
+              points: 10,
+              source: "role",
+              conclusionApprovalDate: "2026-06-15T00:00:00.000Z",
+              term: "26/27",
+            },
           ],
         });
       }
@@ -621,27 +646,15 @@ describe("Scoring Server Actions & Access Control", () => {
     const result = await finalizeGrade("request-1");
 
     expect(result.status).toBe("finalized");
-    // Should NOT call deleteRow
     expect(mockTables.deleteRow).not.toHaveBeenCalled();
-    // Should append the delta for grade (+3 points, from 5 to 8)
-    expect(mockTables.createRow).toHaveBeenCalledWith(
+    expect(mockTables.updateRow).toHaveBeenCalledWith(
       "database-1",
       "point_ledger",
       expect.any(String),
       expect.objectContaining({
-        points: 3, // delta
+        points: 8,
         source: "grade",
-      })
-    );
-    // Should NOT append delta for role (since it is already 10)
-    expect(mockTables.createRow).not.toHaveBeenCalledWith(
-      "database-1",
-      "point_ledger",
-      expect.any(String),
-      expect.objectContaining({
-        points: expect.any(Number),
-        source: "role",
-      })
+      }),
     );
   });
 
@@ -764,11 +777,11 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
     } as unknown as ReturnType<typeof getAppwriteAdminServices>);
   });
 
-  it("listVolunteers fetches and maps profiles to volunteer options", async () => {
+  it("listVolunteers fetches and maps profiles to volunteer options for admins", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "user-1", name: "User 1", email: "user1@uom.lk" },
       profile: { $id: "user-1", authUserId: "user-1", googleEmail: "user1@uom.lk", uomVerified: true, status: "ACTIVE" },
-      isAdmin: false,
+      isAdmin: true,
       sbRoles: [],
       eventRoles: [],
     });
@@ -841,6 +854,18 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
       eventRoles: [],
     });
 
+    mockTables.getRow.mockImplementation((db: string, table: string) => {
+      if (table === "grade_requests") {
+        return Promise.resolve({
+          $id: "req-1",
+          eventId: "event-1",
+          targetUserId: "volunteer-1",
+        });
+      }
+
+      return Promise.reject(new Error("Not found"));
+    });
+
     mockTables.listRows.mockResolvedValue({
       total: 2,
       rows: [
@@ -898,7 +923,7 @@ describe("Scoring Extra Requirements Tests", () => {
     } as unknown as ReturnType<typeof getAppwriteAdminServices>);
   });
 
-  it("allows finalization without an approved conclusion report when event is in PENDING_CONCLUSION state", async () => {
+  it("requires an approved conclusion report before finalizing extra scores", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
@@ -949,18 +974,8 @@ describe("Scoring Extra Requirements Tests", () => {
       return Promise.resolve({ total: 0, rows: [] });
     });
 
-    const res = await finalizeGrade("request-1");
-    expect(res.status).toBe("finalized");
-    expect(mockTables.createRow).toHaveBeenCalledWith(
-      "database-1",
-      "point_ledger",
-      expect.any(String),
-      expect.objectContaining({
-        userId: "volunteer-1",
-        eventId: "event-1",
-        source: "grade",
-        points: 8,
-      })
+    await expect(finalizeGrade("request-1")).rejects.toThrow(
+      "Points can only be finalized after the event conclusion report is approved.",
     );
   });
 
@@ -1050,7 +1065,7 @@ describe("Scoring Extra Requirements Tests", () => {
     const result = await finalizeEventRolePoints("event-1");
 
     expect(result).toEqual({ eventId: "event-1", finalized: 2, skipped: 0, unchanged: 0 });
-    expect(mockTables.createRow).toHaveBeenCalledWith(
+    expect(mockTables.updateRow).toHaveBeenCalledWith(
       "database-1",
       "point_ledger",
       expect.any(String),
@@ -1058,9 +1073,9 @@ describe("Scoring Extra Requirements Tests", () => {
         points: 10,
         source: "role",
         userId: "volunteer-1",
-      })
+      }),
     );
-    expect(mockTables.createRow).toHaveBeenCalledWith(
+    expect(mockTables.updateRow).toHaveBeenCalledWith(
       "database-1",
       "point_ledger",
       expect.any(String),
@@ -1068,7 +1083,7 @@ describe("Scoring Extra Requirements Tests", () => {
         points: 25,
         source: "role",
         userId: "lead-1",
-      })
+      }),
     );
     expect(writeAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({

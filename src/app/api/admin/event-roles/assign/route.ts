@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 import { assignEventRole, parseEventRole } from "@/features/access-control/server/roles";
 import { notifyRoleAssignmentWorkflow } from "@/features/notifications/server/workflow-notifications";
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ assignment, notification });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Event role assignment failed.",
+      routeErrorMessage(error, "Event role assignment failed."),
       routeErrorStatus(error),
     );
   }

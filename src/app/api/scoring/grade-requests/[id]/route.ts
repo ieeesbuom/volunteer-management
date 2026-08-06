@@ -4,7 +4,7 @@ import { deleteGradeRequest, submitGradeReview } from "@/features/scoring/server
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { notifyGradingRequestWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 const patchSchema = z.object({
   gradeValue: z.number().int().min(0).max(10),
@@ -37,7 +37,7 @@ export async function PATCH(
     return NextResponse.json({ gradeRequest, notifications });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to update grade review.",
+      routeErrorMessage(error, "Failed to update grade review."),
       routeErrorStatus(error)
     );
   }
@@ -53,7 +53,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to delete grade request.",
+      routeErrorMessage(error, "Failed to delete grade request."),
       routeErrorStatus(error)
     );
   }

@@ -31,6 +31,7 @@ import type {
 } from "@/features/events/types";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
+import { voidEventPointLedger } from "@/features/scoring/server/point-ledger";
 import {
   ConflictError,
   ForbiddenError,
@@ -693,6 +694,10 @@ export async function syncEventConclusionReviewed({
     },
   );
   const updated = toEvent(row);
+
+  if (!approved) {
+    await voidEventPointLedger(eventId);
+  }
 
   await safeEventAuditLog({
     action: approved ? "EVENT_CONCLUSION_APPROVED" : "event.conclusion_rejected",

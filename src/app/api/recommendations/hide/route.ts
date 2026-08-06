@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { hideRecommendation } from "@/features/recommendations/server/recommendations";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 const hideSchema = z.object({
   reason: z.string().trim().max(500).optional(),
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ recommendation });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Recommendation hide failed.",
+      routeErrorMessage(error, "Recommendation hide failed."),
       routeErrorStatus(error),
     );
   }

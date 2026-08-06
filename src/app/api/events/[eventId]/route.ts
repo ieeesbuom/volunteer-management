@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { canViewEventRoleAssignments } from "@/features/events/lib/committee-permissions";
 import {
   getEventUserContext,
   getPermissionsForUser,
@@ -17,7 +18,7 @@ import {
 import { notifyEventUpdateWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { UpdateEventInputSchema } from "@/features/events/types";
-import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
+import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ eventId: string }>;
@@ -49,10 +50,16 @@ export async function GET(_request: Request, context: RouteContext) {
       return jsonError("Event was not found.", 404);
     }
 
+    if (!canViewEventRoleAssignments(user, userEventRole)) {
+      const { roleAssignments, ...publicEvent } = event;
+      void roleAssignments;
+      return NextResponse.json({ event: publicEvent });
+    }
+
     return NextResponse.json({ event });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to fetch event.",
+      routeErrorMessage(error, "Failed to fetch event."),
       routeErrorStatus(error),
     );
   }
@@ -119,7 +126,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json({ event, notifications });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update event.";
+    const message = routeErrorMessage(error, "Failed to update event.");
 
     if (message.includes("Illegal event status transition")) {
       return jsonError(message, 400);
@@ -157,7 +164,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     return jsonError(
-      error instanceof Error ? error.message : "Failed to delete event.",
+      routeErrorMessage(error, "Failed to delete event."),
       routeErrorStatus(error),
     );
   }

@@ -6,7 +6,7 @@ import {
   deleteCommittee,
   getCommitteeById,
 } from "@/features/events/server/committees.server";
-import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
+import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ committeeId: string; eventId: string }>;
@@ -43,7 +43,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to delete committee.",
+      routeErrorMessage(error, "Failed to delete committee."),
       routeErrorStatus(error),
     );
   }

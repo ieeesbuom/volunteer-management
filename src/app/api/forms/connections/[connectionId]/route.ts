@@ -5,7 +5,7 @@ import {
 } from "@/features/forms/server/form-connection-service";
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { updateFormConnectionSchema } from "@/features/forms/validation";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ connectionId: string }>;
@@ -31,7 +31,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ connection });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not update form connection.",
+      routeErrorMessage(error, "Could not update form connection."),
       routeErrorStatus(error),
     );
   }
@@ -47,7 +47,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not delete form connection.",
+      routeErrorMessage(error, "Could not delete form connection."),
       routeErrorStatus(error),
     );
   }

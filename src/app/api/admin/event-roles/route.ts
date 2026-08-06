@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
-import { jsonError } from "@/server/errors";
+import { jsonError , routeErrorMessage} from "@/server/errors";
 import { listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
 
 export async function GET() {
@@ -10,6 +10,6 @@ export async function GET() {
 
     return NextResponse.json({ assignments });
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "Admin access failed.", 403);
+    return jsonError(routeErrorMessage(error, "Admin access failed."), 403);
   }
 }

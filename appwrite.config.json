@@ -1,0 +1,3234 @@
+{
+    "organizationId": "69c5f444843b58bcecc6",
+    "projectId": "6a1d73e4003b8c63214e",
+    "projectName": "volunteer-management",
+    "endpoint": "https://nyc.cloud.appwrite.io/v1",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": false,
+            "databases": true,
+            "locale": true,
+            "health": true,
+            "storage": false,
+            "teams": false,
+            "users": true,
+            "sites": false,
+            "functions": false,
+            "graphql": false,
+            "messaging": false
+        },
+        "protocols": {
+            "rest": true,
+            "graphql": false,
+            "websocket": false
+        },
+        "auth": {
+            "methods": {
+                "jwt": false,
+                "phone": false,
+                "invites": false,
+                "anonymous": false,
+                "email-otp": false,
+                "magic-url": false,
+                "email-password": false
+            },
+            "security": {
+                "duration": 2592000,
+                "limit": null,
+                "sessionsLimit": 5,
+                "passwordHistory": null,
+                "passwordDictionary": false,
+                "personalDataCheck": false,
+                "sessionAlerts": true,
+                "mockNumbers": []
+            }
+        }
+    },
+    "tablesDB": [
+        {
+            "$id": "volunteer_management",
+            "name": "Volunteer Management",
+            "enabled": true
+        }
+    ],
+    "tables": [
+        {
+            "$id": "profiles",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Profiles",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "authUserId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "googleEmail",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "email"
+                },
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "uomEmail",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": "email"
+                },
+                {
+                    "key": "uomVerified",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "uomVerifiedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "ACTIVE",
+                    "format": "enum",
+                    "elements": [
+                        "ACTIVE",
+                        "DISABLED"
+                    ]
+                },
+                {
+                    "key": "lastLoginAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "profiles_google_email_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "googleEmail"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "profiles_uom_email_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "uomEmail"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "profiles_last_login_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "lastLoginAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "uom_verification_requests",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "UoM Verification Requests",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "uomEmail",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "email"
+                },
+                {
+                    "key": "codeHash",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "expiresAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "attempts",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "PENDING",
+                    "format": "enum",
+                    "elements": [
+                        "PENDING",
+                        "VERIFIED",
+                        "EXPIRED",
+                        "CANCELLED"
+                    ]
+                },
+                {
+                    "key": "verifiedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "uom_verification_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "uom_verification_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "uom_verification_email_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "uomEmail"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "uom_verification_user_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "status"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "sb_role_assignments",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "SB Role Assignments",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "Chairperson",
+                        "Vice Chairperson",
+                        "Secretary",
+                        "Assistant Secretary",
+                        "Treasurer",
+                        "Assistant Treasurer",
+                        "Editor",
+                        "Webmaster",
+                        "SB Lead",
+                        "SB Member"
+                    ]
+                },
+                {
+                    "key": "assignedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "assignedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "revokedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "active",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "term",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 32,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "sb_roles_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "sb_roles_role_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "role"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "sb_roles_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "sb_roles_term_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "term"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "sb_roles_user_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "active"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "audit_logs",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Audit Logs",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "actorUserId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "action",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "targetType",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "targetId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "metadata",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 4000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "audit_target_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "targetId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "audit_action_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "action"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "audit_created_at_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "audit_actor_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "actorUserId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "audit_action_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "action",
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "audit_actor_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "actorUserId",
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "audit_target_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "targetId",
+                        "createdAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "event_role_assignments",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Event Role Assignments",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "eventId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "eventTitle",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 160,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "committeeName",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 120,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "Chair",
+                        "Vice Chair",
+                        "Committee Lead",
+                        "Committee Member"
+                    ]
+                },
+                {
+                    "key": "assignedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "assignedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "revokedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "active",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "event_roles_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_role_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "role"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_user_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_user_event_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "eventId",
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_event_active_time_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId",
+                        "active",
+                        "assignedAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_event_role_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId",
+                        "role",
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_roles_lookup_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "eventId",
+                        "role",
+                        "committeeName",
+                        "active"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "ieee_terms",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "IEEE Terms",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "label",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 32,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "startDate",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 10,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "endDate",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 10,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "active",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "DRAFT",
+                    "format": "enum",
+                    "elements": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "CLOSED"
+                    ]
+                },
+                {
+                    "key": "notes",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "createdBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "updatedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "ieee_terms_label_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "label"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "ieee_terms_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "ieee_terms_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "ieee_terms_start_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "startDate"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "ieee_terms_end_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "endDate"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "ieee_terms_date_range_unique",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "startDate",
+                        "endDate"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "ieee_terms_label_unique",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "label"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "system_settings",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "System Settings",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "key",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "value",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 4000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "system_settings_key_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "key"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "top_board_exclusions",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Top Board Exclusions",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "termId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reason",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 1000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "active",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "createdBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "revokedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "revokedBy",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "top_board_exclusions_term_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "termId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "top_board_exclusions_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "top_board_exclusions_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "active"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "top_board_term_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "termId",
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "top_board_exclusions_term_active_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "termId",
+                        "active"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "participation_records",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Participation Records",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "eventId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "attended",
+                        "absent",
+                        "excused"
+                    ]
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "participation_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "participation_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "participation_event_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId",
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "participation_user_event_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "eventId",
+                        "status"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "grade_requests",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Grade Requests",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "requestId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "eventId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "requestedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "targetUserId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "pending",
+                        "submitted",
+                        "reviewed",
+                        "finalized"
+                    ]
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "grade_requests_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "grade_requests_target_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "targetUserId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "grade_requests_updated_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "updatedAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "grade_requests_target_updated_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "targetUserId",
+                        "updatedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "grade_reviews",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Grade Reviews",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "gradeRequestId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reviewerId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "gradeValue",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "submittedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "audit_metadata",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 4000,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "grade_reviews_request_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "gradeRequestId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "grade_reviews_reviewer_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "reviewerId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "grade_reviews_submitted_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "submittedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "point_ledger",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Point Ledger",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "eventId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "points",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "conclusionApprovalDate",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "source",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "grade",
+                        "role",
+                        "manual"
+                    ]
+                },
+                {
+                    "key": "createdBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "term",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 32,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "point_ledger_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "point_ledger_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "point_ledger_approval_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "conclusionApprovalDate"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "point_ledger_term_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "term"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "point_ledger_user_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "point_ledger_user_event_source_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "eventId",
+                        "source"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "point_ledger_term_approval_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "term",
+                        "conclusionApprovalDate"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "term_scoring_config",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Term Scoring Config",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "term",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 32,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "year",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "excludedFromTopBoard",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "reason",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "setBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "term_config_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "term_config_lookup_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "term",
+                        "year"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "term_config_user_term_year_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId",
+                        "term",
+                        "year"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "notifications",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Notifications",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "recipientUserId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "type",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "verification",
+                        "role_assignment",
+                        "event_update",
+                        "grading_request",
+                        "report_approval",
+                        "system"
+                    ]
+                },
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 160,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "message",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 1000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "linkHref",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 512,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "actorUserId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "entityType",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "entityId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "readAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "metadata",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 4000,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "notifications_recipient_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "recipientUserId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "notifications_recipient_read_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "recipientUserId",
+                        "readAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "notifications_created_at_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "notifications_type_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "type"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "notifications_recipient_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "recipientUserId",
+                        "createdAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "notification_preferences",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Notification Preferences",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "emailEnabled",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "inAppEnabled",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "typePreferences",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 4000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "notification_preferences_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "form_connections",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Form Connections",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "eventId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "provider",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "google_forms",
+                        "external_form_builder",
+                        "other"
+                    ]
+                },
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 160,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "externalFormId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 256,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "formUrl",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1024,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "purpose",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "registration",
+                        "feedback",
+                        "attendance",
+                        "grading",
+                        "other"
+                    ]
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "active",
+                    "format": "enum",
+                    "elements": [
+                        "active",
+                        "disabled",
+                        "archived"
+                    ]
+                },
+                {
+                    "key": "createdBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "metadata",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 4000,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "form_connections_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "form_connections_provider_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "provider",
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "form_connections_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "form_connections_event_updated_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId",
+                        "updatedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "events",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Events",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 200,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reference",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 2000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "term",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "year",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "start_date",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "end_date",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "draft",
+                        "planning",
+                        "published",
+                        "ongoing",
+                        "pending_conclusion",
+                        "closed"
+                    ]
+                },
+                {
+                    "key": "conclusion_status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "not_submitted",
+                        "submitted",
+                        "approved",
+                        "rejected"
+                    ]
+                },
+                {
+                    "key": "created_by",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "events_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "events_term_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "term"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "events_created_by_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "created_by"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "events_reference_idx",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "reference"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "events_created_at_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "created_at"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "events_status_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status",
+                        "created_at"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "events_term_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "term",
+                        "created_at"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "event_committees",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Event Committees",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "event_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "event_committees_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "event_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_committees_event_name_idx",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "event_id",
+                        "name"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "conclusion_reports",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Conclusion Reports",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "eventId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "eventTitle",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 160,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "DRAFT",
+                    "format": "enum",
+                    "elements": [
+                        "DRAFT",
+                        "SUBMITTED",
+                        "APPROVED",
+                        "REJECTED"
+                    ]
+                },
+                {
+                    "key": "content",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 12000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "submittedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "submittedByName",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "submittedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "conclusion_reports_event_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "conclusion_reports_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "conclusion_reports_submitted_by_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "submittedBy"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "conclusion_reports_updated_at_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "updatedAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "conclusion_reports_event_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "eventId",
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "conclusion_status_updated_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status",
+                        "updatedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "report_approvals",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Report Approvals",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "reportId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "APPROVED",
+                        "REJECTED"
+                    ]
+                },
+                {
+                    "key": "reviewedBy",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reviewedByName",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reviewNote",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reviewedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "report_approvals_report_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "reportId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "report_approvals_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "report_approvals_reviewed_by_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "reviewedBy"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "report_approvals_reviewed_at_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "reviewedAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "report_appr_report_status_time_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "reportId",
+                        "status",
+                        "reviewedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "profile_details",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Profile Details",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "universityIndex",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 40,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "faculty",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 120,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "department",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 120,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "batchYear",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 40,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "ieeeMembership",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 120,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "headline",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 160,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "bio",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1200,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "skills",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "linkedinUrl",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 240,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "profile_details_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "recommendation_requests",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Recommendation Requests",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "requesterId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "respondentId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "requestKey",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "message",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "PENDING",
+                    "format": "enum",
+                    "elements": [
+                        "PENDING",
+                        "ACCEPTED",
+                        "REJECTED"
+                    ]
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "respondedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "rec_req_requester_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requesterId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_respondent_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "respondentId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_key_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requestKey"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_key_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requestKey",
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_pair_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requesterId",
+                        "respondentId",
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_requester_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requesterId",
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "rec_req_respondent_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "respondentId",
+                        "createdAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "recommendations",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Recommendations",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "requestId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "requesterId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "respondentId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "text",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "default": "VISIBLE",
+                    "format": "enum",
+                    "elements": [
+                        "VISIBLE",
+                        "HIDDEN",
+                        "REPORTED"
+                    ]
+                },
+                {
+                    "key": "createdAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "updatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "hiddenAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "hiddenBy",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reportedAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "reportedBy",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "reportReason",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "hideReason",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "recommendations_request_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requestId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recommendations_requester_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requesterId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recommendations_respondent_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "respondentId"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recommendations_status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recs_req_status_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "requesterId",
+                        "status",
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recommendations_status_created_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status",
+                        "createdAt"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recommendations_status_updated_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "status",
+                        "updatedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "event_committee_members",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Event Committee Members",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "committee_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "added_by",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "added_at",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "event_members_committee_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "committee_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_members_user_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "event_members_committee_user_idx",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "committee_id",
+                        "user_id"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "recognition_snapshots",
+            "$permissions": [],
+            "databaseId": "volunteer_management",
+            "name": "Recognition Snapshots",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "snapshotKey",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 128,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "kind",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": "enum",
+                    "elements": [
+                        "recognition"
+                    ]
+                },
+                {
+                    "key": "term",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 32,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "year",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "month",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": null,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807
+                },
+                {
+                    "key": "payload",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 12000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "generatedAt",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "default": null,
+                    "format": ""
+                },
+                {
+                    "key": "generatedBy",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 64,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "recognition_snapshots_key_idx",
+                    "type": "unique",
+                    "status": "available",
+                    "columns": [
+                        "snapshotKey"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recognition_snapshots_kind_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "kind"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "recognition_snapshots_time_idx",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "generatedAt"
+                    ],
+                    "orders": []
+                }
+            ]
+        }
+    ],
+    "buckets": [
+        {
+            "$id": "vm_files",
+            "$permissions": [],
+            "fileSecurity": true,
+            "name": "Volunteer Management Files (disabled)",
+            "enabled": false,
+            "maximumFileSize": 5000000,
+            "allowedFileExtensions": [
+                "pdf",
+                "png",
+                "jpg",
+                "jpeg"
+            ],
+            "compression": "none",
+            "encryption": true,
+            "antivirus": true
+        }
+    ]
+}

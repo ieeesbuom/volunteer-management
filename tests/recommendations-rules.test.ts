@@ -95,15 +95,39 @@ describe("recommendation rules", () => {
     ).toThrow("already been answered");
   });
 
-  it("only allows visible recommendations to be reported", () => {
+  it("only allows visible recommendations to be reported by unrelated volunteers", () => {
     expect(() =>
       assertCanReportRecommendation({
+        actorUserId: "user-3",
+        requesterId: "user-1",
+        respondentId: "user-2",
         status: "VISIBLE",
       }),
     ).not.toThrow();
 
     expect(() =>
       assertCanReportRecommendation({
+        actorUserId: "user-1",
+        requesterId: "user-1",
+        respondentId: "user-2",
+        status: "VISIBLE",
+      }),
+    ).toThrow("your own recommendation");
+
+    expect(() =>
+      assertCanReportRecommendation({
+        actorUserId: "user-2",
+        requesterId: "user-1",
+        respondentId: "user-2",
+        status: "VISIBLE",
+      }),
+    ).toThrow("your own recommendation");
+
+    expect(() =>
+      assertCanReportRecommendation({
+        actorUserId: "user-3",
+        requesterId: "user-1",
+        respondentId: "user-2",
         status: "HIDDEN",
       }),
     ).toThrow("visible recommendations");

@@ -87,3 +87,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run test` - unit tests
 - `npm run setup:appwrite` - create/reuse Appwrite tables
 - `npm run setup:appwrite:oauth` - configure Appwrite Google OAuth provider
+- `npm run appwrite:audit` - PII-safe Appwrite security audit (JSON)
+- `npm run appwrite:harden` - apply auth/session/service hardening (CLI)
+- `npm run appwrite:keys` / `appwrite:keys:sync-env` - rotate/sync API keys
+
+## Appwrite — pending
+
+- **Production web platform hostname** — not decided yet. When you have the live app URL, set `APPWRITE_PRODUCTION_HOSTNAME` in `.env.local` (see `.env.example`) and run `npm run appwrite:harden` to register the web platform in Appwrite. Until then, skip this step; local dev continues to use `localhost`.

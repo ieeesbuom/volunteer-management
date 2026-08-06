@@ -3,7 +3,7 @@ import { requireAuth } from "@/features/access-control/server/current-user";
 import { canExportVolunteerProfilePdf } from "@/features/reports/lib/access";
 import { getVolunteerProfile } from "@/features/reports/server/volunteer-profile";
 import { buildVolunteerProfilePdf } from "@/pdf";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export const runtime = "nodejs";
 
@@ -16,7 +16,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const user = await requireAuth();
     const { userId } = await context.params;
 
-    if (!canExportVolunteerProfilePdf(user)) {
+    if (!canExportVolunteerProfilePdf(user, userId)) {
       return jsonError("You do not have access to export volunteer profiles.", 403);
     }
 
@@ -54,7 +54,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return pdfResponse(result.buffer, result.filename);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Volunteer profile PDF export failed.",
+      routeErrorMessage(error, "Volunteer profile PDF export failed."),
       routeErrorStatus(error),
     );
   }

@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { ID, Query, TablesDB } from "node-appwrite";
+import { Query, TablesDB } from "node-appwrite";
 import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
@@ -13,6 +13,7 @@ import { hasEventRole } from "@/features/access-control/lib/rules";
 import { listEvents } from "@/features/events/server/event-service";
 import { ROLE_BASE_POINTS } from "@/lib/config";
 import { getServerEnv } from "@/lib/env";
+import { isAppwriteNotFound } from "@/server/errors";
 import type { AuditAction, Profile } from "@/features/access-control/types";
 
 import {
@@ -30,15 +31,21 @@ import {
   YearSchema,
   MonthSchema,
 } from "../lib/schemas";
+import {
+  assertCanInspectVolunteerEventRole,
+  assertCanListEventVolunteers,
+} from "@/features/scoring/server/scoring-access";
+import {
+  removePointLedgerEntry,
+  upsertPointLedgerEntry,
+} from "@/features/scoring/server/point-ledger";
 import type {
+  GradeAuditEntry,
   GradeRequest,
   GradeReview,
   PointLedgerEntry,
   TermScoringConfig,
-  GradeAuditEntry,
 } from "../types";
-
-
 
 type ConclusionReportRow = {
   $id: string;
@@ -145,27 +152,12 @@ async function getApprovedConclusionApprovalDate(
       }
     }
   } catch {
-    // Fallthrough to event status check below
+    // Fallthrough below
   }
 
-  // If no approved conclusion report exists, check if event is in PENDING_CONCLUSION or CLOSED state
-  let event: { status?: string; updatedAt?: string } | null = null;
-  try {
-    event = (await tables.getRow(
-      databaseId,
-      APPWRITE_TABLES.events,
-      eventId
-    )) as unknown as { status?: string; updatedAt?: string };
-  } catch {
-    event = null;
-  }
-
-  const status = event?.status?.toLowerCase();
-  if (status === "pending_conclusion" || status === "closed") {
-    return event?.updatedAt || new Date().toISOString();
-  }
-
-  throw new Error("Points can only be finalized when the event is in PENDING_CONCLUSION or CLOSED status.");
+  throw new Error(
+    "Points can only be finalized after the event conclusion report is approved.",
+  );
 }
 
 function termVariants(term: string) {
@@ -463,10 +455,7 @@ export async function listGradeRequests(params?: { limit?: number; offset?: numb
     return enrichedRows;
   }
 
-  const userEventIds = user.eventRoles.map((r) => r.eventId);
-  return enrichedRows.filter((row) =>
-    userEventIds.includes(row.eventId)
-  );
+  return enrichedRows.filter((row) => hasEventRole(user, row.eventId, ["Chair"]));
 }
 
 /**
@@ -579,39 +568,16 @@ async function recalculateLedgerEntries(
   conclusionApprovalDate: string,
   createdBy: string
 ) {
-  const ledgerDate = conclusionApprovalDate;
-  const term = deriveTermFromDate(conclusionApprovalDate);
-
-  // Read all existing ledger entries for this event and target user
-  const existingEntries = await tables.listRows(databaseId, APPWRITE_TABLES.pointLedger, [
-    Query.equal("userId", gradeRequest.targetUserId),
-    Query.equal("eventId", gradeRequest.eventId),
-    Query.limit(100),
-  ]);
-
-  const existingRows = existingEntries.rows as unknown as PointLedgerEntry[];
-
-  // Sum points for each source
-  const currentGradePoints = existingRows
-    .filter((r) => r.source === "grade")
-    .reduce((acc, r) => acc + Number(r.points), 0);
-
-  const targetGradePoints = averageGrade;
-
-  // Append grade adjustment if there is a difference
-  const gradeDiff = targetGradePoints - currentGradePoints;
-  if (gradeDiff !== 0) {
-    await tables.createRow(databaseId, APPWRITE_TABLES.pointLedger, ID.unique(), {
-      userId: gradeRequest.targetUserId,
-      eventId: gradeRequest.eventId,
-      points: gradeDiff,
-      conclusionApprovalDate,
-      term,
-      source: "grade",
-      createdBy,
-      createdAt: ledgerDate,
-    });
-  }
+  await upsertPointLedgerEntry({
+    conclusionApprovalDate,
+    createdBy,
+    databaseId,
+    eventId: gradeRequest.eventId,
+    points: averageGrade,
+    source: "grade",
+    tables,
+    userId: gradeRequest.targetUserId,
+  });
 }
 
 /**
@@ -722,30 +688,15 @@ async function syncRoleLedgerEntry({
     return { changed: false, skipped: true };
   }
 
-  const existingEntries = await tables.listRows(databaseId, APPWRITE_TABLES.pointLedger, [
-    Query.equal("userId", assignment.userId),
-    Query.equal("eventId", eventId),
-    Query.equal("source", "role"),
-    Query.limit(100),
-  ]);
-  const currentRolePoints = (existingEntries.rows as unknown as PointLedgerEntry[])
-    .reduce((acc, row) => acc + Number(row.points), 0);
-  const targetRolePoints = ROLE_BASE_POINTS[role];
-  const roleDiff = targetRolePoints - currentRolePoints;
-
-  if (roleDiff === 0) {
-    return { changed: false, skipped: false };
-  }
-
-  await tables.createRow(databaseId, APPWRITE_TABLES.pointLedger, ID.unique(), {
-    userId: assignment.userId,
-    eventId,
-    points: roleDiff,
+  await upsertPointLedgerEntry({
     conclusionApprovalDate,
-    term: deriveTermFromDate(conclusionApprovalDate),
-    source: "role",
     createdBy,
-    createdAt: conclusionApprovalDate,
+    databaseId,
+    eventId,
+    points: ROLE_BASE_POINTS[role],
+    source: "role",
+    tables,
+    userId: assignment.userId,
   });
 
   return { changed: true, skipped: false };
@@ -991,6 +942,12 @@ export async function getVolunteerPoints(userId: string, params?: { limit?: numb
   }));
 }
 
+function termScoringConfigRowId(userId: string, term: string, year: number) {
+  const seed = `${userId}:${term}:${year}`;
+
+  return `tsc_${createHash("sha1").update(seed).digest("hex").slice(0, 28)}`;
+}
+
 /**
  * Configures Top Board exclusions for a user. Admin-only.
  */
@@ -1014,45 +971,40 @@ export async function toggleTopBoardExclusion(data: {
     reason: z.string().optional(),
   }).parse(data);
 
-  const existing = await tables.listRows(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.termScoringConfig,
-    [
-      Query.equal("userId", validated.userId),
-      Query.equal("term", validated.term),
-      Query.equal("year", validated.year),
-      Query.limit(1),
-    ]
-  );
+  const rowId = termScoringConfigRowId(validated.userId, validated.term, validated.year);
 
-  if (existing.total > 0) {
+  try {
     const row = await tables.updateRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.termScoringConfig,
-      existing.rows[0].$id,
+      rowId,
       {
         excludedFromTopBoard: validated.excluded,
         reason: validated.reason || "",
         setBy: changerId,
-      }
+      },
     );
     return JSON.parse(JSON.stringify(row)) as TermScoringConfig;
-  } else {
-    const row = await tables.createRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.termScoringConfig,
-      ID.unique(),
-      {
-        userId: validated.userId,
-        term: validated.term,
-        year: validated.year,
-        excludedFromTopBoard: validated.excluded,
-        reason: validated.reason || "",
-        setBy: changerId,
-      }
-    );
-    return JSON.parse(JSON.stringify(row)) as TermScoringConfig;
+  } catch (error) {
+    if (!isAppwriteNotFound(error)) {
+      throw error;
+    }
   }
+
+  const row = await tables.createRow(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.termScoringConfig,
+    rowId,
+    {
+      excludedFromTopBoard: validated.excluded,
+      reason: validated.reason || "",
+      setBy: changerId,
+      term: validated.term,
+      userId: validated.userId,
+      year: validated.year,
+    },
+  );
+  return JSON.parse(JSON.stringify(row)) as TermScoringConfig;
 }
 
 /**
@@ -1176,7 +1128,8 @@ export async function getLeaderboard(params: {
 export async function listVolunteers(eventId?: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  await requireAuth();
+  const user = await requireAuth();
+  assertCanListEventVolunteers(user, eventId);
 
   if (eventId) {
     const assignments = await tables.listRows(
@@ -1224,7 +1177,8 @@ export async function listVolunteers(eventId?: string) {
 export async function getVolunteerActiveEventRole(userId: string, eventId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  await requireAuth();
+  const user = await requireAuth();
+  assertCanInspectVolunteerEventRole(user, userId, eventId);
 
   const result = await tables.listRows(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
@@ -1304,8 +1258,15 @@ export async function deleteGradeRequest(gradeRequestId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
   await requireAdmin();
+  const databaseId = env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
 
   z.string().min(1).parse(gradeRequestId);
+
+  const gradeRequest = (await tables.getRow(
+    databaseId,
+    APPWRITE_TABLES.gradeRequests,
+    gradeRequestId,
+  )) as unknown as GradeRequest;
 
   // Delete reviews first
   const reviewsResult = await tables.listRows(
@@ -1324,10 +1285,18 @@ export async function deleteGradeRequest(gradeRequestId: string) {
 
   // Delete request
   await tables.deleteRow(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    databaseId,
     APPWRITE_TABLES.gradeRequests,
-    gradeRequestId
+    gradeRequestId,
   );
+
+  await removePointLedgerEntry({
+    databaseId,
+    eventId: gradeRequest.eventId,
+    source: "grade",
+    tables,
+    userId: gradeRequest.targetUserId,
+  });
 }
 
 export async function listAllActiveEvents() {

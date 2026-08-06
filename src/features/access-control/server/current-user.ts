@@ -50,6 +50,10 @@ export async function requireAuth() {
     throw new Error("Authentication required.");
   }
 
+  if (user.profile.status === "DISABLED") {
+    throw new Error("This account has been disabled.");
+  }
+
   return user;
 }
 

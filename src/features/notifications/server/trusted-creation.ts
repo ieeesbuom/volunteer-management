@@ -1,6 +1,6 @@
 import "server-only";
 
-import { timingSafeEqual } from "node:crypto";
+import { safeTokenEquals } from "@/server/tokens";
 
 export const INTERNAL_NOTIFICATION_TOKEN_HEADER = "x-internal-job-token";
 
@@ -54,15 +54,4 @@ export function getProvidedTrustedNotificationToken(headers: Headers) {
   }
 
   return null;
-}
-
-function safeTokenEquals(providedToken: string, configuredToken: string) {
-  const provided = Buffer.from(providedToken);
-  const configured = Buffer.from(configuredToken);
-
-  if (provided.length !== configured.length) {
-    return false;
-  }
-
-  return timingSafeEqual(provided, configured);
 }

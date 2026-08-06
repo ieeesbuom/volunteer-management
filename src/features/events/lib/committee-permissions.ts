@@ -1,4 +1,4 @@
-import type { EventRole, EventRoleAssignment } from "@/features/access-control/types";
+import type { EventRole, EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import { isEventVisibleToUser } from "@/features/events/lib/event-permissions";
 import type { Event } from "@/features/events/types";
 
@@ -13,6 +13,19 @@ const CHAIR_REMOVABLE_ROLES: EventRole[] = [
   "Committee Lead",
   "Committee Member",
 ];
+
+export function canViewEventRoleAssignments(
+  user: Pick<SessionUser, "isAdmin">,
+  userEventRole: EventRole | null,
+) {
+  return (
+    user.isAdmin ||
+    canManageStructuralCommittees({
+      isAdmin: false,
+      userEventRole,
+    })
+  );
+}
 
 export function canViewEventCommittees(
   userId: string,

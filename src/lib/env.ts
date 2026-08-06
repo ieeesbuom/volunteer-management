@@ -27,8 +27,8 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_APPWRITE_ENDPOINT: z.string().url(),
   NEXT_PUBLIC_APPWRITE_PROJECT_ID: z.string().min(1),
   NEXT_PUBLIC_APPWRITE_DATABASE_ID: z.string().min(1),
-  NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID: z.string().min(1),
   APPWRITE_API_KEY: z.string().min(1),
+  APPWRITE_SETUP_API_KEY: optionalString,
   ADMIN_EMAIL: z.string().email(),
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
@@ -40,6 +40,7 @@ const serverEnvSchema = z.object({
   SMTP_FROM_EMAIL: optionalEmail,
   SMTP_FROM_NAME: optionalString,
   INTERNAL_JOB_TOKEN: optionalString,
+  VERIFICATION_PEPPER: optionalString,
   NOTIFICATION_EMAILS_ENABLED: optionalBooleanString,
 });
 
@@ -47,7 +48,6 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_APPWRITE_ENDPOINT: z.string().url(),
   NEXT_PUBLIC_APPWRITE_PROJECT_ID: z.string().min(1),
   NEXT_PUBLIC_APPWRITE_DATABASE_ID: z.string().min(1),
-  NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID: z.string().min(1),
 });
 
 export function getServerEnv() {
@@ -59,7 +59,5 @@ export function getPublicEnv() {
     NEXT_PUBLIC_APPWRITE_ENDPOINT: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT,
     NEXT_PUBLIC_APPWRITE_PROJECT_ID: process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID,
     NEXT_PUBLIC_APPWRITE_DATABASE_ID: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID:
-      process.env.NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID,
   });
 }

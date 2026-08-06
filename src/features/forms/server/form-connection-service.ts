@@ -10,6 +10,7 @@ import {
   type FormConnectionRepository,
 } from "@/features/forms/server/form-connection-repository";
 import { createFormConnectionSchema } from "@/features/forms/validation";
+import { isProviderApprovedFormUrl } from "@/lib/validation/safe-links";
 import type { CreateFormConnectionInput } from "@/features/forms/types";
 import type { SessionUser } from "@/features/access-control/types";
 
@@ -76,6 +77,13 @@ export function createFormConnectionService({
 
       if (!(await canManageFormConnectionsForEvent(user, existing.eventId))) {
         throw new Error("Event form connection permission is required.");
+      }
+
+      const provider = input.provider ?? existing.provider;
+      if (input.formUrl && !isProviderApprovedFormUrl(input.formUrl, provider)) {
+        throw new Error(
+          "Form URLs must be HTTPS URLs approved for the selected provider.",
+        );
       }
 
       return repository.update(id, {

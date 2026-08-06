@@ -2,9 +2,12 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { canVolunteer, hasSbRole } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import { EXCOM_ROLES } from "@/lib/config";
 import { listProfiles } from "@/features/access-control/server/profiles";
+import { EXCOM_ROLES } from "@/lib/config";
 import { EventDetail } from "@/features/events/components/EventDetail";
+import {
+  canViewEventRoleAssignments,
+} from "@/features/events/lib/committee-permissions";
 import {
   getEventUserContext,
   getPermissionsForUser,
@@ -49,8 +52,9 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   const permissions = getPermissionsForUser(user, event, userEventRole);
+  const canManageVolunteerDirectory = canViewEventRoleAssignments(user, userEventRole);
   const [assignments, committees, formConnections, profiles] = await Promise.all([
-    getRoleAssignmentsForEvent(eventId),
+    canManageVolunteerDirectory ? getRoleAssignmentsForEvent(eventId) : Promise.resolve([]),
     listCommitteesForEvent(eventId).then(async (items) => {
       const members = await listCommitteeMembersForCommittees(
         items.map((committee) => committee.$id),
@@ -68,7 +72,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       }));
     }),
     listFormConnectionsForCurrentUser(eventId).catch(() => []),
-    listProfiles(),
+    canManageVolunteerDirectory ? listProfiles() : Promise.resolve([]),
   ]);
   const volunteerOptions = profiles
     .filter((profile) => profile.status === "ACTIVE" && profile.uomVerified)

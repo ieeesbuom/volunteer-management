@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { getAppwriteSessionServices } from "@/server/appwrite";
 import { createSessionFromOAuthToken } from "@/features/access-control/server/oauth";
 import { bootstrapProfile } from "@/features/access-control/server/profiles";
-import { clearSessionSecret, setSessionSecret } from "@/server/session";
+import {
+  applySessionSecretCookie,
+  clearOAuthLoginNonceCookie,
+  clearSessionSecret,
+  clearSessionSecretCookie,
+  readOAuthLoginNonce,
+} from "@/server/session";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -14,19 +20,31 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=missing_callback", url.origin));
   }
 
+  const oauthNonce = await readOAuthLoginNonce();
+
+  if (!oauthNonce) {
+    return NextResponse.redirect(new URL("/login?error=oauth_state_missing", url.origin));
+  }
+
   try {
     const session = await createSessionFromOAuthToken({ secret, userId });
 
     if (!session.secret) {
-      return NextResponse.redirect(new URL("/login?error=session_secret_missing", url.origin));
+      const response = NextResponse.redirect(
+        new URL("/login?error=session_secret_missing", url.origin),
+      );
+      clearOAuthLoginNonceCookie(response);
+      return response;
     }
 
     sessionSecret = session.secret;
     const { account } = getAppwriteSessionServices(sessionSecret);
     await bootstrapProfile(await account.get());
-    await setSessionSecret(sessionSecret, session.expire);
 
-    return NextResponse.redirect(new URL("/dashboard", url.origin));
+    const response = NextResponse.redirect(new URL("/dashboard", url.origin));
+    clearOAuthLoginNonceCookie(response);
+    applySessionSecretCookie(response, sessionSecret, session.expire);
+    return response;
   } catch (error) {
     if (sessionSecret) {
       try {
@@ -39,7 +57,10 @@ export async function GET(request: Request) {
 
     await clearSessionSecret();
     logAuthCallbackFailure(error);
-    return NextResponse.redirect(new URL("/login?error=callback_failed", url.origin));
+    const response = NextResponse.redirect(new URL("/login?error=callback_failed", url.origin));
+    clearOAuthLoginNonceCookie(response);
+    clearSessionSecretCookie(response);
+    return response;
   }
 }
 

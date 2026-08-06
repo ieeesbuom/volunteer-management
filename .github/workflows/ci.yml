@@ -20,7 +20,6 @@ jobs:
       NEXT_PUBLIC_APPWRITE_DATABASE_ID: volunteer_management
       NEXT_PUBLIC_APPWRITE_ENDPOINT: https://cloud.appwrite.io/v1
       NEXT_PUBLIC_APPWRITE_PROJECT_ID: ci-project
-      NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID: ci-storage
 
     steps:
       - name: Checkout

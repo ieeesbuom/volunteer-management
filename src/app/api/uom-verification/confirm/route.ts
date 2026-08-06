@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 import { confirmUomVerification } from "@/features/access-control/server/uom-verification";
 import { notifyVerificationWorkflow } from "@/features/notifications/server/workflow-notifications";
+import { enforceRateLimit, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 
 const confirmSchema = z.object({
   code: z.string().min(4).max(12),
@@ -13,6 +14,10 @@ const confirmSchema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
+    enforceRateLimit(
+      rateLimitKey("uom-verify-confirm", user.authUser.id),
+      RATE_LIMITS.uomVerificationConfirmPerUser,
+    );
     const body = confirmSchema.parse(await request.json());
     const profile = await confirmUomVerification({
       code: body.code,
@@ -28,7 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ notification, profile });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Verification confirmation failed.",
+      routeErrorMessage(error, "Verification confirmation failed."),
       routeErrorStatus(error),
     );
   }

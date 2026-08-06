@@ -144,7 +144,6 @@ vi.mock("@/lib/env", () => ({
     NEXT_PUBLIC_APPWRITE_DATABASE_ID: "test-db",
     NEXT_PUBLIC_APPWRITE_ENDPOINT: "https://cloud.appwrite.io/v1",
     NEXT_PUBLIC_APPWRITE_PROJECT_ID: "test-project",
-    NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID: "test-bucket",
   }),
 }));
 

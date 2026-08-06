@@ -6,7 +6,7 @@ import {
   getVolunteerProfileDetails,
   upsertMyVolunteerProfileDetails,
 } from "@/features/volunteers/server/profiles";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function GET() {
   try {
@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ details });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Volunteer profile failed.",
+      routeErrorMessage(error, "Volunteer profile failed."),
       routeErrorStatus(error),
     );
   }
@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
       return jsonError(message, 400);
     }
     return jsonError(
-      error instanceof Error ? error.message : "Volunteer profile update failed.",
+      routeErrorMessage(error, "Volunteer profile update failed."),
       routeErrorStatus(error),
     );
   }

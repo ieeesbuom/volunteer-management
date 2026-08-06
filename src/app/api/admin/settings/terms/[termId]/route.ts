@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { updateIeeeTerm } from "@/features/system-settings/server/settings";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 const updateTermSchema = z.object({
   endDate: z.string().trim().min(10).max(10),
@@ -34,7 +34,7 @@ export async function PATCH(
     return NextResponse.json({ term });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not update IEEE term.",
+      routeErrorMessage(error, "Could not update IEEE term."),
       routeErrorStatus(error),
     );
   }

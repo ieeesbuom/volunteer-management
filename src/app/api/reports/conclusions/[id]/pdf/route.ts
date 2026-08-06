@@ -6,7 +6,7 @@ import {
   canExportConclusionReportPdf,
 } from "@/features/reports/server/conclusion-service";
 import { buildConclusionReportPdf } from "@/pdf";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export const runtime = "nodejs";
 
@@ -36,7 +36,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return pdfResponse(result.buffer, result.filename);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Conclusion report PDF export failed.",
+      routeErrorMessage(error, "Conclusion report PDF export failed."),
       routeErrorStatus(error),
     );
   }

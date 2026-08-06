@@ -469,7 +469,12 @@ export async function reportRecommendation({
   );
   const existingRecommendation = toRecommendation(existingRow as AppRow);
 
-  assertCanReportRecommendation({ status: existingRecommendation.status });
+  assertCanReportRecommendation({
+    actorUserId,
+    requesterId: existingRecommendation.requesterId,
+    respondentId: existingRecommendation.respondentId,
+    status: existingRecommendation.status,
+  });
 
   const now = new Date().toISOString();
   const row = await tables.updateRow(
@@ -555,6 +560,8 @@ export async function listVisibleRecommendationsForVolunteer(
 
   return recommendations.map((recommendation) => ({
     ...recommendation,
+    reportReason: undefined,
+    reportedBy: undefined,
     respondent: toRecommendationProfileIdentity(
       profilesByUserId.get(recommendation.respondentId) ?? null,
     ),

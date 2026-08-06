@@ -7,8 +7,8 @@ import {
 import type { Event } from "@/features/events/types";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { sendEventReminderNotificationsJob } from "@/jobs/send-event-reminder-notifications-job";
-import { getServerEnv } from "@/lib/env";
-import { ForbiddenError, ValidationError, jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { assertTrustedJobRequest, readOptionalJsonBody } from "@/server/internal-job-auth";
 
 const reminderRequestSchema = z
   .object({
@@ -22,7 +22,7 @@ const reminderRequestSchema = z
 export async function POST(request: Request) {
   try {
     assertTrustedJobRequest(request);
-    const input = reminderRequestSchema.parse(await readJsonBody(request));
+    const input = reminderRequestSchema.parse(await readOptionalJsonBody(request));
     const events = await resolveReminderEvents(input);
     const results = [];
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Event reminder job failed.",
+      routeErrorMessage(error, "Event reminder job failed."),
       routeErrorStatus(error),
     );
   }
@@ -86,32 +86,4 @@ function isReminderCandidate(event: Event, referenceDate: Date, windowEnd: Date)
 
   const startsAt = new Date(event.start_date);
   return startsAt >= referenceDate && startsAt <= windowEnd;
-}
-
-function assertTrustedJobRequest(request: Request) {
-  const token = getServerEnv().INTERNAL_JOB_TOKEN;
-
-  if (!token) {
-    throw new ValidationError("INTERNAL_JOB_TOKEN must be configured before running jobs.");
-  }
-
-  const authorization = request.headers.get("authorization") ?? "";
-  const bearerToken = authorization.startsWith("Bearer ")
-    ? authorization.slice("Bearer ".length)
-    : "";
-  const headerToken = request.headers.get("x-internal-job-token") ?? "";
-
-  if (bearerToken !== token && headerToken !== token) {
-    throw new ForbiddenError("Job token is invalid.");
-  }
-}
-
-async function readJsonBody(request: Request) {
-  const text = await request.text();
-
-  if (!text.trim()) {
-    return {};
-  }
-
-  return JSON.parse(text) as unknown;
 }

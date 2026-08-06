@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# appwrite key rotation output (contains secrets)
+.appwrite-key-rotation.json
+/backups/
+
 # vercel
 .vercel
 

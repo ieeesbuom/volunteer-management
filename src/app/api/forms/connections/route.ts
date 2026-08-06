@@ -13,7 +13,7 @@ import {
   notifyGradingRequestWorkflow,
 } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function GET(request: Request) {
   try {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ connections });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not load form connections.",
+      routeErrorMessage(error, "Could not load form connections."),
       routeErrorStatus(error),
     );
   }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ connection, notifications }, { status: 201 });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not create form connection.",
+      routeErrorMessage(error, "Could not create form connection."),
       routeErrorStatus(error),
     );
   }

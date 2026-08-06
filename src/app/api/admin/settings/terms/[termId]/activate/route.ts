@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { activateIeeeTerm } from "@/features/system-settings/server/settings";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function POST(
   _request: Request,
@@ -18,7 +18,7 @@ export async function POST(
     return NextResponse.json({ term });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not activate IEEE term.",
+      routeErrorMessage(error, "Could not activate IEEE term."),
       routeErrorStatus(error),
     );
   }

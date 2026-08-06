@@ -11,7 +11,7 @@ import { updateEventStatus } from "@/features/events/server/event-service";
 import { notifyEventUpdateWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { EVENT_STATUSES } from "@/features/events/types";
-import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
+import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 const statusUpdateSchema = z.object({
   status: z.enum(EVENT_STATUSES),
@@ -68,7 +68,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ event: updatedEvent, notifications });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Failed to update event status.";
+      routeErrorMessage(error, "Failed to update event status.");
 
     if (message.includes("Illegal event status transition")) {
       return jsonError(message, 400);

@@ -4,7 +4,7 @@ import { createGradeRequest, listGradeRequests } from "@/features/scoring/server
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { notifyGradingRequestWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function POST(request: Request) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ gradeRequest, notifications });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to create grade request.",
+      routeErrorMessage(error, "Failed to create grade request."),
       routeErrorStatus(error)
     );
   }
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ gradeRequests });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to list grade requests.",
+      routeErrorMessage(error, "Failed to list grade requests."),
       routeErrorStatus(error)
     );
   }

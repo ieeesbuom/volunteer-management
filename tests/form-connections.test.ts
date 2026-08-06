@@ -225,6 +225,35 @@ describe("form connections", () => {
     expect(updated.formUrl).toBe("https://docs.google.com/forms/d/example/viewform");
   });
 
+  it("rejects form URL updates that do not match the stored provider when provider is omitted", async () => {
+    const repository = createFakeFormConnectionRepository();
+    const service = createFormConnectionService({
+      now: fixedNow,
+      repository,
+    });
+
+    const conn = await service.createFormConnection({
+      input: {
+        eventId: "event-1",
+        formUrl: "https://docs.google.com/forms/d/example/viewform",
+        provider: "google_forms",
+        purpose: "registration",
+        title: "Registration form",
+      },
+      user: fakeUser({ isAdmin: true }),
+    });
+
+    await expect(
+      service.updateFormConnection({
+        id: conn.id,
+        input: {
+          formUrl: "https://example.com/not-google-forms",
+        },
+        user: fakeUser({ isAdmin: true }),
+      }),
+    ).rejects.toThrow("approved for the selected provider");
+  });
+
   it("keeps all-event listing conservative for non-admins", async () => {
     const user = fakeUser({ isAdmin: false });
     const service = createFormConnectionService({

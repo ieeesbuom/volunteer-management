@@ -8,7 +8,9 @@ import {
 } from "@/features/events/server/event-route-helpers";
 import { createEvent, getEvents } from "@/features/events/server/event-service";
 import { CreateEventInputSchema } from "@/features/events/types";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorMessage, routeErrorStatus } from "@/server/errors";
+
+const MAX_EVENT_LIST_LIMIT = 500;
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -24,8 +26,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = parseEventStatus(searchParams.get("status"));
   const term = searchParams.get("term")?.trim() || undefined;
-  const limit = Number.parseInt(searchParams.get("limit") ?? "50", 10);
-  const offset = Number.parseInt(searchParams.get("offset") ?? "0", 10);
+  const rawLimit = Number.parseInt(searchParams.get("limit") ?? "50", 10);
+  const rawOffset = Number.parseInt(searchParams.get("offset") ?? "0", 10);
+  const limit = Number.isNaN(rawLimit)
+    ? 50
+    : Math.min(Math.max(rawLimit, 1), MAX_EVENT_LIST_LIMIT);
+  const offset = Number.isNaN(rawOffset) ? 0 : Math.max(rawOffset, 0);
 
   if (searchParams.get("status") && !status) {
     return jsonError("Invalid event status filter.", 400);
@@ -34,8 +40,8 @@ export async function GET(request: Request) {
   try {
     const result = await getEvents({
       isAdmin: user.isAdmin,
-      limit: Number.isNaN(limit) ? 50 : limit,
-      offset: Number.isNaN(offset) ? 0 : offset,
+      limit,
+      offset,
       status,
       term,
       userId: user.authUser.id,
@@ -44,7 +50,7 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to list events.",
+      routeErrorMessage(error, "Failed to list events."),
       routeErrorStatus(error),
     );
   }
@@ -71,7 +77,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ event }, { status: 201 });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to create event.",
+      routeErrorMessage(error, "Failed to create event."),
       routeErrorStatus(error),
     );
   }

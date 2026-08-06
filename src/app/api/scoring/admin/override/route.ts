@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AdminGradeOverrideSchema } from "@/features/scoring/lib/schemas";
 import { adminOverrideGrade } from "@/features/scoring/server/actions";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ review });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to override grade.",
+      routeErrorMessage(error, "Failed to override grade."),
       routeErrorStatus(error)
     );
   }

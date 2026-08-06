@@ -83,6 +83,7 @@ export function AppShell({
               <Link
                 key={item.id}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   "group flex h-10 items-center gap-3 rounded-md px-3 text-[14px] font-medium transition-colors cursor-pointer",
                   isActive
@@ -112,6 +113,7 @@ export function AppShell({
                     <Link
                       key={item.id}
                       href={item.href}
+                      prefetch={false}
                       className={cn(
                         "group flex h-10 items-center gap-3 rounded-md px-3 text-[14px] font-medium transition-colors cursor-pointer",
                         isActive

@@ -10,7 +10,7 @@ import {
   reopenConclusionReportRecord,
   updateConclusionReportRecord,
 } from "@/features/reports/server/conclusion-service";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -33,7 +33,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ report });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not load conclusion report.",
+      routeErrorMessage(error, "Could not load conclusion report."),
       routeErrorStatus(error),
     );
   }
@@ -58,7 +58,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ report });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not update conclusion report.",
+      routeErrorMessage(error, "Could not update conclusion report."),
       routeErrorStatus(error),
     );
   }

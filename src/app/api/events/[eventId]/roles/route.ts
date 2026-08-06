@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import { canAssignCommitteeRole } from "@/features/events/lib/committee-permissions";
+import { canAssignCommitteeRole, canManageStructuralCommittees } from "@/features/events/lib/committee-permissions";
 import {
   parseValidationBody,
   requireVerifiedVolunteer,
@@ -12,7 +12,7 @@ import {
 } from "@/features/events/server/event-roles.server";
 import { notifyRoleAssignmentWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { AssignEventRoleInputSchema } from "@/features/events/types";
-import { ForbiddenError, jsonError, routeErrorStatus } from "@/server/errors";
+import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ eventId: string }>;
@@ -29,12 +29,23 @@ export async function GET(_request: Request, context: RouteContext) {
   const { eventId } = await context.params;
 
   try {
-    await requireVisibleEvent(eventId, user!);
+    const { userEventRole } = await requireVisibleEvent(eventId, user!);
+
+    if (
+      !user!.isAdmin &&
+      !canManageStructuralCommittees({
+        isAdmin: false,
+        userEventRole,
+      })
+    ) {
+      throw new ForbiddenError("You do not have permission to view event role assignments.");
+    }
+
     const assignments = await getRoleAssignmentsForEvent(eventId);
     return NextResponse.json({ assignments });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to list event role assignments.",
+      routeErrorMessage(error, "Failed to list event role assignments."),
       routeErrorStatus(error),
     );
   }
@@ -82,7 +93,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ assignment, notification }, { status: 201 });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Failed to assign event role.",
+      routeErrorMessage(error, "Failed to assign event role."),
       routeErrorStatus(error),
     );
   }

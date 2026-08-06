@@ -1,27 +1,36 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { listAuditLogs } from "@/features/system-settings/server/settings";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { auditLogsQuerySchema } from "@/features/system-settings/validation";
+import { jsonError, routeErrorMessage, routeErrorStatus } from "@/server/errors";
 
 export async function GET(request: Request) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(request.url);
-    const requestedLimit = Number(searchParams.get("limit") ?? "25");
+    const query = auditLogsQuerySchema.parse({
+      action: searchParams.get("action") ?? undefined,
+      actorUserId: searchParams.get("actorUserId") ?? undefined,
+      cursor: searchParams.get("cursor") ?? undefined,
+      dateFrom: searchParams.get("dateFrom") ?? undefined,
+      dateTo: searchParams.get("dateTo") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      targetId: searchParams.get("targetId") ?? undefined,
+    });
     const auditPage = await listAuditLogs({
-      action: searchParams.get("action")?.trim() || undefined,
-      actorUserId: searchParams.get("actorUserId")?.trim() || undefined,
-      cursor: searchParams.get("cursor")?.trim() || undefined,
-      dateFrom: searchParams.get("dateFrom")?.trim() || undefined,
-      dateTo: searchParams.get("dateTo")?.trim() || undefined,
-      limit: Number.isFinite(requestedLimit) ? requestedLimit : 25,
-      targetId: searchParams.get("targetId")?.trim() || undefined,
+      action: query.action,
+      actorUserId: query.actorUserId,
+      cursor: query.cursor,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+      limit: query.limit,
+      targetId: query.targetId,
     });
 
     return NextResponse.json(auditPage);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not load audit logs.",
+      routeErrorMessage(error, "Could not load audit logs."),
       routeErrorStatus(error),
     );
   }

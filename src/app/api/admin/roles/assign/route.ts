@@ -3,7 +3,7 @@ import { z } from "zod";
 import { parseSbRole, assignSbRole } from "@/features/access-control/server/roles";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { notifyRoleAssignmentWorkflow } from "@/features/notifications/server/workflow-notifications";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 const roleSchema = z.object({
   role: z.string(),
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ assignment, notification });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Role assignment failed.",
+      routeErrorMessage(error, "Role assignment failed."),
       routeErrorStatus(error),
     );
   }

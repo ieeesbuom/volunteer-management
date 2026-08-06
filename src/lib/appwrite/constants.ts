@@ -1,4 +1,5 @@
 export const APPWRITE_SESSION_COOKIE = "vm_appwrite_session";
+export const OAUTH_LOGIN_NONCE_COOKIE = "vm_oauth_login_nonce";
 
 export const APPWRITE_TABLES = {
   profiles: "profiles",

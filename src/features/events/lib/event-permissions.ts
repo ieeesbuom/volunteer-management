@@ -72,7 +72,9 @@ export function getEventPermissions(
       canEdit: userEventRole === "Chair" && EDITABLE_STATUSES.includes(event.status),
       canManageCommittee: true,
       canPublish: false,
-      canSubmitConclusion: userEventRole === "Chair" && event.status === "ongoing",
+      canSubmitConclusion:
+        (userEventRole === "Chair" || userEventRole === "Vice Chair") &&
+        event.status === "ongoing",
     };
   }
 

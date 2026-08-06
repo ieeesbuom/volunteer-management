@@ -5,7 +5,7 @@ import {
   addTopBoardExclusion,
   listTopBoardExclusions,
 } from "@/features/system-settings/server/top-board-exclusions";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 
 const exclusionSchema = z.object({
   reason: z.string().trim().min(3).max(1000),
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ exclusions });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not load Top Board exclusions.",
+      routeErrorMessage(error, "Could not load Top Board exclusions."),
       routeErrorStatus(error),
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ exclusion });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Could not add Top Board exclusion.",
+      routeErrorMessage(error, "Could not add Top Board exclusion."),
       routeErrorStatus(error),
     );
   }

@@ -53,12 +53,22 @@ export function assertCanRespondToRecommendation({
 }
 
 export function assertCanReportRecommendation({
+  actorUserId,
+  requesterId,
+  respondentId,
   status,
 }: {
+  actorUserId: string;
+  requesterId: string;
+  respondentId: string;
   status: string;
 }) {
   if (status !== "VISIBLE") {
     throw new Error("Only visible recommendations can be reported.");
+  }
+
+  if (actorUserId === requesterId || actorUserId === respondentId) {
+    throw new Error("You cannot report your own recommendation.");
   }
 }
 

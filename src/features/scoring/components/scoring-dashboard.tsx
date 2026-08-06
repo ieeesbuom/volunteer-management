@@ -405,6 +405,10 @@ export function ScoringDashboard({
       return;
     }
 
+    if (!user.isAdmin && !effectiveEventId) {
+      return;
+    }
+
     async function loadVolunteers() {
       setVolunteersLoading(true);
       setVolunteersError(null);
@@ -419,7 +423,7 @@ export function ScoringDashboard({
       }
     }
     loadVolunteers();
-  }, [effectiveEventId, volunteersLoadedFor]);
+  }, [effectiveEventId, user.isAdmin, volunteersLoadedFor]);
 
   // Fetch volunteers specifically for the selected extra score event
   useEffect(() => {

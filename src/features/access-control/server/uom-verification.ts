@@ -16,11 +16,15 @@ import { writeAuditLog } from "@/server/audit";
 import { sendUomVerificationCode } from "@/server/email/adapter";
 import { getProfile, markProfileUomVerified } from "@/features/access-control/server/profiles";
 import type { UomVerificationStatus } from "@/features/access-control/types";
+import { getVerificationPepper } from "@/features/access-control/server/verification-pepper";
+import { claimVerifiedUomEmail } from "@/features/access-control/server/uom-email-claim";
+import { safeDigestEquals } from "@/server/tokens";
 
 type VerificationRow = {
   $id: string;
   attempts: number;
   codeHash: string;
+  createdAt: string;
   expiresAt: string;
   status: UomVerificationStatus;
   uomEmail: string;
@@ -28,11 +32,14 @@ type VerificationRow = {
   verifiedAt?: string;
 };
 
+const UOM_VERIFICATION_RESEND_COOLDOWN_MS = 60_000;
+
 function toVerificationRow(row: Record<string, unknown>): VerificationRow {
   return {
     $id: String(row.$id),
     attempts: Number(row.attempts ?? 0),
     codeHash: String(row.codeHash),
+    createdAt: String(row.$createdAt ?? row.createdAt ?? new Date().toISOString()),
     expiresAt: String(row.expiresAt),
     status: String(row.status) as UomVerificationStatus,
     uomEmail: String(row.uomEmail),
@@ -75,10 +82,37 @@ export async function requestUomVerification({
     throw new Error("This UoM email is already verified by another account.");
   }
 
+  const pending = await getLatestPendingVerification(userId);
+
+  if (
+    pending &&
+    pending.uomEmail === normalizedUomEmail &&
+    !isVerificationExpired(pending.expiresAt)
+  ) {
+    const ageMs = Date.now() - new Date(pending.createdAt).getTime();
+
+    if (ageMs < UOM_VERIFICATION_RESEND_COOLDOWN_MS) {
+      return {
+        deliveredTo: normalizedUomEmail,
+        expiresAt: pending.expiresAt,
+        requestId: pending.$id,
+        resent: false,
+      };
+    }
+
+    return resendVerificationForRow({
+      env,
+      normalizedUomEmail,
+      rowId: pending.$id,
+      tables,
+      userId,
+    });
+  }
+
   const code = createVerificationCode();
   const codeHash = createCodeHash({
     code,
-    pepper: env.APPWRITE_API_KEY,
+    pepper: getVerificationPepper(),
     uomEmail: normalizedUomEmail,
     userId,
   });
@@ -98,6 +132,91 @@ export async function requestUomVerification({
     },
   );
 
+  const delivery = await deliverVerificationCode({
+    code,
+    env,
+    normalizedUomEmail,
+    rowId: row.$id,
+    tables,
+    userId,
+  });
+
+  return {
+    deliveredTo: normalizedUomEmail,
+    expiresAt,
+    requestId: row.$id,
+    resent: true,
+    ...delivery,
+  };
+}
+
+async function resendVerificationForRow({
+  env,
+  normalizedUomEmail,
+  rowId,
+  tables,
+  userId,
+}: {
+  env: ReturnType<typeof getServerEnv>;
+  normalizedUomEmail: string;
+  rowId: string;
+  tables: ReturnType<typeof getAppwriteAdminServices>["tables"];
+  userId: string;
+}) {
+  const code = createVerificationCode();
+  const codeHash = createCodeHash({
+    code,
+    pepper: getVerificationPepper(),
+    uomEmail: normalizedUomEmail,
+    userId,
+  });
+  const expiresAt = createVerificationExpiry();
+
+  await tables.updateRow(
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    APPWRITE_TABLES.uomVerificationRequests,
+    rowId,
+    {
+      attempts: 0,
+      codeHash,
+      expiresAt,
+      status: "PENDING",
+      uomEmail: normalizedUomEmail,
+    },
+  );
+
+  await deliverVerificationCode({
+    code,
+    env,
+    normalizedUomEmail,
+    rowId,
+    tables,
+    userId,
+  });
+
+  return {
+    deliveredTo: normalizedUomEmail,
+    expiresAt,
+    requestId: rowId,
+    resent: true,
+  };
+}
+
+async function deliverVerificationCode({
+  code,
+  env,
+  normalizedUomEmail,
+  rowId,
+  tables,
+  userId,
+}: {
+  code: string;
+  env: ReturnType<typeof getServerEnv>;
+  normalizedUomEmail: string;
+  rowId: string;
+  tables: ReturnType<typeof getAppwriteAdminServices>["tables"];
+  userId: string;
+}) {
   let delivery;
 
   try {
@@ -109,7 +228,7 @@ export async function requestUomVerification({
     await tables.updateRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.uomVerificationRequests,
-      row.$id,
+      rowId,
       { status: "CANCELLED" },
     );
 
@@ -124,15 +243,11 @@ export async function requestUomVerification({
       provider: delivery.provider,
       uomEmail: normalizedUomEmail,
     },
-    targetId: row.$id,
+    targetId: rowId,
     targetType: "uom_verification_request",
   });
 
-  return {
-    deliveredTo: normalizedUomEmail,
-    expiresAt,
-    requestId: row.$id,
-  };
+  return delivery;
 }
 
 export async function confirmUomVerification({
@@ -198,12 +313,12 @@ export async function confirmUomVerification({
 
   const codeHash = createCodeHash({
     code,
-    pepper: env.APPWRITE_API_KEY,
+    pepper: getVerificationPepper(),
     uomEmail: row.uomEmail,
     userId,
   });
 
-  if (codeHash !== row.codeHash) {
+  if (!safeDigestEquals(codeHash, row.codeHash)) {
     await tables.updateRow(
       env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
       APPWRITE_TABLES.uomVerificationRequests,
@@ -212,6 +327,12 @@ export async function confirmUomVerification({
     );
     throw new Error("Invalid verification code.");
   }
+
+  await claimVerifiedUomEmail({
+    actorUserId: userId,
+    normalizedUomEmail: row.uomEmail,
+    userId,
+  });
 
   const verifiedAt = new Date().toISOString();
   await tables.updateRow(

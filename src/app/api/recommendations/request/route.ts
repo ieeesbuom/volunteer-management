@@ -5,7 +5,12 @@ import {
   listRecommendationRequestsForVolunteer,
   requestRecommendation,
 } from "@/features/recommendations/server/recommendations";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import {
+  enforceRateLimit,
+  rateLimitKey,
+  RATE_LIMITS,
+} from "@/server/rate-limit";
 
 const requestSchema = z.object({
   message: z.string().trim().max(500).optional(),
@@ -20,7 +25,7 @@ export async function GET() {
     return NextResponse.json(requests);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Recommendation request lookup failed.",
+      routeErrorMessage(error, "Recommendation request lookup failed."),
       routeErrorStatus(error),
     );
   }
@@ -29,6 +34,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireUomVerifiedVolunteer();
+    enforceRateLimit(
+      rateLimitKey("recommendation-write", user.authUser.id),
+      RATE_LIMITS.recommendationWritePerUser,
+    );
     const body = requestSchema.parse(await request.json());
     const recommendationRequest = await requestRecommendation({
       message: body.message,
@@ -39,7 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ request: recommendationRequest });
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Recommendation request failed.",
+      routeErrorMessage(error, "Recommendation request failed."),
       routeErrorStatus(error),
     );
   }

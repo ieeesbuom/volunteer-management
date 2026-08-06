@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus } from "@/server/errors";
+import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
 import { requestUomVerification } from "@/features/access-control/server/uom-verification";
 import { isUomEmail, UOM_EMAIL_DOMAIN } from "@/lib/config";
+import {
+  enforceRateLimit,
+  rateLimitKey,
+  RATE_LIMITS,
+} from "@/server/rate-limit";
 
 const requestSchema = z.object({
   uomEmail: z
@@ -18,6 +23,8 @@ const requestSchema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
+    const userKey = rateLimitKey("uom-verify-request", user.authUser.id);
+    enforceRateLimit(userKey, RATE_LIMITS.uomVerificationRequestPerUser);
     const body = requestSchema.parse(await request.json());
     const result = await requestUomVerification({
       uomEmail: body.uomEmail,
@@ -27,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     return jsonError(
-      error instanceof Error ? error.message : "Verification request failed.",
+      routeErrorMessage(error, "Verification request failed."),
       routeErrorStatus(error),
     );
   }

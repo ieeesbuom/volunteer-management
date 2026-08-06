@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Account, Client, Messaging, Storage, TablesDB, Users } from "node-appwrite";
+import { Account, Client, TablesDB, Users } from "node-appwrite";
 import { getServerEnv } from "@/lib/env";
 
 export function getAppwriteBaseClient() {
@@ -26,8 +26,6 @@ export function getAppwriteAdminServices() {
 
   return {
     account: new Account(client),
-    messaging: new Messaging(client),
-    storage: new Storage(client),
     tables: new TablesDB(client),
     users: new Users(client),
   };

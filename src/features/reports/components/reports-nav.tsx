@@ -52,7 +52,7 @@ export function ReportsNav({ canAccessConclusions, isAdmin }: ReportsNavProps) {
   return (
     <nav
       aria-label="Reports navigation"
-      className="inline-flex flex-wrap gap-2 rounded-md border border-border bg-surface p-1"
+      className="mb-4 flex overflow-x-auto border-b border-border-subtle"
     >
       {items.map((item) => {
         const Icon = item.icon;
@@ -64,10 +64,10 @@ export function ReportsNav({ canAccessConclusions, isAdmin }: ReportsNavProps) {
         return (
           <Link
             className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors",
+              "relative flex h-10 shrink-0 items-center gap-2 whitespace-nowrap px-4 text-[14px] font-medium transition-colors cursor-pointer",
               isActive
-                ? "border-primary/30 bg-primary-soft text-primary"
-                : "border-transparent text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+                ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
+                : "text-text-muted hover:text-text-body",
             )}
             href={item.href}
             key={item.href}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, BellPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import {
@@ -40,7 +41,7 @@ export default async function AdminNotificationsPage() {
 
   return (
     <AppShell active="notifications" user={currentUser}>
-      <div className="space-y-6">
+      <AppPage>
         <PageHeader
           title="Send Notification"
           description="Create notifications while respecting recipient delivery preferences."
@@ -66,7 +67,7 @@ export default async function AdminNotificationsPage() {
             <AdminNotificationForm eventOptions={eventOptions} profiles={profiles} />
           </CardContent>
         </Card>
-      </div>
+      </AppPage>
     </AppShell>
   );
 }

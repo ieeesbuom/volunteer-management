@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, CheckCircle2, MailCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export default async function VerifyUomPage() {
 
   return (
     <AppShell active="volunteers" user={user}>
-      <div className="space-y-6">
+      <AppPage>
         <PageHeader
           title="UoM Email Verification"
           description={
@@ -78,7 +79,7 @@ export default async function VerifyUomPage() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </AppPage>
     </AppShell>
   );
 }

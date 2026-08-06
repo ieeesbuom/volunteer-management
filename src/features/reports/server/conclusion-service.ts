@@ -56,23 +56,19 @@ function emptyContent(): ConclusionReportContent {
   };
 }
 
-function toContent(row: AppRow): ConclusionReportContent {
-  if (typeof row.content === "string" && row.content) {
-    try {
-      const parsed = JSON.parse(row.content) as Partial<ConclusionReportContent>;
+function normalizeContentFields(
+  parsed: Partial<ConclusionReportContent>,
+): ConclusionReportContent {
+  return {
+    attendanceNotes: parsed.attendanceNotes ?? "",
+    challenges: parsed.challenges ?? "",
+    objectives: parsed.objectives ?? "",
+    outcomes: parsed.outcomes ?? "",
+    recommendations: parsed.recommendations ?? "",
+  };
+}
 
-      return {
-        attendanceNotes: parsed.attendanceNotes ?? "",
-        challenges: parsed.challenges ?? "",
-        objectives: parsed.objectives ?? "",
-        outcomes: parsed.outcomes ?? "",
-        recommendations: parsed.recommendations ?? "",
-      };
-    } catch {
-      throw new Error(`Invalid report content stored for report ${row.$id}.`);
-    }
-  }
-
+function contentFromLegacyColumns(row: AppRow): ConclusionReportContent {
   return {
     attendanceNotes: String(row.attendanceNotes ?? ""),
     challenges: String(row.challenges ?? ""),
@@ -80,6 +76,55 @@ function toContent(row: AppRow): ConclusionReportContent {
     outcomes: String(row.outcomes ?? ""),
     recommendations: String(row.recommendations ?? ""),
   };
+}
+
+function hasLegacyColumnContent(row: AppRow) {
+  return (
+    typeof row.attendanceNotes === "string" ||
+    typeof row.challenges === "string" ||
+    typeof row.objectives === "string" ||
+    typeof row.outcomes === "string" ||
+    typeof row.recommendations === "string"
+  );
+}
+
+function parseStoredContent(row: AppRow): ConclusionReportContent | null {
+  if (typeof row.content !== "string" || !row.content) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(row.content) as unknown;
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return normalizeContentFields(parsed as Partial<ConclusionReportContent>);
+    }
+  } catch {
+    // Fall back to legacy columns or plain-text content below.
+  }
+
+  return null;
+}
+
+function toContent(row: AppRow): ConclusionReportContent {
+  const parsedContent = parseStoredContent(row);
+
+  if (parsedContent) {
+    return parsedContent;
+  }
+
+  if (typeof row.content === "string" && row.content) {
+    if (hasLegacyColumnContent(row)) {
+      return contentFromLegacyColumns(row);
+    }
+
+    return {
+      ...emptyContent(),
+      objectives: row.content,
+    };
+  }
+
+  return contentFromLegacyColumns(row);
 }
 
 function contentToRow(content: ConclusionReportContent) {

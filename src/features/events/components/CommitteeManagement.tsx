@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { AlertTriangle, Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import {
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import type { Committee, CommitteeMember } from "@/features/events/types";
 import { cn, formatUserFacingError } from "@/lib/utils";
+import { volunteerInitials } from "@/components/leaderboard/leaderboard-table-ui";
 
 type CommitteeWithMembers = Committee & {
   members: CommitteeMember[];
@@ -247,7 +249,7 @@ export function CommitteeManagement({
       </CardHeader>
       <CardContent className="space-y-6">
         {canManage ? (
-          <form className="space-y-3 rounded-md border border-border p-4" onSubmit={handleCreateCommittee}>
+          <form className="space-y-3 rounded-md border border-border-subtle p-4" onSubmit={handleCreateCommittee}>
             <h3 className="text-sm font-semibold text-text-primary">Create Committee</h3>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block text-sm font-medium text-text-secondary" htmlFor="committee_name">
@@ -282,7 +284,7 @@ export function CommitteeManagement({
         ) : (
           <div className="space-y-4">
             {committees.map((committee) => (
-              <div className="rounded-md border border-border p-4" key={committee.$id}>
+              <div className="rounded-md border border-border-subtle p-4" key={committee.$id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-medium text-text-primary">{committee.name}</h3>
@@ -336,23 +338,22 @@ export function CommitteeManagement({
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
 
-                      <div className="max-h-60 overflow-y-auto rounded-md border border-border bg-surface divide-y divide-border">
+                      <div className="max-h-60 overflow-y-auto rounded-md border border-border-subtle bg-surface divide-y divide-border-subtle">
                         {sortedVolunteers().length > 0 ? (
                           sortedVolunteers().map((volunteer) => {
                             const isSelected = selectedUserIds.has(volunteer.userId);
                             return (
-                              <label
+                              <div
                                 key={volunteer.userId}
                                 className={cn(
-                                  "flex items-center gap-3 px-3 py-2 text-sm select-none cursor-pointer hover:bg-surface-subtle/50 transition-colors",
-                                  isSelected && "bg-primary-soft/10"
+                                  "flex items-center gap-3 px-3 py-2 text-sm select-none transition-colors",
+                                  isSelected && "bg-bg-base",
                                 )}
                               >
-                                <input
-                                  type="checkbox"
-                                  className="rounded border-border text-primary focus:ring-primary cursor-pointer size-4"
+                                <Toggle
+                                  aria-label={`Select ${volunteer.name || "volunteer"}`}
                                   checked={isSelected}
-                                  onChange={() => {
+                                  onCheckedChange={() => {
                                     setSelectedUserIds((current) => {
                                       const next = new Set(current);
                                       if (next.has(volunteer.userId)) {
@@ -368,7 +369,7 @@ export function CommitteeManagement({
                                   <p className="font-medium text-text-primary truncate">{volunteer.name || "Volunteer"}</p>
                                   <p className="text-xs text-text-secondary truncate">{volunteer.uomEmail || volunteer.googleEmail}</p>
                                 </div>
-                              </label>
+                              </div>
                             );
                           })
                         ) : (
@@ -407,20 +408,35 @@ export function CommitteeManagement({
                       </div>
                     </div>
                   ) : committee.members.length > 0 ? (
-                    <ul className="space-y-2 text-sm">
+                    <ul className="space-y-2">
                       {committee.members.map((member) => {
                         const volunteer = volunteersByUserId.get(member.user_id);
+                        const displayName =
+                          volunteer?.name || volunteer?.googleEmail || "Volunteer";
+                        const email =
+                          volunteer?.uomEmail || volunteer?.googleEmail || "Verified volunteer";
 
                         return (
-                          <li className="flex items-center justify-between gap-3" key={member.$id}>
-                            <span className="min-w-0">
-                              <span className="block truncate text-text-primary">
-                                {volunteer?.name || volunteer?.googleEmail || "Volunteer"}
+                          <li
+                            className="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-bg-base/50 px-3 py-2.5"
+                            key={member.$id}
+                          >
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                              <span
+                                className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-surface-raised text-[10px] font-bold text-text-strong"
+                                aria-hidden
+                              >
+                                {volunteerInitials(displayName)}
                               </span>
-                              <span className="block truncate text-xs text-text-muted">
-                                {volunteer?.uomEmail || volunteer?.googleEmail || "Verified volunteer"}
+                              <span className="min-w-0">
+                                <span className="block truncate text-[13px] font-semibold text-text-strong">
+                                  {displayName}
+                                </span>
+                                <span className="block truncate text-[12px] text-text-muted">
+                                  {email}
+                                </span>
                               </span>
-                            </span>
+                            </div>
                             {canManage ? (
                               <Button
                                 disabled={pendingAction === member.$id}
@@ -428,12 +444,12 @@ export function CommitteeManagement({
                                   setMemberToRemove({
                                     committeeId: committee.$id,
                                     memberId: member.$id,
-                                    volunteerName: volunteer?.name || volunteer?.googleEmail || "Volunteer",
+                                    volunteerName: displayName,
                                   })
                                 }
                                 type="button"
                                 variant="ghost"
-                                className="cursor-pointer text-xs"
+                                className="h-8 shrink-0 cursor-pointer px-2 text-[12px] text-text-muted hover:text-danger"
                               >
                                 Remove
                               </Button>
@@ -510,8 +526,8 @@ function ConfirmationDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-        <div className="border-b border-border px-5 py-4">
+      <div className="w-full max-w-lg rounded-lg border border-border-subtle bg-surface shadow-xl">
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
               <AlertTriangle className="size-5" aria-hidden="true" />
@@ -522,7 +538,7 @@ function ConfirmationDialog({
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4">
           <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost" className="cursor-pointer">
             Cancel
           </Button>

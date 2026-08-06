@@ -1,28 +1,13 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import {
-  CalendarDays,
-  MailCheck,
-  ShieldCheck,
-  UserRound,
-  UsersRound,
-} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
-import { buttonClasses } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AppPage } from "@/components/layout/app-page";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { listEventsByIds } from "@/features/events/server/event-service";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
 import { isEligibleForGlobalDashboard } from "@/features/forms/lib/audience";
+import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
+import { getDashboardLayoutForUserId } from "@/features/dashboard/server/dashboard-layout-service";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +19,10 @@ export default async function DashboardPage() {
   }
 
   const formRepo = createAppwriteFormConnectionRepository();
-  const allConnections = await formRepo.list({ limit: 100 });
+  const [allConnections, savedLayout] = await Promise.all([
+    formRepo.list({ limit: 100 }),
+    getDashboardLayoutForUserId(user.authUser.id).catch(() => null),
+  ]);
   const activeRegistrations = allConnections.filter(isEligibleForGlobalDashboard);
 
   const assignedEventIds = new Set(user.eventRoles.map((r) => r.eventId));
@@ -59,214 +47,15 @@ export default async function DashboardPage() {
 
   return (
     <AppShell active="dashboard" user={user}>
-      <div className="space-y-6">
-        <PageHeader
-          title="Dashboard"
-          description="Your profile, access, responsibilities, and notification preferences."
-          actions={
-            <>
-              <Link
-                className={buttonClasses({
-                  variant: user.profile.uomVerified ? "secondary" : "primary",
-                })}
-                href="/volunteers/me"
-              >
-                <MailCheck className="size-4" aria-hidden="true" />
-                {user.profile.uomVerified ? "Open Profile" : "Verify in Profile"}
-              </Link>
-            </>
-          }
-        />
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserRound className="size-4 text-primary" aria-hidden="true" />
-                Profile
-              </CardTitle>
-              <CardDescription>Account identity and UoM verification.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={user.profile.uomVerified ? "success" : "warning"}>
-                  {user.profile.uomVerified ? "UoM verified" : "UoM verification required"}
-                </Badge>
-                <Badge tone={user.profile.status === "ACTIVE" ? "success" : "warning"}>
-                  {user.profile.status}
-                </Badge>
-              </div>
-              <InfoRow label="Name" value={user.authUser.name || "Not provided"} />
-              <InfoRow label="Google email" value={user.authUser.email} />
-              <InfoRow
-                label="UoM email"
-                value={user.profile.uomEmail ?? "Not verified yet"}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-                Access
-              </CardTitle>
-              <CardDescription>Branch and admin privileges assigned to this account.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={user.isAdmin ? "success" : "neutral"}>
-                  {user.isAdmin ? "Admin" : "Volunteer access"}
-                </Badge>
-                <Badge tone={user.eventRoles.length > 0 ? "primary" : "neutral"}>
-                  {user.eventRoles.length} event role{user.eventRoles.length === 1 ? "" : "s"}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text-secondary">SB roles</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {user.sbRoles.length > 0 ? (
-                    user.sbRoles.map((role) => (
-                      <Badge key={role} tone="primary">
-                        {role}
-                      </Badge>
-                    ))
-                  ) : (
-                    <Badge>No assigned SB roles</Badge>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {opportunityList.length > 0 && (
-          <Card className="border-primary/20 bg-gradient-to-br from-surface to-primary-soft/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary font-bold">
-                <UsersRound className="size-5 text-primary" aria-hidden="true" />
-                Open Volunteer Opportunities
-              </CardTitle>
-              <CardDescription>
-                New events looking for volunteers. Register to join the team!
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {opportunityList.map(({ conn, event }) => (
-                  <div
-                    key={conn.id}
-                    className="flex flex-col justify-between p-5 rounded-[12px] border border-border-subtle bg-surface hover:border-primary/30 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-[1px]"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-semibold text-text-primary text-base">
-                          {event?.title}
-                        </h4>
-                        <Badge tone="success" className="shrink-0">
-                          Registration Open
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-text-secondary line-clamp-2">
-                        {event?.description || "Join as a volunteer to help organize this event."}
-                      </p>
-                      <div className="flex flex-wrap gap-2 text-xs text-text-muted mt-2">
-                        <span>Term: {event?.term}</span>
-                        <span>•</span>
-                        <span>Year: {event?.year}</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                      <span className="text-xs text-text-muted">
-                        Form: {conn.title}
-                      </span>
-                      <a
-                        href={conn.formUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={buttonClasses({
-                          variant: "primary",
-                          className: "cursor-pointer h-9 px-4 text-xs font-semibold",
-                        })}
-                      >
-                        Register to Volunteer
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="size-4 text-primary" aria-hidden="true" />
-              Event Responsibilities
-            </CardTitle>
-            <CardDescription>
-              Active event-scoped roles assigned by the Admin account.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {user.eventRoles.length > 0 ? (
-              <div className="overflow-x-auto rounded-md border border-border-subtle">
-                <table className="min-w-[720px] divide-y divide-border-subtle text-left text-sm">
-                  <thead className="bg-base text-[11px] font-semibold uppercase tracking-widest text-text-secondary">
-                    <tr>
-                      <th className="px-4 py-3">Event</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3">Committee</th>
-                      <th className="px-4 py-3">Assigned</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-subtle bg-surface">
-                    {user.eventRoles.map((assignment) => (
-                      <tr key={assignment.$id} className="hover:bg-primary-soft transition-colors">
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/events/${assignment.eventId}`}
-                            className="font-medium text-text-primary hover:text-primary transition-colors cursor-pointer"
-                          >
-                            {assignment.eventTitle}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge tone="primary">
-                            {getEventRoleDisplayName(assignment.role, {
-                              chairCount: assignment.eventChairCount ?? 0,
-                            })}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-[13px] text-text-secondary">
-                          {assignment.committeeName ?? "Event-level"}
-                        </td>
-                        <td className="px-4 py-3 text-[13px] text-text-secondary">
-                          {new Date(assignment.assignedAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">
-                No event responsibilities are currently assigned to this account.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <AppPage className="space-y-0 pb-0">
+        <Suspense fallback={null}>
+          <DashboardOverview
+            user={user}
+            opportunityList={opportunityList}
+            initialLayout={savedLayout}
+          />
+        </Suspense>
+      </AppPage>
     </AppShell>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1 border-b border-border-subtle pb-3 last:border-0 last:pb-0">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{label}</span>
-      <span className="break-all text-[14px] font-medium text-text-primary">{value}</span>
-    </div>
   );
 }

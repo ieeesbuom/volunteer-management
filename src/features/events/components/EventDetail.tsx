@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowLeft,
-  Check,
   ClipboardList,
   Pencil,
   Trash2,
@@ -16,6 +15,7 @@ import {
 import type { EventRoleAssignment } from "@/features/access-control/types";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { PageHeader } from "@/components/layout/page-header";
+import { AppPage } from "@/components/layout/app-page";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import {
@@ -26,6 +26,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CommitteeManagement } from "@/features/events/components/CommitteeManagement";
+import {
+  EventMembersEmptyState,
+  EventRoleAssignmentsTable,
+} from "@/features/events/components/event-role-assignments-table";
+import { EventLifecycleStepper } from "@/features/events/components/event-lifecycle-stepper";
 import { AssignRoleModal } from "@/features/events/components/AssignRoleModal";
 import { EventFormConnections } from "@/features/forms/components/event-form-connections";
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
@@ -35,13 +40,11 @@ import {
   formatEventStatus,
   getAvailableStatusTransitions,
   getConclusionStatusBadgeTone,
-  getEventStatusBadgeClassName,
   getEventStatusBadgeTone,
 } from "@/features/events/lib/event-ui";
 import type { Committee, CommitteeMember, Event, EventPermissions, EventRole, EventStatus } from "@/features/events/types";
 import type { FormConnection } from "@/features/forms/types";
 import { EVENT_STATUSES } from "@/features/events/types";
-import { cn } from "@/lib/utils";
 
 const LIFECYCLE_LABELS: Record<EventStatus, string> = {
   draft: "Draft",
@@ -209,7 +212,7 @@ export function EventDetail({
     permissions.canApproveConclusion && event.conclusion_status === "submitted";
 
   return (
-    <div className="space-y-6">
+    <AppPage>
       <PageHeader
         title={event.title}
         description={
@@ -229,10 +232,7 @@ export function EventDetail({
         <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <Badge
-                className={getEventStatusBadgeClassName(event.status)}
-                tone={getEventStatusBadgeTone(event.status)}
-              >
+              <Badge tone={getEventStatusBadgeTone(event.status)}>
                 {formatEventStatus(event.status)}
               </Badge>
               <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
@@ -328,44 +328,12 @@ export function EventDetail({
             <CardTitle>Lifecycle</CardTitle>
             <CardDescription>Event progression from draft through closure.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex w-full items-center justify-between pb-8 pt-2">
-              {EVENT_STATUSES.map((status, index) => {
-                const isComplete = index < currentStatusIndex;
-                const isCurrent = status === event.status;
-                const isLast = index === EVENT_STATUSES.length - 1;
-
-                return (
-                  <div key={status} className={cn("relative flex flex-col items-center", !isLast && "w-full")}>
-                    <div className="flex items-center justify-center w-full relative">
-                      <div
-                        className={cn(
-                          "relative z-10 flex size-5 shrink-0 items-center justify-center rounded-full",
-                          isComplete ? "bg-success text-white" : isCurrent ? "bg-primary text-white ring-4 ring-primary-soft" : "border-2 border-border-default bg-surface"
-                        )}
-                      >
-                        {isComplete && <Check className="size-3" aria-hidden="true" />}
-                        {isCurrent && <span className="size-1.5 rounded-full bg-white" />}
-                      </div>
-                      {!isLast && (
-                        <div
-                          className={cn(
-                            "absolute left-1/2 top-1/2 h-[2px] w-full -translate-y-1/2",
-                            isComplete ? "bg-success" : "bg-border-subtle"
-                          )}
-                        />
-                      )}
-                    </div>
-                    <span className={cn(
-                      "absolute top-8 text-[12px] font-medium whitespace-nowrap",
-                      isCurrent || isComplete ? "text-text-strong" : "text-text-muted"
-                    )}>
-                      {LIFECYCLE_LABELS[status]}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+          <CardContent className="min-w-0">
+            <EventLifecycleStepper
+              currentIndex={currentStatusIndex}
+              labels={LIFECYCLE_LABELS}
+              statuses={EVENT_STATUSES}
+            />
           </CardContent>
         </Card>
       ) : null}
@@ -391,104 +359,45 @@ export function EventDetail({
 
           <Card>
             <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="size-4 text-primary" aria-hidden="true" />
-                Role Assignments
-              </CardTitle>
-              <CardDescription>Active event role assignments.</CardDescription>
-            </div>
-            {permissions.canAssignRoles ? (
-              <Button onClick={() => setShowAssignModal(true)} type="button" variant="primary">
-                <UserPlus className="size-4" aria-hidden="true" />
-                Add Member
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {assignments.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-[760px] w-full divide-y divide-border-subtle text-left text-[13px]">
-                <thead className="bg-bg-base border-b border-border-default">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Member</th>
-                    <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Role</th>
-                    <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Committee</th>
-                    <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Assigned</th>
-                    {permissions.canAssignRoles ? (
-                      <th className="px-4 py-3 font-semibold text-[11px] uppercase tracking-wide text-text-muted">Action</th>
-                    ) : null}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-subtle">
-                  {assignments.map((assignment) => {
-                    const canRemove = canRemoveCommitteeRole({
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="size-4 text-text-muted" aria-hidden="true" />
+                    Members & roles
+                  </CardTitle>
+                  <CardDescription>Active role assignments for this event.</CardDescription>
+                </div>
+                {permissions.canAssignRoles ? (
+                  <Button onClick={() => setShowAssignModal(true)} type="button" variant="primary">
+                    <UserPlus className="size-4" aria-hidden="true" />
+                    Add member
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="min-w-0">
+              {assignments.length > 0 ? (
+                <EventRoleAssignmentsTable
+                  assignments={assignments}
+                  canManageActions={permissions.canAssignRoles}
+                  canRemoveAssignment={(assignment) =>
+                    canRemoveCommitteeRole({
                       actorEventRole: userEventRole,
                       actorUserId: currentUserId,
                       isAdmin,
                       targetAssignment: assignment,
-                    });
-                    const volunteer = volunteersByUserId.get(assignment.userId);
-
-                    return (
-                      <tr key={assignment.$id} className="hover:bg-primary-soft/40 transition-colors">
-                        <td className="py-3 px-4">
-                          <p className="font-medium text-text-primary">
-                            {volunteer ? (
-                              <Link
-                                href={`/volunteers/${assignment.userId}`}
-                                className="hover:underline hover:text-primary transition-colors cursor-pointer"
-                              >
-                                {volunteer.name}
-                              </Link>
-                            ) : (
-                              "Volunteer"
-                            )}
-                          </p>
-                          <p className="mt-1 text-[12px] text-text-muted">
-                            {volunteer?.uomEmail || volunteer?.googleEmail || "Profile unavailable"}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge tone="primary">{formatAssignmentRole(assignment)}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {assignment.committeeName || "Event-level"}
-                        </td>
-                        <td className="px-4 py-3 text-text-secondary">
-                          {formatEventDate(assignment.assignedAt)}
-                        </td>
-                        {permissions.canAssignRoles ? (
-                          <td className="px-4 py-3">
-                            {canRemove ? (
-                              <Button
-                                disabled={pendingAction === assignment.$id}
-                                onClick={() => setRemoveTarget(assignment)}
-                                type="button"
-                                variant="ghost"
-                              >
-                                Remove
-                              </Button>
-                            ) : (
-                              <span className="text-[12px] text-text-muted">—</span>
-                            )}
-                          </td>
-                        ) : null}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-sm text-text-secondary">
-              No committee members are assigned to this event.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                    })
+                  }
+                  formatRole={formatAssignmentRole}
+                  onRemove={setRemoveTarget}
+                  pendingRemoveId={pendingAction}
+                  volunteersByUserId={volunteersByUserId}
+                />
+              ) : (
+                <EventMembersEmptyState />
+              )}
+            </CardContent>
+          </Card>
       </>
       ) : null}
 
@@ -591,7 +500,7 @@ export function EventDetail({
           />
         );
       })() : null}
-    </div>
+    </AppPage>
   );
 }
 

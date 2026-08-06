@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useAppPageNav } from "@/components/layout/app-page-nav-context";
 
 export function PageHeader({
   actions,
@@ -13,27 +17,35 @@ export function PageHeader({
   description?: string;
   className?: string;
 }>) {
+  const { setPageNav } = useAppPageNav();
+
+  useEffect(() => {
+    setPageNav({ title, description: description ?? null });
+    return () => setPageNav({ title: null, description: null });
+  }, [title, description, setPageNav]);
+
+  if (!actions && !description && !eyebrow) {
+    return null;
+  }
+
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 border-b border-border-subtle pb-6 sm:flex-row sm:items-end sm:justify-between",
+        "flex flex-col gap-3 pb-2 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
-      <div className="max-w-3xl">
+      <div className="min-w-0 max-w-3xl">
         {eyebrow ? (
           <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
         ) : null}
-        <h2 className="mt-2 text-[22px] font-bold text-text-primary">
-          {title}
-        </h2>
         {description ? (
-          <p className="mt-2 text-[14px] leading-6 text-text-secondary">
+          <p className={cn("text-[13px] leading-relaxed text-text-muted", eyebrow ? "mt-2" : undefined)}>
             {description}
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 flex-wrap gap-2">{actions}</div> : null}
     </header>
   );
 }

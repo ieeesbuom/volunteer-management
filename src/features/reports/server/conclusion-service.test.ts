@@ -169,6 +169,7 @@ import {
   canManageConclusionReport,
   createConclusionReportRecord,
   reviewConclusionReportRecord,
+  toConclusionReport,
   updateConclusionReportRecord,
 } from "@/features/reports/server/conclusion-service";
 import { finalizeEventRolePoints } from "@/features/scoring/server/actions";
@@ -263,6 +264,22 @@ describe("conclusion report service", () => {
   beforeEach(() => {
     appwriteMock.reset();
     vi.clearAllMocks();
+  });
+
+  it("reads malformed stored content without crashing", () => {
+    const report = toConclusionReport({
+      $id: "report-bad-content",
+      content: "Legacy plain-text objectives only",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      eventId: "event-1",
+      eventTitle: "IEEE Day",
+      status: "DRAFT",
+      submittedBy: "chair-1",
+      submittedByName: "Chair One",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+
+    expect(report.content.objectives).toBe("Legacy plain-text objectives only");
   });
 
   it("allows only admins, chairs, and vice chairs for the target event to manage reports", () => {

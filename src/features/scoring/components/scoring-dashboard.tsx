@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, startTransition, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   Trophy,
   Award,
@@ -17,6 +16,10 @@ import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HallOfFameTable } from "@/features/reports/components/hall-of-fame-table";
+import { LeaderboardStandingsTable } from "@/features/scoring/components/leaderboard-standings-table";
+import { ExtraScoreAuditTable } from "@/features/scoring/components/extra-score-audit-table";
+import { ExtraScoreReviewList } from "@/features/scoring/components/extra-score-review-list";
 import type { EventRole, EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import {
   toggleTopBoardExclusion,
@@ -29,7 +32,6 @@ import { IEEE_TERMS } from "@/lib/config";
 import type {
   PointLedgerEntry,
   GradeRequest,
-  GradeAuditEntry,
 } from "../types";
 
 
@@ -213,7 +215,10 @@ export function ScoringDashboard({
   const totalPages = Math.max(1, Math.ceil(leaderboard.length / ITEMS_PER_PAGE));
   const paginatedLeaderboard = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return leaderboard.slice(start, start + ITEMS_PER_PAGE);
+    return leaderboard.slice(start, start + ITEMS_PER_PAGE).map((row, index) => ({
+      ...row,
+      rank: start + index + 1,
+    }));
   }, [leaderboard, currentPage]);
 
   const [ledger, setLedger] = useState<PointLedgerEntry[]>([]);
@@ -678,15 +683,15 @@ export function ScoringDashboard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 w-full space-y-4">
       {showEventContextSwitcher ? (
-        <div className="flex justify-end">
-          <label className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+        <div className="flex justify-end min-w-0">
+          <label className="flex min-w-0 max-w-full flex-col gap-2 text-xs font-medium text-text-secondary sm:flex-row sm:items-center">
             Event
             <select
               value={effectiveEventId}
               onChange={(event) => handleEventContextChange(event.target.value)}
-              className="min-w-64 rounded-md border border-border-default bg-surface px-3 py-1.5 text-sm text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
+              className="w-full min-w-0 max-w-full rounded-xl border border-border-default bg-surface-raised px-3 py-2 text-sm text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer sm:min-w-64 sm:max-w-xs"
             >
               {activeEventAssignments.map((assignment) => (
                 <option key={assignment.$id} value={assignment.eventId}>
@@ -699,7 +704,7 @@ export function ScoringDashboard({
       ) : null}
 
       {/* Tab bar header */}
-      <div className="flex border-b border-border-subtle mb-6 overflow-x-auto">
+      <div className="mb-4 flex overflow-x-auto border-b border-border-subtle">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -738,7 +743,7 @@ export function ScoringDashboard({
 
       {/* Tab Panels */}
       {currentTab === "leaderboard" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Full Leaderboard (Now First) */}
           <Card>
             <CardHeader>
@@ -794,66 +799,40 @@ export function ScoringDashboard({
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="min-w-0">
               {loading ? (
-                <div className="text-center py-6 text-text-secondary">Loading leaderboard...</div>
+                <div className="py-10 text-center text-[13px] text-text-muted">Loading leaderboard…</div>
               ) : paginatedLeaderboard.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-border text-left text-sm">
-                      <thead className="text-text-secondary">
-                        <tr>
-                          <th className="py-2 pr-4 font-semibold">Rank</th>
-                          <th className="px-4 py-2 font-semibold">Volunteer Name</th>
-                          <th className="px-4 py-2 font-semibold text-right">Points</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {paginatedLeaderboard.map((row) => (
-                          <tr
-                            key={row.userId}
-                            className="hover:bg-surface-muted transition-colors"
-                          >
-                            <td className="py-3 pr-4 font-medium text-text-primary text-base">
-                              #{row.points > 0 ? leaderboard.findIndex((r) => r.points === row.points) + 1 : "-"}
-                            </td>
-                            <td className="px-4 py-3 text-text-primary text-base font-medium">
-                              <Link
-                                href={`/volunteers/${row.userId}`}
-                                className="hover:underline hover:text-primary transition-colors cursor-pointer"
-                              >
-                                {row.name}
-                              </Link>{" "}
-                              {row.userId === user.authUser.id && <Badge tone="primary">Self</Badge>}
-                            </td>
-                            <td className="px-4 py-3 text-right font-bold text-text-primary text-base">
-                              {row.points}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <LeaderboardStandingsTable
+                    currentUserId={user.authUser.id}
+                    rows={paginatedLeaderboard.map((row) => ({
+                      rank: row.rank,
+                      userId: row.userId,
+                      name: row.name,
+                      points: row.points,
+                    }))}
+                  />
 
-                  {/* Pagination Controls */}
                   {totalPages > 1 && (
-                    <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm">
-                      <span className="text-text-secondary">
-                        Showing Page <span className="font-medium text-text-primary">{currentPage}</span> of{" "}
-                        <span className="font-medium text-text-primary">{totalPages}</span>
+                    <div className="flex items-center justify-between border-t border-border-subtle pt-4 text-[13px]">
+                      <span className="text-text-muted">
+                        Page{" "}
+                        <span className="font-semibold text-text-strong">{currentPage}</span> of{" "}
+                        <span className="font-semibold text-text-strong">{totalPages}</span>
                       </span>
                       <div className="flex gap-2">
                         <button
                           disabled={currentPage === 1}
                           onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-border-subtle bg-surface-raised px-4 text-[13px] font-semibold text-text-body transition-colors hover:bg-bg-base disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Back
                         </button>
                         <button
                           disabled={currentPage === totalPages}
                           onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                          className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-border-subtle bg-surface-raised px-4 text-[13px] font-semibold text-text-body transition-colors hover:bg-bg-base disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Next
                         </button>
@@ -862,7 +841,7 @@ export function ScoringDashboard({
                   )}
                 </div>
               ) : (
-                <p className="text-center py-6 text-text-secondary">
+                <p className="py-10 text-center text-[13px] text-text-muted">
                   No ledger entries found matching these filters.
                 </p>
               )}
@@ -904,47 +883,18 @@ export function ScoringDashboard({
                 </CardTitle>
                 <CardDescription>Current IEEE term ranking with Top Board exclusions</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="min-w-0">
                 {hallOfFame.length > 0 ? (
-                  <div className="overflow-x-auto rounded-md border border-border">
-                    <table className="min-w-[520px] divide-y divide-border text-left text-sm">
-                      <thead className="bg-surface-muted text-text-secondary">
-                        <tr>
-                          <th className="px-4 py-3 font-semibold">Rank</th>
-                          <th className="px-4 py-3 font-semibold">Volunteer</th>
-                          <th className="px-4 py-3 font-semibold">Term</th>
-                          <th className="px-4 py-3 font-semibold">Points</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border bg-surface">
-                        {hallOfFame.map((entry) => {
-                          let rankClassName = "bg-surface-subtle text-text-secondary border-border-subtle";
-                          if (entry.rank === 1) {
-                            rankClassName = "bg-amber-100 text-amber-900 border-amber-300 shadow-sm";
-                          } else if (entry.rank === 2) {
-                            rankClassName = "bg-slate-100 text-slate-800 border-slate-300 shadow-sm";
-                          } else if (entry.rank === 3) {
-                            rankClassName = "bg-orange-100 text-orange-900 border-orange-300 shadow-sm";
-                          }
-
-                          return (
-                            <tr key={entry.userId}>
-                              <td className="px-4 py-3 font-medium text-text-primary">
-                                <span className={cn("inline-flex items-center justify-center min-w-[28px] h-[28px] rounded-full border text-[13px] font-bold", rankClassName)}>
-                                  #{entry.rank}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-text-primary font-medium">{entry.name}</td>
-                              <td className="px-4 py-3 text-[13px] text-text-secondary">{entry.term?.label ?? 'Unknown'}</td>
-                              <td className="px-4 py-3">
-                                <Badge tone="primary" className="font-bold">{entry.pointsEarned}</Badge>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <HallOfFameTable
+                    linkVolunteerNames
+                    entries={hallOfFame.map((entry) => ({
+                      rank: entry.rank,
+                      userId: entry.userId,
+                      name: entry.name,
+                      pointsEarned: entry.pointsEarned,
+                      termLabel: entry.term?.label ?? "—",
+                    }))}
+                  />
                 ) : (
                   <p className="text-sm text-text-secondary">
                     No eligible points have been awarded for the current IEEE term.
@@ -996,7 +946,7 @@ export function ScoringDashboard({
             {loading ? (
               <div className="text-center py-6 text-text-secondary">Loading ledger...</div>
             ) : ledger.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="min-w-0 w-full overflow-x-auto">
                 <table className="min-w-full divide-y divide-border text-left text-sm">
                   <thead className="text-text-secondary">
                     <tr>
@@ -1051,7 +1001,7 @@ export function ScoringDashboard({
       )}
 
       {currentTab === "grade-requests" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {(derivedRole === "Admin" || derivedRole === "Chairperson") && (
             <Card>
               <CardHeader>
@@ -1060,7 +1010,7 @@ export function ScoringDashboard({
                   Add the 0-10 extra score for a volunteer (one score per volunteer per event). Chairs submit scores for vice chairs and members; Admins submit scores for chairs and approve all submissions.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
@@ -1089,10 +1039,10 @@ export function ScoringDashboard({
                       setError(err instanceof Error ? err.message : "Failed to create extra score request.");
                     }
                   }}
-                  className="grid items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,16rem)_auto]"
+                  className="grid items-end gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,16rem)_auto]"
                 >
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                    <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
                       Event
                     </label>
                     {!user.isAdmin && effectiveEventId ? (
@@ -1126,7 +1076,7 @@ export function ScoringDashboard({
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                    <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
                       Volunteer
                     </label>
                     <VolunteerSelect
@@ -1138,8 +1088,8 @@ export function ScoringDashboard({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                      Extra Score (0-10)
+                    <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
+                      Extra score (0–10)
                     </label>
                     <input
                       type="number"
@@ -1148,7 +1098,7 @@ export function ScoringDashboard({
                       required
                       value={reqGradeValue}
                       onChange={(e) => setReqGradeValue(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                      className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm"
                     />
                   </div>
                   <Button
@@ -1158,7 +1108,7 @@ export function ScoringDashboard({
                       !selectedRequestEventId
                     }
                     type="submit"
-                    className="flex h-10 shrink-0 items-center gap-1 cursor-pointer"
+                    className="flex shrink-0 cursor-pointer items-center gap-1"
                   >
                     <Plus className="size-4" /> Submit
                   </Button>
@@ -1167,293 +1117,94 @@ export function ScoringDashboard({
             </Card>
           )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-text-primary">Submitted Extra Scores</h3>
-              <p className="text-xs text-text-secondary">
-                Review pending extra scores before approval.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-text-secondary">Filter by Event:</label>
-              <select
-                value={effectiveEventId}
-                onChange={(e) => handleEventContextChange(e.target.value)}
-                className="px-3 py-1.5 border border-border rounded-md text-xs bg-surface"
-              >
-                <option value="">All Actionable Events</option>
-                {user.isAdmin
-                  ? allEvents.map((ev) => (
-                      <option key={ev.eventId} value={ev.eventId}>
-                        {ev.eventTitle}
-                      </option>
-                    ))
-                  : activeEventAssignments.map((ev) => (
-                      <option key={ev.eventId} value={ev.eventId}>
-                        {ev.eventTitle}
-                      </option>
-                    ))}
-              </select>
-            </div>
-          </div>
-
           <Card>
-            <CardContent className="p-4">
-              {(() => {
-                const visibleRequests = user.isAdmin
-                  ? effectiveEventId
-                    ? gradeRequests.filter((req) => req.eventId === effectiveEventId)
-                    : gradeRequests
-                  : gradeRequests.filter((req) => {
-                    if (effectiveEventId) {
-                      return req.eventId === effectiveEventId;
-                    }
-                    return chairEventIds.includes(req.eventId);
-                  });
-
-                if (visibleRequests.length > 0) {
-                  return (
-                    <div className="space-y-4">
-                      {visibleRequests.map((req) => {
-                        const targetVolName = req.targetUserName ?? volunteerLabel(req.targetUserId);
-                        const canSubmitScoreForEvent = chairEventIds.includes(req.eventId) || user.isAdmin;
-
-                        return (
-                          <div
-                            key={req.$id}
-                            className="p-4 border border-border rounded-lg bg-surface flex flex-col gap-3 shadow-xs"
-                          >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <div>
-                                <span className="text-xs font-semibold uppercase text-primary tracking-wider">
-                                  {req.eventTitle}
-                                </span>
-                                <p className="text-sm text-text-primary">
-                                  Volunteer: <span className="font-semibold">{targetVolName}</span>
-                                </p>
-                                <p className="text-sm text-text-primary mt-0.5">
-                                  Extra Score Given:{" "}
-                                  <span className="font-semibold text-primary">
-                                    {req.gradeValue !== undefined && req.gradeValue !== null
-                                      ? `${req.gradeValue} / 10`
-                                      : "Not graded yet"}
-                                  </span>
-                                </p>
-                              </div>
-
-                              {/* Approval actions for Admins only */}
-                              {derivedRole === "Admin" && req.status !== "finalized" && (
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="primary"
-                                    className="cursor-pointer"
-                                    onClick={() => setRequestToApprove(req)}
-                                  >
-                                    Approve (Finalize)
-                                  </Button>
-                                  <Button
-                                    variant="secondary"
-                                    className="cursor-pointer"
-                                    onClick={() => setRequestToReject(req)}
-                                  >
-                                    Reject (Delete)
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Score update input for Chairs and Admins */}
-                            {(derivedRole === "Chairperson" || derivedRole === "Admin") && req.status !== "finalized" && (
-                              <div className="space-y-3 mt-2 pt-2 border-t border-border/50">
-                                {req.targetUserId === user.authUser.id ? (
-                                  <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
-                                    You cannot grade yourself.
-                                  </div>
-                                ) : !canSubmitScoreForEvent ? (
-                                  <div className="p-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md font-medium">
-                                    You must be the event chair or an admin to submit/update extra scores.
-                                  </div>
-                                ) : (
-                                  <form
-                                    onSubmit={async (e) => {
-                                      e.preventDefault();
-                                      setError(null);
-                                      setSuccess(null);
-                                      const formData = new FormData(e.currentTarget);
-                                      const val = Number(formData.get("gradeValue"));
-                                      try {
-                                        const res = await fetch(`/api/scoring/grade-requests/${req.$id}`, {
-                                          method: "PATCH",
-                                          body: JSON.stringify({ gradeValue: val }),
-                                        });
-                                        const data = await res.json();
-                                        if (data.error) throw new Error(data.error);
-                                        setSuccess("Extra score updated successfully!");
-                                        fetchGradeRequests();
-                                      } catch (err) {
-                                        setError(err instanceof Error ? err.message : "Failed to update extra score.");
-                                      }
-                                    }}
-                                    className="flex items-center gap-3"
-                                  >
-                                    <div className="flex-1 max-w-[150px]">
-                                      <label className="block text-[10px] font-semibold uppercase text-text-secondary mb-0.5">
-                                        Extra Score (0-10)
-                                      </label>
-                                      <input
-                                        type="number"
-                                        name="gradeValue"
-                                        min={0}
-                                        max={10}
-                                        defaultValue={req.gradeValue !== undefined && req.gradeValue !== null ? req.gradeValue : ""}
-                                        required
-                                        className="w-full px-2 py-1 border border-border rounded text-sm bg-surface"
-                                      />
-                                    </div>
-                                    <Button type="submit" variant="secondary" className="mt-4">
-                                      Update Score
-                                    </Button>
-                                  </form>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                } else {
-                  return <p className="text-center py-6 text-text-secondary">No extra score requests need review right now.</p>;
+            <CardHeader className="gap-6 pb-0 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1.5">
+                <CardTitle>Submitted extra scores</CardTitle>
+                <CardDescription>Review pending submissions before finalizing points.</CardDescription>
+              </div>
+              <div className="w-full shrink-0 sm:w-64">
+                <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
+                  Filter by event
+                </label>
+                <select
+                  value={effectiveEventId}
+                  onChange={(e) => handleEventContextChange(e.target.value)}
+                  className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm"
+                >
+                  <option value="">All actionable events</option>
+                  {user.isAdmin
+                    ? allEvents.map((ev) => (
+                        <option key={ev.eventId} value={ev.eventId}>
+                          {ev.eventTitle}
+                        </option>
+                      ))
+                    : activeEventAssignments.map((ev) => (
+                        <option key={ev.eventId} value={ev.eventId}>
+                          {ev.eventTitle}
+                        </option>
+                      ))}
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <ExtraScoreReviewList
+                authUserId={user.authUser.id}
+                chairEventIds={chairEventIds}
+                derivedRole={derivedRole}
+                isAdmin={user.isAdmin}
+                onApprove={setRequestToApprove}
+                onReject={setRequestToReject}
+                onScoreSaved={fetchGradeRequests}
+                onError={(message) => {
+                  setSuccess(null);
+                  setError(message);
+                }}
+                onSuccess={(message) => {
+                  setError(null);
+                  setSuccess(message);
+                }}
+                requests={
+                  user.isAdmin
+                    ? effectiveEventId
+                      ? gradeRequests.filter((req) => req.eventId === effectiveEventId)
+                      : gradeRequests
+                    : gradeRequests.filter((req) => {
+                        if (effectiveEventId) {
+                          return req.eventId === effectiveEventId;
+                        }
+                        return chairEventIds.includes(req.eventId);
+                      })
                 }
-              })()}
+                volunteerLabel={volunteerLabel}
+              />
             </CardContent>
           </Card>
 
           {derivedRole === "Admin" ? (
             <Card>
               <CardHeader>
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <CardTitle>Extra Score Audit Log</CardTitle>
-                    <CardDescription>
-                      History of submitted extra scores and admin corrections for accountability.
-                    </CardDescription>
-                  </div>
-                  <div className="w-full md:w-80">
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
-                      Search
-                    </label>
-                    <input
-                      type="search"
-                      value={auditSearch}
-                      onChange={(event) => {
-                        setAuditSearch(event.target.value);
-                        setAuditPage(0);
-                      }}
-                      placeholder="Event or volunteer name"
-                      className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
+                <CardTitle>Extra score audit log</CardTitle>
+                <CardDescription>
+                  History of submitted extra scores and admin corrections for accountability.
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {reviewsLoading ? (
-                  <div className="text-center py-6 text-text-secondary">Loading audit log...</div>
-                ) : filteredAuditReviews.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-border text-left text-sm">
-                        <thead className="text-text-secondary">
-                          <tr>
-                            <th className="py-2 pr-4 font-semibold">Event</th>
-                            <th className="px-4 py-2 font-semibold">Volunteer</th>
-                            <th className="px-4 py-2 font-semibold">Submitted By</th>
-                            <th className="px-4 py-2 font-semibold text-center">Score</th>
-                            <th className="px-4 py-2 font-semibold">Submitted At</th>
-                            <th className="px-4 py-2 font-semibold">Corrections</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {pagedAuditReviews.map((rev) => {
-                            let auditHistory: string[] = [];
-                            if (rev.audit_metadata) {
-                              try {
-                                const parsed = JSON.parse(rev.audit_metadata);
-                                if (Array.isArray(parsed)) {
-                                  auditHistory = parsed.map(
-                                    (entry: GradeAuditEntry) =>
-                                      `Changed from ${entry.originalValue} to ${entry.newValue} by ${entry.changedBy} on ${new Date(entry.changedAt).toLocaleDateString()} (Reason: ${entry.reason || "None"})`,
-                                  );
-                                }
-                              } catch {}
-                            }
-
-                            return (
-                              <tr key={rev.$id}>
-                                <td className="py-3 pr-4 font-medium text-text-primary">
-                                  {rev.eventTitle ?? eventLabel(rev.eventId)}
-                                </td>
-                                <td className="px-4 py-3 text-text-primary">{rev.volunteerName}</td>
-                                <td className="px-4 py-3 text-text-secondary">{rev.reviewerName}</td>
-                                <td className="px-4 py-3 text-center font-bold text-text-primary">
-                                  {rev.gradeValue} / 10
-                                </td>
-                                <td className="px-4 py-3 text-text-secondary">
-                                  {new Date(rev.submittedAt).toLocaleString()}
-                                </td>
-                                <td className="px-4 py-3 text-xs text-text-muted">
-                                  {auditHistory.length > 0 ? (
-                                    <ul className="list-disc space-y-0.5 pl-4">
-                                      {auditHistory.map((item, idx) => (
-                                        <li key={idx}>{item}</li>
-                                      ))}
-                                    </ul>
-                                  ) : (
-                                    "No corrections"
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs text-text-secondary">
-                        Showing {safeAuditPage * AUDIT_PAGE_SIZE + 1}-
-                        {Math.min((safeAuditPage + 1) * AUDIT_PAGE_SIZE, filteredAuditReviews.length)} of{" "}
-                        {filteredAuditReviews.length}
-                      </p>
-                      {filteredAuditReviews.length > AUDIT_PAGE_SIZE ? (
-                        <div className="flex gap-2">
-                          <Button
-                            disabled={safeAuditPage === 0}
-                            onClick={() => setAuditPage((page) => Math.max(0, page - 1))}
-                            type="button"
-                            variant="secondary"
-                          >
-                            Previous
-                          </Button>
-                          <Button
-                            disabled={safeAuditPage >= auditPageCount - 1}
-                            onClick={() => setAuditPage((page) => Math.min(auditPageCount - 1, page + 1))}
-                            type="button"
-                            variant="secondary"
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-center py-6 text-text-secondary">
-                    {auditSearch
-                      ? "No extra score audit records match that search."
-                      : "No extra score submissions have been recorded yet."}
-                  </p>
-                )}
+                <ExtraScoreAuditTable
+                  eventLabel={eventLabel}
+                  loading={reviewsLoading}
+                  onPageChange={setAuditPage}
+                  page={safeAuditPage}
+                  pageCount={auditPageCount}
+                  pageSize={AUDIT_PAGE_SIZE}
+                  rows={pagedAuditReviews}
+                  search={auditSearch}
+                  onSearchChange={(value) => {
+                    setAuditSearch(value);
+                    setAuditPage(0);
+                  }}
+                  totalCount={filteredAuditReviews.length}
+                />
               </CardContent>
             </Card>
           ) : null}

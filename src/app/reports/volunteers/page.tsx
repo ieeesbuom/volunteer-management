@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { UsersRound } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -10,7 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ExportActions } from "@/features/reports/components/export-actions";
-import { ReportsNav } from "@/features/reports/components/reports-nav";
+import { ReportsSection } from "@/features/reports/components/reports-section";
+import { REPORTS_ROUTE_TITLES } from "@/features/reports/lib/page-titles";
 import { canAccessConclusionsTab } from "@/features/reports/lib/access";
 import { getReportsPageData } from "@/features/reports/server/page-data";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
@@ -38,18 +38,12 @@ export default async function VolunteersPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Reporting"
-        title="Exports"
-        description="Export volunteer summaries as formal PDFs from profile, participation, recommendations, and points data."
-      />
-
-      <ReportsNav
-        canAccessConclusions={canAccessConclusionsTab(user)}
-        isAdmin={user.isAdmin}
-      />
-
+    <ReportsSection
+      canAccessConclusions={canAccessConclusionsTab(user)}
+      isAdmin={user.isAdmin}
+      title={REPORTS_ROUTE_TITLES["/reports/volunteers"]}
+      description="Export volunteer summaries as formal PDFs from profile, participation, recommendations, and points data."
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -61,24 +55,36 @@ export default async function VolunteersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="min-w-[980px] divide-y divide-border text-left text-sm">
-              <thead className="bg-surface-muted text-text-secondary">
+          <div className="overflow-x-auto rounded-xl border border-border-subtle">
+            <table className="min-w-[980px] w-full text-left text-[13px]">
+              <thead className="border-b border-border-subtle bg-bg-base">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Volunteer</th>
-                  <th className="px-4 py-3 font-semibold">SB roles</th>
-                  <th className="px-4 py-3 font-semibold">Participation</th>
-                  <th className="px-4 py-3 font-semibold">Recommendations</th>
-                  <th className="px-4 py-3 font-semibold">Points</th>
-                  <th className="px-4 py-3 font-semibold">Export</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Volunteer
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    SB roles
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Participation
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Recommendations
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Points
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    Export
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border bg-surface">
+              <tbody className="divide-y divide-border-subtle bg-surface-raised">
                 {data.volunteers.map((volunteer) => (
-                  <tr key={volunteer.userId}>
+                  <tr className="transition-colors hover:bg-primary-soft/40" key={volunteer.userId}>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-text-primary">{volunteer.name}</p>
-                      <p className="mt-1 text-xs text-text-muted">{volunteer.uomEmail}</p>
+                      <p className="font-medium text-text-strong">{volunteer.name}</p>
+                      <p className="mt-0.5 text-[12px] text-text-muted">{volunteer.uomEmail}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
@@ -93,13 +99,11 @@ export default async function VolunteersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-text-secondary">
+                    <td className="px-4 py-3 text-text-body">
                       {volunteer.participations.length} event
                       {volunteer.participations.length === 1 ? "" : "s"}
                     </td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      {volunteer.recommendations.length}
-                    </td>
+                    <td className="px-4 py-3 text-text-body">{volunteer.recommendations.length}</td>
                     <td className="px-4 py-3">
                       <Badge tone="success">{volunteer.pointsLedger?.total ?? 0}</Badge>
                     </td>
@@ -113,6 +117,6 @@ export default async function VolunteersPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ReportsSection>
   );
 }

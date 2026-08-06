@@ -1,24 +1,19 @@
 import { cn } from "@/lib/utils";
 
-type BadgeTone = "neutral" | "primary" | "success" | "warning" | "danger";
+export type BadgeTone = "neutral" | "primary" | "success" | "warning" | "danger";
 type BadgeSize = "default" | "lg";
 
-const toneClasses: Record<BadgeTone, string> = {
-  neutral:
-    "border-border-default bg-surface-muted text-text-secondary border-l-[3px] border-l-border-strong",
-  primary:
-    "border-primary/25 bg-primary-soft text-primary border-l-[3px] border-l-primary",
-  success:
-    "border-success/25 bg-success-soft text-success border-l-[3px] border-l-success",
-  warning:
-    "border-warning/25 bg-warning-soft text-warning border-l-[3px] border-l-warning",
-  danger:
-    "border-danger/25 bg-danger-soft text-danger border-l-[3px] border-l-danger",
+export const badgeToneClassName: Record<BadgeTone, string> = {
+  neutral: "border-border-subtle bg-neutral-soft text-text-secondary",
+  primary: "border-primary/15 bg-primary-soft text-primary",
+  success: "border-success/20 bg-success-soft text-success",
+  warning: "border-warning/20 bg-warning-soft text-warning",
+  danger: "border-danger/20 bg-danger-soft text-danger",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
-  default: "h-[22px] px-2.5 text-[12px]",
-  lg: "h-7 px-3 text-[14px]",
+  default: "px-3 py-1 text-[12px]",
+  lg: "px-3.5 py-1.5 text-[14px]",
 };
 
 export function Badge({
@@ -35,9 +30,9 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-[4px] border font-medium",
+        "inline-flex items-center rounded-full border font-medium leading-snug",
         sizeClasses[size],
-        toneClasses[tone],
+        badgeToneClassName[tone],
         className,
       )}
     >

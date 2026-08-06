@@ -36,7 +36,7 @@ const DISABLED_AUTH_METHODS = [
 
 const DISABLED_SERVICES = [
   "avatars",
-  "storage",
+  // storage stays enabled for server-managed profile avatars; buckets remain locked down
   "teams",
   "functions",
   "graphql",
@@ -157,14 +157,14 @@ if (productionHostname) {
   console.log("Skipped production platform registration (set APPWRITE_PRODUCTION_HOSTNAME or --production-hostname).");
 }
 
-const bucketId = "vm_files";
+const legacyBucketId = "vm_files";
 
 try {
   runAppwriteCliVoid([
     "storage",
     "update-bucket",
     "--bucket-id",
-    bucketId,
+    legacyBucketId,
     "--name",
     "Volunteer Management Files (disabled)",
     "--file-security",
@@ -186,9 +186,53 @@ try {
     "--antivirus",
     "true",
   ]);
-  console.log(`Restricted and disabled storage bucket: ${bucketId}`);
+  console.log(`Restricted and disabled storage bucket: ${legacyBucketId}`);
 } catch (error) {
-  console.warn(`Bucket hardening skipped (${bucketId}): ${error instanceof Error ? error.message : error}`);
+  console.warn(
+    `Bucket hardening skipped (${legacyBucketId}): ${error instanceof Error ? error.message : error}`,
+  );
+}
+
+const avatarBucketId = "profile_avatars";
+
+try {
+  runAppwriteCliVoid([
+    "storage",
+    "update-bucket",
+    "--bucket-id",
+    avatarBucketId,
+    "--name",
+    "Profile Avatars",
+    "--file-security",
+    "true",
+    "--enabled",
+    "true",
+    "--maximum-file-size",
+    "2097152",
+    "--allowed-file-extensions",
+    "jpg",
+    "--allowed-file-extensions",
+    "jpeg",
+    "--allowed-file-extensions",
+    "png",
+    "--allowed-file-extensions",
+    "webp",
+    "--compression",
+    "none",
+    "--encryption",
+    "true",
+    "--antivirus",
+    "true",
+    "--transformations",
+    "true",
+  ]);
+  console.log(
+    `Hardened profile avatar bucket (server-only permissions): ${avatarBucketId}`,
+  );
+} catch (error) {
+  console.warn(
+    `Bucket hardening skipped (${avatarBucketId}): ${error instanceof Error ? error.message : error}`,
+  );
 }
 
 console.log("Appwrite project hardening complete.");

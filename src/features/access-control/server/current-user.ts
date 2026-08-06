@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { getServerEnv } from "@/lib/env";
 import { canVolunteer, hasEventRole, hasSbRole, isAdminEmail } from "@/features/access-control/lib/rules";
 import { getAppwriteSessionServices } from "@/server/appwrite";
+import { ensureGoogleAvatarUrl, readAvatarUrlFromPrefs } from "@/features/access-control/server/google-avatar";
+import { resolveAuthAvatarUrl } from "@/features/access-control/server/profile-avatar";
 import { getOrCreateProfile } from "@/features/access-control/server/profiles";
 import { getActiveEventRoleAssignments, getActiveSbRoles } from "@/features/access-control/server/roles";
 import { getSessionSecret } from "@/server/session";
@@ -21,14 +23,21 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     const env = getServerEnv();
     const { account } = getAppwriteSessionServices(sessionSecret);
     const appwriteUser = await account.get();
-    const [profile, sbRoles, eventRoles] = await Promise.all([
+    const cachedAvatarUrl = readAvatarUrlFromPrefs(appwriteUser.prefs);
+    const [profile, sbRoles, eventRoles, googleAvatarUrl] = await Promise.all([
       getOrCreateProfile(appwriteUser),
       getActiveSbRoles(appwriteUser.$id),
       getActiveEventRoleAssignments(appwriteUser.$id, { includeChairCounts: false }),
+      cachedAvatarUrl ? Promise.resolve(cachedAvatarUrl) : ensureGoogleAvatarUrl(account),
     ]);
 
     return {
       authUser: {
+        avatarUrl: resolveAuthAvatarUrl({
+          avatarFileId: profile.avatarFileId,
+          googleAvatarUrl,
+          userId: appwriteUser.$id,
+        }),
         email: appwriteUser.email,
         id: appwriteUser.$id,
         name: appwriteUser.name ?? "",

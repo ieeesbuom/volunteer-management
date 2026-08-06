@@ -10,7 +10,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { DataTableHead, DataTableShell } from "@/components/ui/data-table";
+import { Toggle } from "@/components/ui/toggle";
 import {
   NOTIFICATION_TYPES,
   type NotificationPreference,
@@ -22,6 +23,14 @@ type NotificationPreferenceDraft = Pick<
   "emailEnabled" | "inAppEnabled" | "typePreferences"
 >;
 
+function draftsEqual(a: NotificationPreferenceDraft, b: NotificationPreferenceDraft) {
+  return (
+    a.emailEnabled === b.emailEnabled &&
+    a.inAppEnabled === b.inAppEnabled &&
+    JSON.stringify(a.typePreferences) === JSON.stringify(b.typePreferences)
+  );
+}
+
 export function NotificationPreferencesForm({
   initialPreference,
 }: {
@@ -32,30 +41,33 @@ export function NotificationPreferencesForm({
     inAppEnabled: true,
     typePreferences: {},
   };
-  
-  const [isEditing, setIsEditing] = useState(false);
-  const [hasSavedPreferences, setHasSavedPreferences] = useState(!!initialPreference);
-  
+
   const [draft, setDraft] = useState<NotificationPreferenceDraft>({
     emailEnabled: initialPreference?.emailEnabled ?? defaultDraft.emailEnabled,
     inAppEnabled: initialPreference?.inAppEnabled ?? defaultDraft.inAppEnabled,
     typePreferences: initialPreference?.typePreferences ?? defaultDraft.typePreferences,
   });
-  
-  const [savedPreference, setSavedPreference] = useState<NotificationPreferenceDraft | null>(
+
+  const [savedPreference, setSavedPreference] = useState<NotificationPreferenceDraft>(() =>
     initialPreference
       ? {
           emailEnabled: initialPreference.emailEnabled,
           inAppEnabled: initialPreference.inAppEnabled,
           typePreferences: initialPreference.typePreferences,
         }
-      : null
+      : defaultDraft,
   );
 
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"error" | "idle" | "success">("idle");
   const [isLoading, setIsLoading] = useState(!initialPreference);
   const [isSaving, setIsSaving] = useState(false);
+
+  const isDirty = useMemo(
+    () => !draftsEqual(draft, savedPreference),
+    [draft, savedPreference],
+  );
+
   const rows = useMemo(
     () =>
       NOTIFICATION_TYPES.map((type) => ({
@@ -66,6 +78,8 @@ export function NotificationPreferencesForm({
       })),
     [draft],
   );
+
+  const controlsDisabled = isLoading || isSaving;
 
   useEffect(() => {
     if (initialPreference) {
@@ -88,8 +102,6 @@ export function NotificationPreferencesForm({
           if (!cancelled) {
             setMessage(payload.error ?? "Could not load saved preferences.");
             setStatus("error");
-            // If no preferences saved, default to editing mode
-            setIsEditing(true);
           }
           return;
         }
@@ -102,8 +114,6 @@ export function NotificationPreferencesForm({
           };
           setDraft(pref);
           setSavedPreference(pref);
-          setHasSavedPreferences(true);
-          setIsEditing(false);
         }
       } finally {
         if (!cancelled) {
@@ -148,8 +158,6 @@ export function NotificationPreferencesForm({
       };
       setDraft(pref);
       setSavedPreference(pref);
-      setHasSavedPreferences(true);
-      setIsEditing(false);
       setMessage("Notification preferences saved.");
       setStatus("success");
     } catch (error) {
@@ -165,6 +173,7 @@ export function NotificationPreferencesForm({
       ...current,
       [field]: checked,
     }));
+    setStatus("idle");
   }
 
   function setTypePreference(
@@ -182,232 +191,161 @@ export function NotificationPreferencesForm({
         },
       },
     }));
+    setStatus("idle");
   }
 
-  const handleCancel = () => {
-    if (savedPreference) {
-      setDraft(savedPreference);
-    }
-    setIsEditing(false);
+  function handleReset() {
+    setDraft(savedPreference);
     setMessage("");
     setStatus("idle");
-  };
-
-  if (!isEditing && hasSavedPreferences) {
-    return (
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ChannelStatus
-            enabled={draft.inAppEnabled}
-            icon={MonitorCheck}
-            label="In-app"
-          />
-          <ChannelStatus
-            enabled={draft.emailEnabled}
-            icon={Mail}
-            label="Email"
-          />
-        </div>
-
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="min-w-[520px] w-full divide-y divide-border text-left text-sm">
-            <thead className="bg-surface-subtle text-text-secondary">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Type</th>
-                <th className="px-3 py-2 font-semibold">In-app</th>
-                <th className="px-3 py-2 font-semibold">Email</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-surface">
-              {rows.map((row) => (
-                <tr key={row.type}>
-                  <td className="px-3 py-2 font-medium capitalize text-text-primary">
-                    {row.label}
-                  </td>
-                  <td className="px-3 py-2 font-medium">
-                    {row.inAppEnabled ? (
-                      <span className="text-success">✓ Enabled</span>
-                    ) : (
-                      <span className="text-text-muted">✗ Disabled</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 font-medium">
-                    {row.emailEnabled ? (
-                      <span className="text-success">✓ Enabled</span>
-                    ) : (
-                      <span className="text-text-muted">✗ Disabled</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm text-text-muted">
-            <Bell className="mr-1 inline size-4 align-[-3px]" aria-hidden="true" />
-            Current account only
-          </span>
-          <Button onClick={() => setIsEditing(true)} type="button" className="cursor-pointer">
-            Edit Preferences
-          </Button>
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 w-full space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <ChannelToggle
+        <ChannelToggleRow
           checked={draft.inAppEnabled}
+          disabled={controlsDisabled}
           icon={MonitorCheck}
           label="In-app"
           onChange={(checked) => setGlobal("inAppEnabled", checked)}
         />
-        <ChannelToggle
+        <ChannelToggleRow
           checked={draft.emailEnabled}
+          disabled={controlsDisabled}
           icon={Mail}
           label="Email"
           onChange={(checked) => setGlobal("emailEnabled", checked)}
         />
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="min-w-[520px] w-full divide-y divide-border text-left text-sm">
-          <thead className="bg-surface-subtle text-text-secondary">
-            <tr>
-              <th className="px-3 py-2 font-semibold">Type</th>
-              <th className="px-3 py-2 font-semibold">In-app</th>
-              <th className="px-3 py-2 font-semibold">Email</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((row) => (
-              <tr key={row.type}>
-                <td className="px-3 py-2 font-medium capitalize text-text-primary">
-                  {row.label}
-                </td>
-                <td className="px-3 py-2">
-                  <input
+      <DataTableShell minWidth={480}>
+        <colgroup>
+          <col />
+          <col className="w-[120px]" />
+          <col className="w-[120px]" />
+        </colgroup>
+        <DataTableHead
+          columns={[
+            { label: "Notification type" },
+            { label: "In-app", align: "right" },
+            { label: "Email", align: "right" },
+          ]}
+        />
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.type}
+              className="border-b border-border-subtle last:border-b-0 transition-colors hover:bg-bg-base/50"
+            >
+              <td className="px-4 py-3.5 text-[13px] font-medium capitalize text-text-strong">
+                {row.label}
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="flex justify-end">
+                  <Toggle
                     aria-label={`${row.label} in-app notifications`}
                     checked={row.inAppEnabled}
-                    className="size-4 rounded border-border cursor-pointer"
-                    onChange={(event) =>
-                      setTypePreference(row.type, "inAppEnabled", event.target.checked)
+                    disabled={controlsDisabled}
+                    onCheckedChange={(checked) =>
+                      setTypePreference(row.type, "inAppEnabled", checked)
                     }
-                    type="checkbox"
                   />
-                </td>
-                <td className="px-3 py-2">
-                  <input
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="flex justify-end">
+                  <Toggle
                     aria-label={`${row.label} email notifications`}
                     checked={row.emailEnabled}
-                    className="size-4 rounded border-border cursor-pointer"
-                    onChange={(event) =>
-                      setTypePreference(row.type, "emailEnabled", event.target.checked)
+                    disabled={controlsDisabled}
+                    onCheckedChange={(checked) =>
+                      setTypePreference(row.type, "emailEnabled", checked)
                     }
-                    type="checkbox"
                   />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </DataTableShell>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {message ? (
           <p
             className={
               status === "error"
-                ? "text-sm font-medium text-danger"
-                : "text-sm font-medium text-success"
+                ? "text-[13px] font-medium text-danger"
+                : "text-[13px] font-medium text-text-body"
             }
           >
             {message}
           </p>
         ) : (
-          <span className="text-sm text-text-muted">
+          <span className="text-[13px] text-text-muted">
             {isLoading ? (
               <Loader2 className="mr-1 inline size-4 animate-spin align-[-3px]" aria-hidden="true" />
             ) : (
               <Bell className="mr-1 inline size-4 align-[-3px]" aria-hidden="true" />
             )}
-            {isLoading ? "Loading saved preferences" : "Current account only"}
+            {isLoading ? "Loading saved preferences" : "Changes apply after you save"}
           </span>
         )}
         <div className="flex items-center gap-3">
-          <Button disabled={isSaving || isLoading} onClick={() => void savePreferences()} type="button" className="cursor-pointer">
+          {isDirty ? (
+            <button
+              type="button"
+              disabled={controlsDisabled}
+              onClick={handleReset}
+              className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-border-subtle bg-surface-raised px-4 text-[13px] font-semibold text-text-body transition-colors hover:bg-bg-base disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Reset
+            </button>
+          ) : null}
+          <Button
+            disabled={controlsDisabled || !isDirty}
+            onClick={() => void savePreferences()}
+            type="button"
+            className="cursor-pointer"
+          >
             {isSaving ? (
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : (
               <Save className="size-4" aria-hidden="true" />
             )}
-            {isSaving ? "Saving" : "Save Preferences"}
+            {isSaving ? "Saving" : "Save preferences"}
           </Button>
-          {hasSavedPreferences && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
-            >
-              Cancel
-            </button>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-function ChannelStatus({
-  enabled,
-  icon: Icon,
-  label,
-}: {
-  enabled: boolean;
-  icon: LucideIcon;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm">
-      <span className="inline-flex items-center gap-2 font-medium text-text-primary">
-        <Icon className="size-4 text-primary" aria-hidden="true" />
-        {label}
-      </span>
-      <Badge tone={enabled ? "success" : "neutral"}>
-        {enabled ? "Enabled" : "Disabled"}
-      </Badge>
-    </div>
-  );
-}
-
-function ChannelToggle({
+function ChannelToggleRow({
   checked,
+  disabled,
   icon: Icon,
   label,
   onChange,
 }: {
   checked: boolean;
+  disabled?: boolean;
   icon: LucideIcon;
   label: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-subtle px-3 py-2 text-sm cursor-pointer">
-      <span className="inline-flex items-center gap-2 font-medium text-text-primary">
-        <Icon className="size-4 text-primary" aria-hidden="true" />
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border-subtle bg-surface-raised px-4 py-3">
+      <span className="inline-flex items-center gap-2 text-[13px] font-medium text-text-strong">
+        <Icon className="size-4 text-text-muted" aria-hidden="true" />
         {label}
       </span>
-      <input
+      <Toggle
+        aria-label={`${label} notifications`}
         checked={checked}
-        className="size-4 rounded border-border cursor-pointer"
-        onChange={(event) => onChange(event.target.checked)}
-        type="checkbox"
+        disabled={disabled}
+        onCheckedChange={onChange}
       />
-    </label>
+    </div>
   );
 }
-

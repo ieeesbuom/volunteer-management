@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Bell, CheckCheck, ExternalLink, Inbox, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +19,10 @@ import { cn } from "@/lib/utils";
 import type { Notification } from "@/features/notifications/types";
 
 type NotificationBellProps = {
-  initialNotifications: Notification[];
-  initialUnreadCount: number;
+  initialNotifications?: Notification[];
+  initialUnreadCount?: number;
+  /** Open the dropdown once after mount (e.g. `/dashboard?tab=notifications`). */
+  autoOpen?: boolean;
 };
 
 type NotificationPayload = {
@@ -19,16 +30,32 @@ type NotificationPayload = {
   unreadCount: number;
 };
 
+const emptySubscribe = () => () => {};
+
+const DROPDOWN_WIDTH = 416;
+const DROPDOWN_MAX_HEIGHT = 480;
+const VIEWPORT_GAP = 8;
+
 export function NotificationBell({
-  initialNotifications,
-  initialUnreadCount,
+  initialNotifications = [],
+  initialUnreadCount = 0,
+  autoOpen = false,
 }: NotificationBellProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const didAutoOpenRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [message, setMessage] = useState("");
   const [notifications, setNotifications] = useState(initialNotifications);
   const [pendingReadIds, setPendingReadIds] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const unreadNotificationIds = useMemo(
     () =>
       notifications
@@ -36,6 +63,36 @@ export function NotificationBell({
         .map((notification) => notification.id),
     [notifications],
   );
+
+  const updateDropdownPosition = useCallback(function updateDropdownPosition() {
+    const button = buttonRef.current;
+    if (!button) {
+      return;
+    }
+
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(DROPDOWN_WIDTH, window.innerWidth - VIEWPORT_GAP * 2);
+    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_GAP;
+    const spaceAbove = rect.top - VIEWPORT_GAP;
+    const openUpward = spaceBelow < 280 && spaceAbove > spaceBelow;
+    const maxHeight = Math.min(
+      DROPDOWN_MAX_HEIGHT,
+      Math.max(180, openUpward ? spaceAbove : spaceBelow),
+    );
+
+    let left = rect.right - width;
+    left = Math.max(VIEWPORT_GAP, Math.min(left, window.innerWidth - width - VIEWPORT_GAP));
+
+    setDropdownStyle({
+      position: "fixed",
+      top: openUpward ? undefined : rect.bottom + VIEWPORT_GAP,
+      bottom: openUpward ? window.innerHeight - rect.top + VIEWPORT_GAP : undefined,
+      left,
+      width,
+      maxHeight,
+      zIndex: 80,
+    });
+  }, []);
 
   const refreshNotifications = useCallback(async function refreshNotifications() {
     setIsRefreshing(true);
@@ -52,6 +109,8 @@ export function NotificationBell({
 
       setNotifications(payload.notifications);
       setUnreadCount(payload.unreadCount);
+    } catch {
+      setMessage("Could not refresh notifications.");
     } finally {
       setIsRefreshing(false);
     }
@@ -61,10 +120,62 @@ export function NotificationBell({
     const timer = window.setTimeout(() => {
       void refreshNotifications();
     }, 0);
-    // The shell should not block navigation on notification IO. This refresh
-    // runs once after hydration and the dropdown still refreshes on open.
     return () => window.clearTimeout(timer);
   }, [refreshNotifications]);
+
+  useEffect(() => {
+    if (!autoOpen || didAutoOpenRef.current) {
+      return;
+    }
+    didAutoOpenRef.current = true;
+    setIsOpen(true);
+    updateDropdownPosition();
+    void refreshNotifications();
+  }, [autoOpen, refreshNotifications, updateDropdownPosition]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    updateDropdownPosition();
+
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (buttonRef.current?.contains(target) || dropdownRef.current?.contains(target)) {
+        return;
+      }
+      setIsOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+
+    function handleReposition() {
+      updateDropdownPosition();
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [isOpen, updateDropdownPosition]);
 
   async function markRead(notificationIds: string[]) {
     if (notificationIds.length === 0) {
@@ -111,6 +222,8 @@ export function NotificationBell({
             ).length,
         ),
       );
+    } catch {
+      setMessage("Could not update notifications.");
     } finally {
       setPendingReadIds([]);
     }
@@ -121,6 +234,7 @@ export function NotificationBell({
     setIsOpen(nextOpen);
 
     if (nextOpen) {
+      updateDropdownPosition();
       void refreshNotifications();
     }
   }
@@ -128,7 +242,9 @@ export function NotificationBell({
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         aria-expanded={isOpen}
+        aria-haspopup="dialog"
         aria-label="Notifications"
         className="relative flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-neutral-soft hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
         onClick={toggleOpen}
@@ -138,18 +254,29 @@ export function NotificationBell({
         <UnreadCountBadge count={unreadCount} />
       </button>
 
-      {isOpen ? (
-        <NotificationDropdown
-          isRefreshing={isRefreshing}
-          message={message}
-          notifications={notifications}
-          onMarkAllRead={() => markRead(unreadNotificationIds)}
-          onMarkRead={(notificationId) => markRead([notificationId])}
-          onRefresh={refreshNotifications}
-          pendingReadIds={pendingReadIds}
-          unreadCount={unreadCount}
-        />
-      ) : null}
+      {isOpen && mounted
+        ? createPortal(
+            <div
+              ref={dropdownRef}
+              className="overflow-hidden rounded-[12px] border border-border-subtle bg-surface text-text-primary shadow-overlay origin-top-right animate-in fade-in zoom-in-95 duration-150"
+              role="dialog"
+              aria-label="Notifications"
+              style={dropdownStyle}
+            >
+              <NotificationDropdown
+                isRefreshing={isRefreshing}
+                message={message}
+                notifications={notifications}
+                onMarkAllRead={() => markRead(unreadNotificationIds)}
+                onMarkRead={(notificationId) => markRead([notificationId])}
+                onRefresh={refreshNotifications}
+                pendingReadIds={pendingReadIds}
+                unreadCount={unreadCount}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -186,13 +313,11 @@ export function NotificationDropdown({
   unreadCount: number;
 }) {
   return (
-    <div className="absolute right-0 z-40 mt-2 w-[min(calc(100vw-2rem),26rem)] overflow-hidden rounded-[12px] border border-border-subtle bg-surface text-text-primary shadow-overlay origin-top-right animate-in fade-in zoom-in-95 duration-150">
-      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3">
+    <div className="flex max-h-[inherit] flex-col">
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3 shrink-0">
         <div>
           <p className="text-[14px] font-semibold text-text-strong">Notifications</p>
-          <p className="text-[12px] text-text-muted">
-            {unreadCount} unread
-          </p>
+          <p className="text-[12px] text-text-muted">{unreadCount} unread</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -222,16 +347,18 @@ export function NotificationDropdown({
       </div>
 
       {message ? (
-        <p className="border-b border-danger/20 bg-danger-soft px-4 py-2 text-sm text-danger">
+        <p className="border-b border-danger/20 bg-danger-soft px-4 py-2 text-sm text-danger shrink-0">
           {message}
         </p>
       ) : null}
 
-      <NotificationList
-        notifications={notifications}
-        onMarkRead={onMarkRead}
-        pendingReadIds={pendingReadIds}
-      />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <NotificationList
+          notifications={notifications}
+          onMarkRead={onMarkRead}
+          pendingReadIds={pendingReadIds}
+        />
+      </div>
     </div>
   );
 }
@@ -258,7 +385,7 @@ export function NotificationList({
   }
 
   return (
-    <div className="max-h-[28rem] overflow-y-auto">
+    <div>
       {notifications.map((notification) => (
         <NotificationListItem
           key={notification.id}
@@ -284,19 +411,22 @@ function NotificationListItem({
     notification.linkHref && isSafeNotificationLink(notification.linkHref)
       ? notification.linkHref
       : undefined;
+
+  async function handleActivate() {
+    if (!notification.readAt) {
+      onMarkRead(notification.id);
+    }
+  }
+
   const mainContent = (
     <div className={linkHref ? "block" : undefined}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-text-primary">
-              {notification.title}
-            </p>
+            <p className="text-sm font-semibold text-text-primary">{notification.title}</p>
             <NotificationReadState readAt={notification.readAt} />
           </div>
-          <p className="mt-1 text-sm leading-5 text-text-secondary">
-            {notification.message}
-          </p>
+          <p className="mt-1 text-sm leading-5 text-text-secondary">{notification.message}</p>
         </div>
         {linkHref ? (
           <ExternalLink className="mt-1 size-4 shrink-0 text-text-muted" aria-hidden="true" />
@@ -308,9 +438,24 @@ function NotificationListItem({
   return (
     <div className={notificationItemClasses(!notification.readAt)}>
       {linkHref ? (
-        <Link href={linkHref}>{mainContent}</Link>
+        <Link
+          href={linkHref}
+          onClick={() => {
+            void handleActivate();
+          }}
+        >
+          {mainContent}
+        </Link>
       ) : (
-        mainContent
+        <button
+          type="button"
+          className="w-full text-left cursor-pointer"
+          onClick={() => {
+            void handleActivate();
+          }}
+        >
+          {mainContent}
+        </button>
       )}
       <div className="mt-3 flex items-center justify-between gap-3 text-xs text-text-muted">
         <span>{new Date(notification.createdAt).toLocaleString()}</span>
@@ -331,10 +476,7 @@ function NotificationListItem({
 
 export function NotificationReadState({ readAt }: { readAt: string | null }) {
   return (
-    <Badge
-      className="h-6 px-2 text-[11px]"
-      tone={readAt ? "neutral" : "primary"}
-    >
+    <Badge className="h-6 px-2 text-[11px]" tone={readAt ? "neutral" : "primary"}>
       {readAt ? "Read" : "Unread"}
     </Badge>
   );
@@ -343,6 +485,8 @@ export function NotificationReadState({ readAt }: { readAt: string | null }) {
 function notificationItemClasses(unread: boolean) {
   return cn(
     "border-b border-border-subtle px-4 py-3 text-left transition-colors last:border-0 hover:bg-neutral-soft",
-    unread ? "bg-primary-soft border-l-[3px] border-l-primary" : "bg-surface border-l-[3px] border-l-transparent",
+    unread
+      ? "bg-primary-soft border-l-[3px] border-l-primary"
+      : "bg-surface border-l-[3px] border-l-transparent",
   );
 }

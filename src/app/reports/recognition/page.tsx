@@ -1,5 +1,5 @@
 import { Award, Trophy } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
+import { HallOfFameTable } from "@/features/reports/components/hall-of-fame-table";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,7 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ReportsNav } from "@/features/reports/components/reports-nav";
+import { ReportsSection } from "@/features/reports/components/reports-section";
+import { REPORTS_ROUTE_TITLES } from "@/features/reports/lib/page-titles";
 import { canAccessConclusionsTab } from "@/features/reports/lib/access";
 import { getReportsPageData } from "@/features/reports/server/page-data";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
@@ -32,19 +33,13 @@ export default async function RecognitionPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Reporting"
-        title="Recognition"
-        description="Volunteer of the Month and Hall of Fame rankings from approved point ledger data."
-      />
-
-      <ReportsNav
-        canAccessConclusions={canAccessConclusionsTab(user)}
-        isAdmin={user.isAdmin}
-      />
-
-      <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+    <ReportsSection
+      canAccessConclusions={canAccessConclusionsTab(user)}
+      isAdmin={user.isAdmin}
+      title={REPORTS_ROUTE_TITLES["/reports/recognition"]}
+      description="Volunteer of the Month and Hall of Fame rankings from approved point ledger data."
+    >
+      <section className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -80,32 +75,15 @@ export default async function RecognitionPage() {
           </CardHeader>
           <CardContent>
             {data.hallOfFame.length > 0 ? (
-              <div className="overflow-x-auto rounded-md border border-border">
-                <table className="min-w-[520px] divide-y divide-border text-left text-sm">
-                  <thead className="bg-surface-muted text-text-secondary">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Rank</th>
-                      <th className="px-4 py-3 font-semibold">Volunteer</th>
-                      <th className="px-4 py-3 font-semibold">Term</th>
-                      <th className="px-4 py-3 font-semibold">Points</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border bg-surface">
-                    {data.hallOfFame.map((entry) => (
-                      <tr key={entry.userId}>
-                        <td className="px-4 py-3 font-medium text-text-primary">
-                          #{entry.rank}
-                        </td>
-                        <td className="px-4 py-3 text-text-primary">{entry.name}</td>
-                        <td className="px-4 py-3 text-text-secondary">{entry.term.label}</td>
-                        <td className="px-4 py-3">
-                          <Badge tone="primary">{entry.pointsEarned}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <HallOfFameTable
+                entries={data.hallOfFame.map((entry) => ({
+                  rank: entry.rank,
+                  userId: entry.userId,
+                  name: entry.name,
+                  pointsEarned: entry.pointsEarned,
+                  termLabel: entry.term.label,
+                }))}
+              />
             ) : (
               <p className="text-sm text-text-secondary">
                 No eligible points have been awarded for the current IEEE term.
@@ -114,6 +92,6 @@ export default async function RecognitionPage() {
           </CardContent>
         </Card>
       </section>
-    </div>
+    </ReportsSection>
   );
 }

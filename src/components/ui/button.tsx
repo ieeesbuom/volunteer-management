@@ -4,9 +4,9 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "border-primary bg-primary text-white hover:bg-primary-hover shadow-[0_2px_10px_-2px_var(--color-primary)]",
+    "border-primary bg-primary text-white hover:bg-primary-hover",
   secondary:
-    "border-border-default bg-surface text-text-primary hover:bg-surface-muted shadow-sm",
+    "border-border-subtle bg-surface-raised text-text-body hover:bg-bg-base",
   ghost:
     "border-transparent bg-transparent text-text-secondary hover:bg-surface-muted hover:text-text-primary",
   danger:
@@ -21,7 +21,7 @@ export function buttonClasses({
   variant?: ButtonVariant;
 } = {}) {
   return cn(
-    "inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:translate-y-px",
+    "inline-flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-[13px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:translate-y-px",
     variantClasses[variant],
     className,
   );

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAppwriteSessionServices } from "@/server/appwrite";
+import { ensureGoogleAvatarUrl } from "@/features/access-control/server/google-avatar";
 import { createSessionFromOAuthToken } from "@/features/access-control/server/oauth";
 import { bootstrapProfile } from "@/features/access-control/server/profiles";
 import {
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
     sessionSecret = session.secret;
     const { account } = getAppwriteSessionServices(sessionSecret);
     await bootstrapProfile(await account.get());
+    await ensureGoogleAvatarUrl(account).catch(() => undefined);
 
     const response = NextResponse.redirect(new URL("/dashboard", url.origin));
     clearOAuthLoginNonceCookie(response);

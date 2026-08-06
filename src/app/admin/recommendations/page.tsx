@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Flag } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import {
@@ -32,7 +33,7 @@ export default async function AdminRecommendationsPage() {
 
   return (
     <AppShell active="moderation" user={currentUser}>
-      <div className="space-y-6">
+      <AppPage>
         <PageHeader
           title="Recommendation Moderation"
           description="Review reported recommendation text and hide content when needed."
@@ -57,7 +58,7 @@ export default async function AdminRecommendationsPage() {
             <ReportedRecommendationsPanel initialRecommendations={recommendations} />
           </CardContent>
         </Card>
-      </div>
+      </AppPage>
     </AppShell>
   );
 }

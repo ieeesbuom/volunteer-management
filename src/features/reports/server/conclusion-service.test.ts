@@ -268,7 +268,13 @@ describe("conclusion report service", () => {
 
   it("reads malformed stored content without crashing", () => {
     const report = toConclusionReport({
+      $createdAt: "2026-01-01T00:00:00.000Z",
+      $databaseId: "volunteer-management",
       $id: "report-bad-content",
+      $permissions: [],
+      $sequence: "1",
+      $tableId: "conclusion_reports",
+      $updatedAt: "2026-01-02T00:00:00.000Z",
       content: "Legacy plain-text objectives only",
       createdAt: "2026-01-01T00:00:00.000Z",
       eventId: "event-1",

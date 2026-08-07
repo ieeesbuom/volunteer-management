@@ -10,8 +10,12 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
+    prefetch: _prefetch,
     ...props
-  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+    href: string;
+    prefetch?: boolean;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -22,6 +26,13 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
+  usePathname: () => "/volunteers/me",
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/features/access-control/server/current-user", () => ({
@@ -196,10 +207,10 @@ describe("volunteer profile page smoke tests", () => {
 
     const html = await htmlFrom(MyVolunteerProfilePage());
 
-    expect(html).toContain("Volunteer Profile");
     expect(html).toContain("Profile Details");
     expect(html).toContain("University Index");
     expect(html).toContain("Recommendation Requests");
+    expect(html).toContain("Manage your verification, public profile details, and recommendation requests.");
     expect(getDetailsMock).toHaveBeenCalledWith("user-1");
     expect(listRequestsMock).toHaveBeenCalledWith("user-1");
   });
@@ -210,6 +221,7 @@ describe("volunteer profile page smoke tests", () => {
 
     const html = await htmlFrom(VolunteerProfilePage(routeParams("user-2")));
 
+    expect(html).toContain("Logistics lead");
     expect(html).toContain("Target Volunteer");
     expect(html).toContain("Academic identifiers are visible only to the profile owner and admins.");
     expect(html).toContain("Recommendations are visible only to the profile owner and admins.");
@@ -276,7 +288,6 @@ describe("admin recommendation moderation page smoke tests", () => {
 
     const html = await htmlFrom(AdminRecommendationsPage());
 
-    expect(html).toContain("Recommendation Moderation");
     expect(html).toContain("Reported Recommendations");
     expect(html).toContain("Thoughtful and reliable.");
     expect(html).toContain("Needs review");

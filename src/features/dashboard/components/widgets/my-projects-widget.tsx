@@ -16,6 +16,11 @@ import {
   Check,
 } from "lucide-react";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
+import { Badge } from "@/components/ui/badge";
+import {
+  formatEventStatus,
+  getEventStatusBadgeTone,
+} from "@/features/events/lib/event-ui";
 
 type TimeframeFilter = "This Week" | "This Month" | "All Time";
 
@@ -117,28 +122,6 @@ export function MyProjectsWidget() {
               </thead>
               <tbody className="divide-y divide-border-subtle/80 bg-surface-raised">
                 {filteredOpportunities.map(({ conn, event }, idx) => {
-                  const statusVariants = [
-                    {
-                      bg: "bg-[#ecfdf5]",
-                      text: "text-[#15803d]",
-                      border: "border-[#a7f3d0]",
-                      label: "In Progress",
-                    },
-                    {
-                      bg: "bg-[#fffbe2]",
-                      text: "text-[#b45309]",
-                      border: "border-[#fde68a]",
-                      label: "Pending",
-                    },
-                    {
-                      bg: "bg-[#eff6ff]",
-                      text: "text-[#1d4ed8]",
-                      border: "border-[#bfdbfe]",
-                      label: "Completed",
-                    },
-                  ];
-                  const status = statusVariants[idx % statusVariants.length];
-
                   const avatarBgs = [
                     "bg-[#92400e]",
                     "bg-[#1e40af]",
@@ -197,11 +180,18 @@ export function MyProjectsWidget() {
 
                       {/* Status Column */}
                       <td className="py-3 px-3.5 sm:px-4 text-right">
-                        <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-[12px] font-bold text-center border whitespace-nowrap ${status.bg} ${status.text} ${status.border}`}
-                        >
-                          {status.label}
-                        </span>
+                        {event ? (
+                          <Badge
+                            tone={getEventStatusBadgeTone(event.status)}
+                            className="text-[11px] whitespace-nowrap"
+                          >
+                            {formatEventStatus(event.status)}
+                          </Badge>
+                        ) : (
+                          <Badge tone="neutral" className="text-[11px] whitespace-nowrap">
+                            Open
+                          </Badge>
+                        )}
                       </td>
                     </tr>
                   );

@@ -676,33 +676,12 @@ export function ScoringDashboard({
     safeAuditPage * AUDIT_PAGE_SIZE + AUDIT_PAGE_SIZE,
   );
 
-  const showEventContextSwitcher = !user.isAdmin && activeEventAssignments.length > 1;
-
   function handleEventContextChange(eventId: string) {
     router.push(`/scoring?eventId=${encodeURIComponent(eventId)}`);
   }
 
   return (
     <div className="min-w-0 w-full space-y-4">
-      {showEventContextSwitcher ? (
-        <div className="flex justify-end min-w-0">
-          <label className="flex min-w-0 max-w-full flex-col gap-2 text-xs font-medium text-text-secondary sm:flex-row sm:items-center">
-            Event
-            <select
-              value={effectiveEventId}
-              onChange={(event) => handleEventContextChange(event.target.value)}
-              className="w-full min-w-0 max-w-full rounded-xl border border-border-default bg-surface-raised px-3 py-2 text-sm text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer sm:min-w-64 sm:max-w-xs"
-            >
-              {activeEventAssignments.map((assignment) => (
-                <option key={assignment.$id} value={assignment.eventId}>
-                  {assignment.eventTitle} - {assignment.role}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      ) : null}
-
       {/* Tab bar header */}
       <div className="mb-4 flex overflow-x-auto border-b border-border-subtle">
         {tabs.map((tab) => {

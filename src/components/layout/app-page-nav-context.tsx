@@ -16,9 +16,7 @@ type AppPageNavContextValue = {
   displayTitle: string;
   extras: ReactNode;
   navHeight: number;
-  onCommandCustomize: (() => void) | null;
   opportunityList: DashboardOpportunityItem[];
-  registerCommandCustomize: (handler: (() => void) | null) => void;
   setNavExtras: (extras: ReactNode) => void;
   setNavHeight: (height: number) => void;
   setOpportunityList: (items: DashboardOpportunityItem[]) => void;
@@ -40,7 +38,6 @@ export function AppPageNavProvider({
   const [extras, setExtras] = useState<ReactNode>(null);
   const [navHeight, setNavHeight] = useState(0);
   const [opportunityList, setOpportunityList] = useState<DashboardOpportunityItem[]>([]);
-  const [onCommandCustomize, setOnCommandCustomize] = useState<(() => void) | null>(null);
 
   const setPageNav = useCallback(
     (patch: { title?: string | null; description?: string | null }) => {
@@ -54,10 +51,6 @@ export function AppPageNavProvider({
     [],
   );
 
-  const registerCommandCustomize = useCallback((handler: (() => void) | null) => {
-    setOnCommandCustomize(handler);
-  }, []);
-
   const displayTitle = titleOverride ?? defaultTitle;
 
   const value = useMemo(
@@ -67,9 +60,7 @@ export function AppPageNavProvider({
       displayTitle,
       extras,
       navHeight,
-      onCommandCustomize,
       opportunityList,
-      registerCommandCustomize,
       setNavExtras: setExtras,
       setNavHeight,
       setOpportunityList,
@@ -82,9 +73,7 @@ export function AppPageNavProvider({
       displayTitle,
       extras,
       navHeight,
-      onCommandCustomize,
       opportunityList,
-      registerCommandCustomize,
       setPageNav,
       titleOverride,
     ],

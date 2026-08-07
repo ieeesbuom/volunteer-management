@@ -41,6 +41,22 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
     };
   }
 
+  if (rawError === "api_key_unauthorized") {
+    return {
+      details:
+        "APPWRITE_API_KEY in .env is revoked or missing required scopes (sessions.write, users.read, rows.read, rows.write). Create a new key in the Appwrite Console, update .env, then restart npm run dev.",
+      title: "Appwrite API key is unauthorized",
+    };
+  }
+
+  if (rawError === "oauth_state_missing") {
+    return {
+      details:
+        "Start Google login again from this browser. The login CSRF cookie was missing or expired.",
+      title: "Login session expired",
+    };
+  }
+
   if (rawError === "callback_failed") {
     return {
       details:
@@ -58,7 +74,8 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
 
   if (rawError === "session_secret_missing") {
     return {
-      details: "Appwrite created a session response without a usable session secret.",
+      details:
+        "Appwrite created a session without a usable secret. APPWRITE_API_KEY needs the sessions.write scope.",
       title: "Appwrite session was incomplete",
     };
   }

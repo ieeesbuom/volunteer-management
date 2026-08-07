@@ -48,6 +48,14 @@ export function isAppwriteConflict(error: unknown) {
   return error instanceof AppwriteException && error.code === 409;
 }
 
+export function isAppwriteUnauthorized(error: unknown) {
+  return (
+    error instanceof AppwriteException &&
+    error.code === 401 &&
+    (error.type === "user_unauthorized" || error.type === "general_unauthorized_scope")
+  );
+}
+
 export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }

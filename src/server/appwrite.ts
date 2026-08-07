@@ -1,7 +1,8 @@
 import "server-only";
 
-import { Account, Client, TablesDB, Users } from "node-appwrite";
+import { Account, Client, Query, TablesDB, Users } from "node-appwrite";
 import { getServerEnv } from "@/lib/env";
+import { isAppwriteUnauthorized } from "@/server/errors";
 
 export function getAppwriteBaseClient() {
   const env = getServerEnv();
@@ -38,4 +39,22 @@ export function getAppwriteSessionServices(sessionSecret: string) {
     account: new Account(client),
     tables: new TablesDB(client),
   };
+}
+
+/**
+ * Cheap admin call to confirm APPWRITE_API_KEY is accepted before OAuth.
+ * Throws with a stable message when the key is revoked or under-scoped.
+ */
+export async function assertAppwriteApiKeyAuthorized() {
+  const { users } = getAppwriteAdminServices();
+
+  try {
+    await users.list([Query.limit(1)]);
+  } catch (error) {
+    if (isAppwriteUnauthorized(error)) {
+      throw new Error("APPWRITE_API_KEY_UNAUTHORIZED");
+    }
+
+    throw error;
+  }
 }

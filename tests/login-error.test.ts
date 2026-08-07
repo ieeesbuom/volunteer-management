@@ -20,4 +20,16 @@ describe("login error messages", () => {
   it("keeps known app callback errors concise", () => {
     expect(getLoginErrorMessage("callback_failed")?.title).toBe("Login callback failed");
   });
+
+  it("explains unauthorized Appwrite API keys", () => {
+    expect(getLoginErrorMessage("api_key_unauthorized")).toEqual({
+      details:
+        "APPWRITE_API_KEY in .env is revoked or missing required scopes (sessions.write, users.read, rows.read, rows.write). Create a new key in the Appwrite Console, update .env, then restart npm run dev.",
+      title: "Appwrite API key is unauthorized",
+    });
+  });
+
+  it("explains missing OAuth login nonce cookies", () => {
+    expect(getLoginErrorMessage("oauth_state_missing")?.title).toBe("Login session expired");
+  });
 });

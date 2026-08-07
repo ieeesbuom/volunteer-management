@@ -19,6 +19,7 @@
     "appwrite:harden": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/harden-project.mjs",
     "appwrite:keys": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/create-api-keys.mjs",
     "appwrite:keys:sync-env": "node scripts/appwrite/sync-env-keys.mjs",
+    "appwrite:keys:verify": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/verify-api-key.mjs",
     "appwrite:sessions:revoke-stale": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/revoke-stale-sessions.mjs",
     "appwrite:migrate:uom": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/migrate-uom-integrity.mjs",
     "appwrite:migrate:ledger": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/migrate-point-ledger.mjs",

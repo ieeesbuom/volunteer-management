@@ -29,7 +29,7 @@ function createEventFixture(overrides: Partial<Event> = {}): Event {
 }
 
 describe("event route helpers and permissions", () => {
-  it("requires verified active profile for non-admin event creation", () => {
+  it("allows only admins to create events", () => {
     expect(
       canCreateEvent({
         authUser: { email: "excom@example.com", id: "user-1", name: "ExCom" },
@@ -40,11 +40,27 @@ describe("event route helpers and permissions", () => {
           authUserId: "user-1",
           googleEmail: "excom@example.com",
           status: "ACTIVE",
-          uomVerified: false,
+          uomVerified: true,
         },
         sbRoles: ["Chairperson"],
       }),
     ).toBe(false);
+
+    expect(
+      canCreateEvent({
+        authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+        eventRoles: [],
+        isAdmin: true,
+        profile: {
+          $id: "profile-admin",
+          authUserId: "admin-1",
+          googleEmail: "admin@example.com",
+          status: "ACTIVE",
+          uomVerified: false,
+        },
+        sbRoles: [],
+      }),
+    ).toBe(true);
   });
 
   it("hides closed events from users without roles", () => {
@@ -78,7 +94,7 @@ describe("event route helpers and permissions", () => {
     expect(response?.status).toBe(403);
   });
 
-  it("returns 403 when requireEventCreator is called without SB Lead or ExCom", async () => {
+  it("returns 403 when requireEventCreator is called without admin access", async () => {
     const response = requireEventCreator({
       authUser: { email: "user@uom.lk", id: "user-1", name: "Volunteer" },
       eventRoles: [],

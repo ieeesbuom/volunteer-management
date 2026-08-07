@@ -19,7 +19,6 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
   const {
     displayTitle,
     extras,
-    onCommandCustomize,
     opportunityList,
     setNavHeight,
   } = useAppPageNav();
@@ -126,7 +125,6 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
         onOpenChange={setCommandPaletteOpen}
         user={user}
         opportunityList={opportunityList}
-        onCustomize={() => onCommandCustomize?.()}
       />
     </>
   );

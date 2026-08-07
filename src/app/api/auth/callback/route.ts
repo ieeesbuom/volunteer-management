@@ -3,6 +3,7 @@ import { getAppwriteSessionServices } from "@/server/appwrite";
 import { ensureGoogleAvatarUrl } from "@/features/access-control/server/google-avatar";
 import { createSessionFromOAuthToken } from "@/features/access-control/server/oauth";
 import { bootstrapProfile } from "@/features/access-control/server/profiles";
+import { isAppwriteUnauthorized } from "@/server/errors";
 import {
   applySessionSecretCookie,
   clearOAuthLoginNonceCookie,
@@ -28,14 +29,16 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Exchange the OAuth token (secret + userId) for a real Appwrite session.
+    // The admin client is used so the response includes the session.secret field.
     const session = await createSessionFromOAuthToken({ secret, userId });
 
     if (!session.secret) {
-      const response = NextResponse.redirect(
+      const errResponse = NextResponse.redirect(
         new URL("/login?error=session_secret_missing", url.origin),
       );
-      clearOAuthLoginNonceCookie(response);
-      return response;
+      clearOAuthLoginNonceCookie(errResponse);
+      return errResponse;
     }
 
     sessionSecret = session.secret;
@@ -59,7 +62,11 @@ export async function GET(request: Request) {
 
     await clearSessionSecret();
     logAuthCallbackFailure(error);
-    const response = NextResponse.redirect(new URL("/login?error=callback_failed", url.origin));
+
+    const errorCode = isAppwriteUnauthorized(error)
+      ? "api_key_unauthorized"
+      : "callback_failed";
+    const response = NextResponse.redirect(new URL(`/login?error=${errorCode}`, url.origin));
     clearOAuthLoginNonceCookie(response);
     clearSessionSecretCookie(response);
     return response;

@@ -7,7 +7,6 @@ import { listEventsByIds } from "@/features/events/server/event-service";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
 import { isEligibleForGlobalDashboard } from "@/features/forms/lib/audience";
 import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
-import { getDashboardLayoutForUserId } from "@/features/dashboard/server/dashboard-layout-service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +18,7 @@ export default async function DashboardPage() {
   }
 
   const formRepo = createAppwriteFormConnectionRepository();
-  const [allConnections, savedLayout] = await Promise.all([
-    formRepo.list({ limit: 100 }),
-    getDashboardLayoutForUserId(user.authUser.id).catch(() => null),
-  ]);
+  const allConnections = await formRepo.list({ limit: 100 });
   const activeRegistrations = allConnections.filter(isEligibleForGlobalDashboard);
 
   const assignedEventIds = new Set(user.eventRoles.map((r) => r.eventId));
@@ -49,11 +45,7 @@ export default async function DashboardPage() {
     <AppShell active="dashboard" user={user}>
       <AppPage className="space-y-0 pb-0">
         <Suspense fallback={null}>
-          <DashboardOverview
-            user={user}
-            opportunityList={opportunityList}
-            initialLayout={savedLayout}
-          />
+          <DashboardOverview user={user} opportunityList={opportunityList} />
         </Suspense>
       </AppPage>
     </AppShell>

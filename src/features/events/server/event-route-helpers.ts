@@ -1,8 +1,7 @@
 import "server-only";
 
-import { canVolunteer, hasSbRole } from "@/features/access-control/lib/rules";
+import { canVolunteer } from "@/features/access-control/lib/rules";
 import type { SessionUser } from "@/features/access-control/types";
-import { EXCOM_ROLES } from "@/lib/config";
 import {
   getEventPermissions,
   isEventVisibleToUser,
@@ -26,11 +25,7 @@ export const VOLUNTEER_VISIBLE_STATUSES: EventStatus[] = [
 ];
 
 export function canCreateEvent(user: SessionUser) {
-  if (user.isAdmin) {
-    return true;
-  }
-
-  return hasSbRole(user, [...EXCOM_ROLES, "SB Lead"]) && canVolunteer(user.profile);
+  return user.isAdmin;
 }
 
 export function parseValidationBody<T>(schema: import("zod").ZodType<T>, data: unknown) {
@@ -147,7 +142,7 @@ export function requireEventCreator(user: SessionUser | null) {
   }
 
   if (!user || !canCreateEvent(user)) {
-    return jsonError("Required Student Branch role is missing.", 403);
+    return jsonError("Admin access required.", 403);
   }
 
   return null;

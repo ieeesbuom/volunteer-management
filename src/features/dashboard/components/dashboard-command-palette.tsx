@@ -9,7 +9,6 @@ import {
   FileBarChart,
   Flag,
   LayoutDashboard,
-  LayoutGrid,
   Megaphone,
   Plus,
   Search,
@@ -55,13 +54,11 @@ export function DashboardCommandPalette({
   onOpenChange,
   user,
   opportunityList,
-  onCustomize,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: SessionUser;
   opportunityList: DashboardOpportunityItem[];
-  onCustomize: () => void;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -146,28 +143,19 @@ export function DashboardCommandPalette({
         href: "/volunteers/me",
         searchText: normalizeSearchText(["profile", "volunteer", "me"]),
       },
-      {
-        id: "action-new-project",
-        group: "Actions",
-        label: "New project",
-        subtitle: "Create or open events",
-        icon: Plus,
-        href: "/events",
-        searchText: normalizeSearchText(["new", "project", "create", "event"]),
-      },
-      {
-        id: "action-customize",
-        group: "Actions",
-        label: "Customize dashboard",
-        subtitle: "Edit widgets and layout",
-        icon: LayoutGrid,
-        onSelect: onCustomize,
-        searchText: normalizeSearchText(["customize", "widgets", "layout", "edit", "dashboard"]),
-      },
     ];
 
     if (user.isAdmin) {
       items.push(
+        {
+          id: "action-new-project",
+          group: "Actions",
+          label: "New project",
+          subtitle: "Create a new event",
+          icon: Plus,
+          href: "/events/new",
+          searchText: normalizeSearchText(["new", "project", "create", "event"]),
+        },
         {
           id: "nav-reports",
           group: "Navigation",
@@ -259,7 +247,7 @@ export function DashboardCommandPalette({
     }
 
     return items;
-  }, [events, onCustomize, opportunityList, user.isAdmin]);
+  }, [events, opportunityList, user.isAdmin]);
 
   const filteredItems = useMemo(
     () => allItems.filter((item) => itemMatchesQuery(item, query)),

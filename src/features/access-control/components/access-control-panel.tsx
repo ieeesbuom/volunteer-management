@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -290,10 +290,6 @@ function BranchRoleTable({
   const [sortKey, setSortKey] = useState<SortKey>("profile");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  useEffect(() => {
-    setPage(0);
-  }, [query, selectedTerm, pageSize]);
-
   const sortedUsers = useMemo(() => {
     const next = [...filteredUsers];
 
@@ -347,7 +343,10 @@ function BranchRoleTable({
                 eventInputClasses,
                 "h-9 border-border-subtle bg-bg-base pl-9 text-[13px] shadow-none",
               )}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setPage(0);
+                setQuery(event.target.value);
+              }}
               placeholder="Search by name or email..."
               value={query}
             />
@@ -357,7 +356,10 @@ function BranchRoleTable({
             <select
               className="max-w-[5.5rem] cursor-pointer border-0 bg-transparent p-0 text-[13px] font-semibold text-text-strong outline-none focus:ring-0"
               value={selectedTerm}
-              onChange={(event) => setSelectedTerm(event.target.value)}
+              onChange={(event) => {
+                setPage(0);
+                setSelectedTerm(event.target.value);
+              }}
             >
               {IEEE_TERMS.map((term) => (
                 <option key={term} value={term}>
@@ -503,7 +505,10 @@ function BranchRoleTable({
                 <select
                   className="h-8 cursor-pointer rounded-lg border border-border-subtle bg-surface-raised px-2 text-[12px] font-medium text-text-body outline-none"
                   value={pageSize}
-                  onChange={(event) => setPageSize(Number(event.target.value))}
+                  onChange={(event) => {
+                    setPage(0);
+                    setPageSize(Number(event.target.value));
+                  }}
                 >
                   {PAGE_SIZE_OPTIONS.map((size) => (
                     <option key={size} value={size}>

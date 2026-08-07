@@ -165,7 +165,7 @@ describe("event API routes", () => {
       });
     });
 
-    it("returns 200 for verified ExCom users", async () => {
+    it("returns 403 for verified ExCom users because listing requires admin", async () => {
       mockGetCurrentUser.mockResolvedValueOnce(
         createSessionUser({ sbRoles: ["Chairperson"] }),
       );
@@ -173,15 +173,23 @@ describe("event API routes", () => {
 
       const response = await GET(new Request("http://localhost/api/events"));
 
-      expect(response.status).toBe(200);
-      expect(mockGetEvents).toHaveBeenCalledWith(
-        expect.objectContaining({ isAdmin: false, userId: "user-1" }),
-      );
+      expect(response.status).toBe(403);
+      expect(mockGetEvents).not.toHaveBeenCalled();
     });
 
     it("returns 400 for invalid status filters", async () => {
       mockGetCurrentUser.mockResolvedValueOnce(
-        createSessionUser({ sbRoles: ["SB Lead"] }),
+        createSessionUser({
+          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+          isAdmin: true,
+          profile: {
+            $id: "profile-admin",
+            authUserId: "admin-1",
+            googleEmail: "admin@example.com",
+            status: "ACTIVE",
+            uomVerified: false,
+          },
+        }),
       );
       const { GET } = await import("@/app/api/events/route");
 
@@ -210,10 +218,44 @@ describe("event API routes", () => {
       expect(mockCreateEvent).not.toHaveBeenCalled();
     });
 
-    it("returns 201 for verified ExCom creators", async () => {
-      const createdEvent = createEventFixture({ title: "Created Event" });
+    it("returns 403 for verified ExCom creators because creation is admin-only", async () => {
       mockGetCurrentUser.mockResolvedValueOnce(
         createSessionUser({ sbRoles: ["Chairperson"] }),
+      );
+      const { POST } = await import("@/app/api/events/route");
+
+      const response = await POST(
+        new Request("http://localhost/api/events", {
+          body: JSON.stringify({
+            reference: "MF-5",
+            start_date: "2026-07-01T00:00:00.000Z",
+            status: "draft",
+            term: "25/26",
+            title: "Created Event",
+            year: 2026,
+          }),
+          method: "POST",
+        }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(mockCreateEvent).not.toHaveBeenCalled();
+    });
+
+    it("returns 201 for admin creators", async () => {
+      const createdEvent = createEventFixture({ title: "Created Event" });
+      mockGetCurrentUser.mockResolvedValueOnce(
+        createSessionUser({
+          authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
+          isAdmin: true,
+          profile: {
+            $id: "profile-admin",
+            authUserId: "admin-1",
+            googleEmail: "admin@example.com",
+            status: "ACTIVE",
+            uomVerified: false,
+          },
+        }),
       );
       mockCreateEvent.mockResolvedValueOnce(createdEvent);
       const { POST } = await import("@/app/api/events/route");

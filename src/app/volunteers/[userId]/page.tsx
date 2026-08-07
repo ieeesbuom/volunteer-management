@@ -1,6 +1,7 @@
 import { MessageSquareQuote, UserRound } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppPage } from "@/components/layout/app-page";
+import { AppPageNavProvider } from "@/components/layout/app-page-nav-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,6 +35,7 @@ export default async function VolunteerProfilePage({
       return (
         <PublicVolunteerLayout>
             <PageHeader
+              showTitle
               title="Volunteer Not Found"
               description="No active verified volunteer profile exists for this account."
             />
@@ -65,6 +67,7 @@ export default async function VolunteerProfilePage({
       profile={profile}
       profileDisplayName={profileDisplayName}
       recommendations={recommendations}
+      showTitle={!user}
       userIsUnverified={Boolean(user && !viewerCanVolunteer)}
     />
   );
@@ -86,6 +89,7 @@ function VolunteerProfileContent({
   profile,
   profileDisplayName,
   recommendations,
+  showTitle = false,
   userIsUnverified,
 }: {
   canReportRecommendations: boolean;
@@ -93,6 +97,7 @@ function VolunteerProfileContent({
   profile: NonNullable<Awaited<ReturnType<typeof getVolunteerProfileSummary>>>;
   profileDisplayName: string;
   recommendations: Awaited<ReturnType<typeof listVisibleRecommendationsForVolunteer>>;
+  showTitle?: boolean;
   userIsUnverified: boolean;
 }) {
   const recommendationCount = profile.isPrivateView ? recommendations.length : null;
@@ -100,6 +105,7 @@ function VolunteerProfileContent({
   return (
     <AppPage>
       <PageHeader
+        showTitle={showTitle}
         title={profileDisplayName}
         description={profile.details?.headline ?? "Volunteer profile"}
       />
@@ -235,11 +241,13 @@ function VolunteerProfileContent({
 
 function PublicVolunteerLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-background text-text-primary">
-      <div className="mx-auto w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-        {children}
-      </div>
-    </main>
+    <AppPageNavProvider defaultTitle="Volunteer Profile">
+      <main className="min-h-screen bg-background text-text-primary">
+        <div className="mx-auto w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+          {children}
+        </div>
+      </main>
+    </AppPageNavProvider>
   );
 }
 

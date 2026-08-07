@@ -26,7 +26,6 @@ export const APPWRITE_TABLES = {
   notifications: "notifications",
   notificationPreferences: "notification_preferences",
   formConnections: "form_connections",
-  dashboardLayouts: "dashboard_layouts",
 } as const;
 
 export const APPWRITE_BUCKETS = {

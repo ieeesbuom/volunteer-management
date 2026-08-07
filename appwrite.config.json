@@ -1863,61 +1863,6 @@
             ]
         },
         {
-            "$id": "dashboard_layouts",
-            "$permissions": [],
-            "databaseId": "volunteer_management",
-            "name": "Dashboard Layouts",
-            "enabled": true,
-            "rowSecurity": false,
-            "columns": [
-                {
-                    "key": "userId",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 64,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "layoutJson",
-                    "type": "string",
-                    "required": true,
-                    "array": false,
-                    "size": 12000,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "createdAt",
-                    "type": "datetime",
-                    "required": true,
-                    "array": false,
-                    "default": null,
-                    "format": ""
-                },
-                {
-                    "key": "updatedAt",
-                    "type": "datetime",
-                    "required": true,
-                    "array": false,
-                    "default": null,
-                    "format": ""
-                }
-            ],
-            "indexes": [
-                {
-                    "key": "dashboard_layouts_user_idx",
-                    "type": "key",
-                    "status": "available",
-                    "columns": [
-                        "userId"
-                    ],
-                    "orders": []
-                }
-            ]
-        },
-        {
             "$id": "form_connections",
             "$permissions": [],
             "databaseId": "volunteer_management",

@@ -588,17 +588,6 @@ const tableDefinitions = [
     ],
   },
   {
-    id: "dashboard_layouts",
-    name: "Dashboard Layouts",
-    columns: [
-      ["string", "userId", 64, true],
-      ["string", "layoutJson", 12000, true],
-      ["datetime", "createdAt", true],
-      ["datetime", "updatedAt", true],
-    ],
-    indexes: [["dashboard_layouts_user_idx", ["userId"]]],
-  },
-  {
     id: "form_connections",
     name: "Form Connections",
     columns: [

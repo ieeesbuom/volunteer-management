@@ -239,6 +239,33 @@ describe("isFormEligibleForDashboard", () => {
     expect(isFormEligibleForDashboard(form, member)).toBe(true);
   });
 
+  it("shows volunteers_only open calls even when purpose is other", () => {
+    const user = createUser();
+    expect(
+      isFormEligibleForDashboard(
+        createMockConnection({
+          metadata: { audience: "volunteers_only" },
+          purpose: "other",
+          title: "Call for Logistics Crew",
+        }),
+        user,
+      ),
+    ).toBe(true);
+  });
+
+  it("hides feedback forms from the open-opportunity overview", () => {
+    const user = createUser();
+    expect(
+      isFormEligibleForDashboard(
+        createMockConnection({
+          metadata: { audience: "volunteers_only" },
+          purpose: "feedback",
+        }),
+        user,
+      ),
+    ).toBe(false);
+  });
+
   it("hides forms outside their availability window", () => {
     const user = createUser();
     const form = createMockConnection({
@@ -252,13 +279,22 @@ describe("isFormEligibleForDashboard", () => {
 });
 
 describe("shouldExcludeAssignedEventOpportunity", () => {
-  it("excludes public/volunteer opportunities for events the user already joined", () => {
+  it("excludes public opportunities for events the user already joined", () => {
     expect(
       shouldExcludeAssignedEventOpportunity(
         createMockConnection({ metadata: { audience: "public" } }),
         new Set(["event-1"]),
       ),
     ).toBe(true);
+  });
+
+  it("keeps volunteers_only and team forms visible even when the user is assigned", () => {
+    expect(
+      shouldExcludeAssignedEventOpportunity(
+        createMockConnection({ metadata: { audience: "volunteers_only" } }),
+        new Set(["event-1"]),
+      ),
+    ).toBe(false);
     expect(
       shouldExcludeAssignedEventOpportunity(
         createMockConnection({ metadata: { audience: "event_team_only" } }),

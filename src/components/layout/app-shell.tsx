@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
   UserRound,
+  Users,
   UsersRound,
   Trophy,
   Menu,
@@ -35,14 +36,16 @@ const ACTIVE_PAGE_TITLES: Record<
   | "users"
   | "reports"
   | "scoring"
-  | "volunteers",
+  | "directory"
+  | "profile",
   string
 > = {
   dashboard: "Overview",
   events: "Events",
   "my-events": "My Events",
   scoring: "Scoring & Leaderboard",
-  volunteers: "Profile",
+  directory: "Volunteers",
+  profile: "Profile",
   reports: "Reports",
   users: "Access Control",
   settings: "Settings",
@@ -66,7 +69,8 @@ export function AppShell({
     | "users"
     | "reports"
     | "scoring"
-    | "volunteers";
+    | "directory"
+    | "profile";
   children: React.ReactNode;
   /** Matches PageHeader title so SSR and hydration use the same top-nav label. */
   pageTitle?: string;
@@ -77,8 +81,9 @@ export function AppShell({
   const mainNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, id: "dashboard", label: "Overview" },
     { href: "/events", icon: CalendarDays, id: "events", label: "Events" },
+    { href: "/volunteers", icon: Users, id: "directory", label: "Volunteers" },
     { href: "/scoring", icon: Trophy, id: "scoring", label: "Leaderboard" },
-    { href: "/volunteers/me", icon: UserRound, id: "volunteers", label: "Profile" },
+    { href: "/volunteers/me", icon: UserRound, id: "profile", label: "Profile" },
   ] as const;
 
   const adminNavItems = user.isAdmin

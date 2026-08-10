@@ -62,11 +62,11 @@ export default async function LoginPage({
       <section className="relative flex min-h-screen flex-col lg:border-r lg:border-border-subtle">
         <header className="px-8 pt-10 sm:px-12 lg:px-14 xl:px-16">
           <Image
-            src="/images/ieeesblogo-light2.webp"
+            src="/images/ieee-sb-uom-logo.png"
             alt={ORGANIZATION_NAME}
-            width={3495}
-            height={764}
-            className="h-8 w-auto max-w-[min(100%,280px)] object-contain object-left sm:h-9"
+            width={1024}
+            height={223}
+            className="h-10 w-auto max-w-[min(100%,320px)] object-contain object-left sm:h-11"
             priority
           />
         </header>

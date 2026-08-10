@@ -72,11 +72,14 @@ function Podium({ entries }: { entries: LeaderboardEntry[] }) {
   ].filter((slot) => slot.entry);
 
   return (
-    <div className="flex items-end justify-center gap-2 mb-4 px-1">
+    <div className="mb-4 flex items-end justify-center gap-2 px-1">
       {order.map(({ entry, height, label }) => {
         const tone = rankTone(entry.rank);
         return (
-          <div key={entry.userId} className="flex flex-col items-center gap-1.5 flex-1 max-w-[88px]">
+          <div
+            key={entry.userId}
+            className="flex max-w-[88px] flex-1 flex-col items-center gap-1.5"
+          >
             <div
               className={cn(
                 "flex size-9 items-center justify-center rounded-full text-[11px] font-bold text-white ring-2",
@@ -88,17 +91,19 @@ function Podium({ entries }: { entries: LeaderboardEntry[] }) {
             </div>
             <div
               className={cn(
-                "w-full rounded-t-xl border border-b-0 flex flex-col items-center justify-end pb-2 pt-1 bg-gradient-to-t from-bg-base to-surface-raised",
+                "flex w-full flex-col items-center justify-end rounded-t-xl border border-b-0 bg-gradient-to-t from-bg-base to-surface-raised pb-2 pt-1",
                 height,
                 tone.badge,
               )}
             >
-              <span className="text-[10px] font-bold uppercase tracking-wide opacity-80">#{label}</span>
-              <span className="text-[11px] font-semibold text-text-strong tabular-nums">
+              <span className="text-[10px] font-bold uppercase tracking-wide opacity-80">
+                #{label}
+              </span>
+              <span className="text-[11px] font-semibold tabular-nums text-text-strong">
                 {entry.totalPoints}
               </span>
             </div>
-            <p className="text-[10px] font-medium text-text-body truncate w-full text-center">
+            <p className="w-full truncate text-center text-[10px] font-medium text-text-body">
               {entry.name.split(" ")[0]}
             </p>
           </div>
@@ -143,80 +148,80 @@ export function LeaderboardMiniWidget() {
     };
   }, []);
 
-  const rest = useMemo(() => entries.filter((e) => e.rank > 3), [entries]);
+  const showPodium = entries.length >= 2;
+  const listEntries = useMemo(() => {
+    if (showPodium) {
+      return entries.filter((entry) => entry.rank > 3);
+    }
+    return entries;
+  }, [entries, showPodium]);
 
   return (
-    <div className="h-full rounded-2xl border border-border-subtle bg-surface-raised flex flex-col overflow-hidden">
-      <div className="relative shrink-0 px-5 pt-5 pb-3 border-b border-border-subtle bg-gradient-to-br from-primary-soft/80 via-surface-raised to-surface-raised">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex size-8 items-center justify-center rounded-lg bg-surface-raised border border-primary-mid">
-                <Trophy className="size-4 text-gold" aria-hidden />
-              </span>
-              <div>
-                <h2 className="text-[15px] font-semibold text-text-strong leading-tight">
-                  Top volunteers
-                </h2>
-                <p className="text-[11px] text-text-muted mt-0.5">Current term standings</p>
-              </div>
-            </div>
+    <div className="flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border-subtle bg-gradient-to-br from-primary-soft/80 via-surface-raised to-surface-raised px-5 py-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary-mid bg-surface-raised">
+            <Trophy className="size-4 text-gold" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-semibold leading-tight text-text-strong">
+              Top volunteers
+            </h2>
+            <p className="mt-0.5 text-[11px] text-text-muted">Current term standings</p>
           </div>
-          <Link
-            href="/scoring"
-            className="text-[12px] font-semibold text-primary hover:underline cursor-pointer shrink-0 pt-1"
-          >
-            View all
-          </Link>
         </div>
+        <Link
+          href="/scoring"
+          className="shrink-0 text-[12px] font-semibold text-primary hover:underline"
+        >
+          View all
+        </Link>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+      <div className="px-5 py-4">
         {loading ? (
-          <div className="flex items-center justify-center py-10 text-text-muted">
+          <div className="flex items-center justify-center py-8 text-text-muted">
             <Loader2 className="size-5 animate-spin" aria-hidden />
           </div>
         ) : error ? (
-          <p className="text-[13px] text-text-muted py-4">{error}</p>
+          <p className="py-2 text-[13px] text-text-muted">{error}</p>
         ) : entries.length === 0 ? (
-          <p className="text-[13px] text-text-muted py-4">No leaderboard data yet.</p>
+          <p className="py-2 text-[13px] text-text-muted">No leaderboard data yet.</p>
         ) : (
           <>
-            {entries.length >= 2 && <Podium entries={entries} />}
-            <ol className="space-y-2">
-              {(rest.length > 0 ? rest : entries.slice(3)).map((entry) => {
-                const tone = rankTone(entry.rank);
-                return (
-                  <li
-                    key={entry.userId}
-                    className="group flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-base/80 px-3 py-2.5 transition-colors hover:bg-primary-soft/40 hover:border-primary-mid"
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex min-w-[2rem] justify-center rounded-md border px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
-                        tone.badge,
-                      )}
+            {showPodium ? <Podium entries={entries} /> : null}
+            {listEntries.length > 0 ? (
+              <ol className="space-y-2">
+                {listEntries.map((entry) => {
+                  const tone = rankTone(entry.rank);
+                  return (
+                    <li
+                      key={entry.userId}
+                      className="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-base/80 px-3 py-2.5 transition-colors hover:border-primary-mid hover:bg-primary-soft/40"
                     >
-                      #{entry.rank}
-                    </span>
-                    <span
-                      className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white bg-primary",
-                      )}
-                    >
-                      {initials(entry.name)}
-                    </span>
-                    <span className="flex-1 min-w-0 font-medium text-[13px] text-text-strong truncate">
-                      {entry.name}
-                    </span>
-                    <span className="text-[12px] font-semibold text-text-body tabular-nums shrink-0">
-                      {entry.totalPoints}
-                      <span className="text-text-muted font-normal ml-0.5">pts</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
+                      <span
+                        className={cn(
+                          "inline-flex min-w-8 justify-center rounded-md border px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
+                          tone.badge,
+                        )}
+                      >
+                        #{entry.rank}
+                      </span>
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
+                        {initials(entry.name)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-text-strong">
+                        {entry.name}
+                      </span>
+                      <span className="shrink-0 text-[12px] font-semibold tabular-nums text-text-body">
+                        {entry.totalPoints}
+                        <span className="ml-0.5 font-normal text-text-muted">pts</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : null}
           </>
         )}
       </div>

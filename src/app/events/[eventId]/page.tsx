@@ -108,6 +108,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         initialPermissions={permissions}
         initialVolunteers={volunteerOptions}
         isAdmin={user.isAdmin}
+        isVolunteer={canVolunteer(user.profile)}
         userEventRole={userEventRole}
       />
     </AppShell>

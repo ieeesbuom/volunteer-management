@@ -5,7 +5,11 @@ import { AppPage } from "@/components/layout/app-page";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { listEventsByIds } from "@/features/events/server/event-service";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
-import { isEligibleForGlobalDashboard } from "@/features/forms/lib/audience";
+import {
+  isFormEligibleForDashboard,
+  isOpenOpportunityAudience,
+  shouldExcludeAssignedEventOpportunity,
+} from "@/features/forms/lib/audience";
 import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
 
 export const dynamic = "force-dynamic";
@@ -19,25 +23,39 @@ export default async function DashboardPage() {
 
   const formRepo = createAppwriteFormConnectionRepository();
   const allConnections = await formRepo.list({ limit: 100 });
-  const activeRegistrations = allConnections.filter(isEligibleForGlobalDashboard);
-
-  const assignedEventIds = new Set(user.eventRoles.map((r) => r.eventId));
-  const openOpportunities = activeRegistrations.filter(
-    (conn) => !assignedEventIds.has(conn.eventId)
+  const availableForms = allConnections.filter((connection) =>
+    isFormEligibleForDashboard(connection, user),
   );
 
-  const opportunityEvents = openOpportunities.length > 0
-    ? await listEventsByIds(openOpportunities.map((o) => o.eventId))
-    : [];
+  const assignedEventIds = new Set(user.eventRoles.map((role) => role.eventId));
+  const visibleForms = availableForms.filter(
+    (connection) => !shouldExcludeAssignedEventOpportunity(connection, assignedEventIds),
+  );
 
-  const eventsMap = new Map(opportunityEvents.map((e) => [e.$id, e]));
-  const allowedStatuses = ["planning", "published", "ongoing"];
-  const opportunityList = openOpportunities
+  const opportunityEvents =
+    visibleForms.length > 0
+      ? await listEventsByIds(visibleForms.map((form) => form.eventId))
+      : [];
+
+  const eventsMap = new Map(opportunityEvents.map((event) => [event.$id, event]));
+  const allowedStatuses = new Set(["planning", "published", "ongoing"]);
+
+  const opportunityList = visibleForms
     .map((conn) => ({ conn, event: eventsMap.get(conn.eventId) }))
-    .filter(({ event }) => {
-      if (!event) return false;
-      if (!allowedStatuses.includes(event.status)) return false;
-      if (event.reference && assignedEventIds.has(event.reference)) return false;
+    .filter(({ conn, event }) => {
+      if (!event || !allowedStatuses.has(event.status)) {
+        return false;
+      }
+
+      // Legacy events may store a reference id that also appears in role assignments.
+      if (
+        event.reference &&
+        assignedEventIds.has(event.reference) &&
+        isOpenOpportunityAudience(conn)
+      ) {
+        return false;
+      }
+
       return true;
     });
 

@@ -1,54 +1,55 @@
 "use client";
 
-import { Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
+
+function getGreeting(hour: number) {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function formatToday(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 export function WelcomeGreetingWidget() {
   const { user } = useDashboardData();
-
   const firstName = user.authUser.name?.split(" ")[0] || "Volunteer";
 
-  const greetingTime = (() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning!";
-    if (hour < 18) return "Good Afternoon!";
-    return "Good Evening!";
-  })();
+  const [now, setNow] = useState(() => new Date());
 
-  const todayFormatted = (() => {
-    const now = new Date();
-    const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
-    const dayNum = now.getDate();
-    const monthName = now.toLocaleDateString("en-US", { month: "long" });
-    const getOrdinal = (n: number) => {
-      const s = ["th", "st", "nd", "rd"];
-      const v = n % 100;
-      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+
+    // Refresh at least once a minute so greeting flips at noon / evening
+    // while the page stays open, and when the tab becomes visible again.
+    const intervalId = window.setInterval(tick, 60_000);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        tick();
+      }
     };
-    return `${dayName}, ${getOrdinal(dayNum)} ${monthName}`;
-  })();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  const greeting = getGreeting(now.getHours());
 
   return (
-    <div className="h-full rounded-2xl border border-border-subtle bg-surface-raised px-6 py-4 flex items-center justify-between gap-4 overflow-hidden">
-      <div className="space-y-1 min-w-0">
-        <div className="flex items-center gap-2 text-[12px] font-medium text-text-muted">
-          <Calendar className="size-3.5 text-primary" />
-          <span>{todayFormatted}</span>
-        </div>
-        <h1 className="text-[26px] sm:text-[30px] font-extrabold tracking-tight text-text-strong truncate">
-          {greetingTime} {firstName},
-        </h1>
-      </div>
-
-      <div
-        className="hidden sm:flex shrink-0 flex-col items-end gap-1 border-l border-border-subtle pl-5"
-        aria-label="IEEE Student Branch University of Moratuwa Volunteer Portal"
-      >
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-          IEEE SB · UoM
-        </span>
-        <span className="text-[13px] font-medium text-text-body">Volunteer portal</span>
-      </div>
-    </div>
+    <header className="min-w-0 py-1">
+      <p className="text-[12px] font-medium text-text-muted">{formatToday(now)}</p>
+      <h1 className="mt-1 truncate text-[24px] font-bold tracking-tight text-text-strong sm:text-[28px]">
+        {greeting}, {firstName}
+      </h1>
+    </header>
   );
 }

@@ -82,13 +82,20 @@ export function EventFormConnections({
   currentUserId,
   eventId,
   initialConnections,
+  isVolunteer = false,
 }: {
-  assignments?: Array<{ committeeId?: string; committeeName?: string; userId: string }>;
+  assignments?: Array<{
+    committeeId?: string;
+    committeeName?: string;
+    role?: string;
+    userId: string;
+  }>;
   canManage: boolean;
   committees?: Array<{ $id: string; name: string }>;
   currentUserId?: string;
   eventId: string;
   initialConnections: FormConnection[];
+  isVolunteer?: boolean;
 }) {
   const [connections, setConnections] = useState(initialConnections);
   const [showForm, setShowForm] = useState(initialConnections.length === 0 && canManage);
@@ -131,9 +138,14 @@ export function EventFormConnections({
   const visibleConnections = statusVisibleConnections.filter((conn) =>
     isFormVisibleToUser({
       canManage,
+      committeesMap,
       connection: conn,
       currentUserId,
-      userRoleAssignments: assignments,
+      isVolunteer,
+      userRoleAssignments: assignments.map((assignment) => ({
+        ...assignment,
+        eventId,
+      })),
     }),
   );
 
@@ -156,6 +168,10 @@ export function EventFormConnections({
     if (addAudience && addAudience !== "public") metadata.audience = addAudience;
     if (addAudience === "event_team_only" && addTargetCommitteeId) {
       metadata.targetCommitteeId = addTargetCommitteeId;
+      const committeeName = committeesMap.get(addTargetCommitteeId);
+      if (committeeName) {
+        metadata.targetCommitteeName = committeeName;
+      }
     }
 
     try {
@@ -204,6 +220,10 @@ export function EventFormConnections({
     if (editAudience && editAudience !== "public") metadata.audience = editAudience;
     if (editAudience === "event_team_only" && editTargetCommitteeId) {
       metadata.targetCommitteeId = editTargetCommitteeId;
+      const committeeName = committeesMap.get(editTargetCommitteeId);
+      if (committeeName) {
+        metadata.targetCommitteeName = committeeName;
+      }
     }
 
     try {
@@ -415,7 +435,7 @@ export function EventFormConnections({
                               onChange={(e) => setEditAudience(e.target.value as FormAudienceTier)}
                             >
                               <option value="public">Public</option>
-                              <option value="volunteers_only">Logged-in Volunteers</option>
+                              <option value="volunteers_only">Verified Volunteers</option>
                               <option value="event_team_only">Event Team Only</option>
                               <option value="chairs_only">Chairs & Admins Only</option>
                             </select>
@@ -468,7 +488,12 @@ export function EventFormConnections({
                               </span>
                               {(() => {
                                 const meta = getFormAudienceMetadata(connection);
-                                const badge = formatAudienceBadge(meta.audience, meta.targetCommitteeId, committeesMap);
+                                const badge = formatAudienceBadge(
+                                  meta.audience,
+                                  meta.targetCommitteeId,
+                                  committeesMap,
+                                  meta.targetCommitteeName,
+                                );
                                 return (
                                   <Badge tone={badge.tone} className="text-[11px] py-0 px-2">
                                     {badge.label}
@@ -695,7 +720,7 @@ export function EventFormConnections({
                     onChange={(e) => setAddAudience(e.target.value as FormAudienceTier)}
                   >
                     <option value="public">Public (Anyone can view & fill)</option>
-                    <option value="volunteers_only">Logged-in Volunteers Only</option>
+                    <option value="volunteers_only">Verified Volunteers Only</option>
                     <option value="event_team_only">Event Team (Assigned Roles Only)</option>
                     <option value="chairs_only">Chairs & Admins Only</option>
                   </select>

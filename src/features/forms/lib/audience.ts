@@ -1,3 +1,5 @@
+import { canVolunteer, normalizeEventReference } from "@/features/access-control/lib/rules";
+import type { EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import type { FormConnection } from "@/features/forms/types";
 
 export const FORM_AUDIENCE_TIERS = [
@@ -14,7 +16,27 @@ export type FormAudienceMetadata = {
   closeAt?: string;
   openAt?: string;
   targetCommitteeId?: string;
+  targetCommitteeName?: string;
 };
+
+export type FormRoleAssignment = {
+  committeeId?: string;
+  committeeName?: string;
+  eventId?: string;
+  role?: string;
+  userId: string;
+};
+
+function parseScheduleInstant(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  // datetime-local values are timezone-less; treat as local wall time.
+  const ms = Date.parse(trimmed);
+  return Number.isNaN(ms) ? null : ms;
+}
 
 export function getFormAudienceMetadata(connection: FormConnection): FormAudienceMetadata {
   const meta = connection.metadata as Record<string, unknown> | undefined;
@@ -30,6 +52,10 @@ export function getFormAudienceMetadata(connection: FormConnection): FormAudienc
     typeof meta?.targetCommitteeId === "string" && meta.targetCommitteeId
       ? meta.targetCommitteeId
       : undefined;
+  const targetCommitteeName =
+    typeof meta?.targetCommitteeName === "string" && meta.targetCommitteeName
+      ? meta.targetCommitteeName
+      : undefined;
 
   const openAt = typeof meta?.openAt === "string" ? meta.openAt : undefined;
   const closeAt = typeof meta?.closeAt === "string" ? meta.closeAt : undefined;
@@ -39,67 +65,204 @@ export function getFormAudienceMetadata(connection: FormConnection): FormAudienc
     closeAt,
     openAt,
     targetCommitteeId,
+    targetCommitteeName,
   };
+}
+
+export function isFormScheduleOpen(
+  connection: FormConnection,
+  now: Date = new Date(),
+): boolean {
+  const { openAt, closeAt } = getFormAudienceMetadata(connection);
+  const nowMs = now.getTime();
+
+  if (openAt) {
+    const openMs = parseScheduleInstant(openAt);
+    if (openMs !== null && nowMs < openMs) {
+      return false;
+    }
+  }
+
+  if (closeAt) {
+    const closeMs = parseScheduleInstant(closeAt);
+    if (closeMs !== null && nowMs > closeMs) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function normalizeCommitteeKey(value?: string) {
+  return value?.trim().toLowerCase() || undefined;
+}
+
+function assignmentMatchesCommitteeTarget(
+  assignment: FormRoleAssignment,
+  {
+    committeesMap,
+    targetCommitteeId,
+    targetCommitteeName,
+  }: {
+    committeesMap?: Map<string, string>;
+    targetCommitteeId?: string;
+    targetCommitteeName?: string;
+  },
+) {
+  const targets = new Set<string>();
+  const idKey = normalizeCommitteeKey(targetCommitteeId);
+  const nameKey = normalizeCommitteeKey(targetCommitteeName);
+  if (idKey) {
+    targets.add(idKey);
+  }
+  if (nameKey) {
+    targets.add(nameKey);
+  }
+  if (targetCommitteeId && committeesMap?.has(targetCommitteeId)) {
+    const mapped = normalizeCommitteeKey(committeesMap.get(targetCommitteeId));
+    if (mapped) {
+      targets.add(mapped);
+    }
+  }
+
+  if (targets.size === 0) {
+    return true;
+  }
+
+  const assignmentKeys = [
+    normalizeCommitteeKey(assignment.committeeId),
+    normalizeCommitteeKey(assignment.committeeName),
+  ].filter(Boolean) as string[];
+
+  return assignmentKeys.some((key) => targets.has(key));
+}
+
+function isChairRole(role?: string) {
+  return role === "Chair" || role === "Vice Chair";
 }
 
 export function isFormVisibleToUser({
   canManage = false,
+  committeesMap,
   connection,
   currentUserId,
+  isAdmin = false,
+  isVolunteer = false,
+  now,
   userRoleAssignments = [],
 }: {
   canManage?: boolean;
+  committeesMap?: Map<string, string>;
   connection: FormConnection;
   currentUserId?: string;
-  userRoleAssignments?: Array<{
-    committeeId?: string;
-    committeeName?: string;
-    userId: string;
-  }>;
+  isAdmin?: boolean;
+  isVolunteer?: boolean;
+  now?: Date;
+  userRoleAssignments?: FormRoleAssignment[];
 }): boolean {
   if (canManage) {
     return true;
   }
 
-  const { audience, targetCommitteeId } = getFormAudienceMetadata(connection);
+  if (!isFormScheduleOpen(connection, now)) {
+    return false;
+  }
+
+  const { audience, targetCommitteeId, targetCommitteeName } =
+    getFormAudienceMetadata(connection);
 
   if (audience === "public") {
     return true;
   }
 
   if (audience === "volunteers_only") {
-    return Boolean(currentUserId);
+    return Boolean(currentUserId) && (isVolunteer || isAdmin);
   }
 
+  if (!currentUserId) {
+    return false;
+  }
+
+  const myAssignments = userRoleAssignments.filter((assignment) => {
+    if (assignment.userId !== currentUserId) {
+      return false;
+    }
+    if (!assignment.eventId) {
+      return true;
+    }
+    return (
+      normalizeEventReference(assignment.eventId) ===
+      normalizeEventReference(connection.eventId)
+    );
+  });
+
   if (audience === "chairs_only") {
-    return canManage;
+    return isAdmin || myAssignments.some((assignment) => isChairRole(assignment.role));
   }
 
   if (audience === "event_team_only") {
-    if (!currentUserId) {
-      return false;
-    }
-
-    const myAssignments = userRoleAssignments.filter((a) => a.userId === currentUserId);
     if (myAssignments.length === 0) {
       return false;
     }
 
-    if (targetCommitteeId) {
-      return myAssignments.some(
-        (a) =>
-          a.committeeId === targetCommitteeId ||
-          a.committeeName === targetCommitteeId ||
-          a.committeeName?.toLowerCase() === targetCommitteeId.toLowerCase(),
-      );
+    if (!targetCommitteeId && !targetCommitteeName) {
+      return true;
     }
 
-    return true;
+    return myAssignments.some((assignment) =>
+      assignmentMatchesCommitteeTarget(assignment, {
+        committeesMap,
+        targetCommitteeId,
+        targetCommitteeName,
+      }),
+    );
   }
 
-  return true;
+  return false;
 }
 
+/** Active form with URL that is currently within its availability window. */
+export function isFormBaseEligible(connection: FormConnection, now: Date = new Date()) {
+  return (
+    connection.status === "active" &&
+    Boolean(connection.formUrl) &&
+    isFormScheduleOpen(connection, now)
+  );
+}
+
+/**
+ * Whether a form should appear on the signed-in user's dashboard overview.
+ * Public / volunteer registration forms are open opportunities.
+ * Event-team / chair forms appear only when the user is assigned to that event.
+ */
+export function isFormEligibleForDashboard(
+  connection: FormConnection,
+  user: Pick<SessionUser, "authUser" | "eventRoles" | "isAdmin" | "profile">,
+  now: Date = new Date(),
+): boolean {
+  if (!isFormBaseEligible(connection, now)) {
+    return false;
+  }
+
+  const { audience } = getFormAudienceMetadata(connection);
+  const isTeamScoped = audience === "event_team_only" || audience === "chairs_only";
+
+  // Open opportunities stay registration-focused; assigned-team forms can be any purpose.
+  if (!isTeamScoped && connection.purpose !== "registration") {
+    return false;
+  }
+
+  return isFormVisibleToUser({
+    connection,
+    currentUserId: user.authUser.id,
+    isAdmin: user.isAdmin,
+    isVolunteer: canVolunteer(user.profile),
+    now,
+    userRoleAssignments: toDashboardRoleAssignments(user.eventRoles),
+  });
+}
+
+/** @deprecated Prefer isFormEligibleForDashboard with user context. */
 export function isEligibleForGlobalDashboard(connection: FormConnection): boolean {
   if (
     connection.status !== "active" ||
@@ -109,14 +272,40 @@ export function isEligibleForGlobalDashboard(connection: FormConnection): boolea
     return false;
   }
 
-  const { audience, targetCommitteeId } = getFormAudienceMetadata(connection);
-  return (audience === "public" || audience === "volunteers_only") && !targetCommitteeId;
+  const { audience, targetCommitteeId, targetCommitteeName } =
+    getFormAudienceMetadata(connection);
+  return (
+    (audience === "public" || audience === "volunteers_only") &&
+    !targetCommitteeId &&
+    !targetCommitteeName
+  );
+}
+
+export function shouldExcludeAssignedEventOpportunity(
+  connection: FormConnection,
+  assignedEventIds: Set<string>,
+): boolean {
+  const { audience } = getFormAudienceMetadata(connection);
+  if (audience === "event_team_only" || audience === "chairs_only") {
+    return false;
+  }
+
+  return [...assignedEventIds].some(
+    (id) =>
+      normalizeEventReference(id) === normalizeEventReference(connection.eventId),
+  );
+}
+
+export function isOpenOpportunityAudience(connection: FormConnection): boolean {
+  const { audience } = getFormAudienceMetadata(connection);
+  return audience === "public" || audience === "volunteers_only";
 }
 
 export function formatAudienceBadge(
   audience: FormAudienceTier,
   targetCommitteeId?: string,
   committeesMap?: Map<string, string>,
+  targetCommitteeName?: string,
 ): {
   label: string;
   tone: "neutral" | "primary" | "success" | "warning" | "danger";
@@ -126,16 +315,30 @@ export function formatAudienceBadge(
   }
 
   if (audience === "event_team_only") {
-    if (targetCommitteeId) {
-      const committeeName = committeesMap?.get(targetCommitteeId) ?? targetCommitteeId;
-      return { label: `Target: ${committeeName}`, tone: "primary" };
+    const committeeLabel =
+      (targetCommitteeId ? committeesMap?.get(targetCommitteeId) : undefined) ??
+      targetCommitteeName ??
+      targetCommitteeId;
+    if (committeeLabel) {
+      return { label: `Target: ${committeeLabel}`, tone: "primary" };
     }
     return { label: "Event Team Only", tone: "primary" };
   }
 
   if (audience === "volunteers_only") {
-    return { label: "Logged-in Volunteers", tone: "success" };
+    return { label: "Verified Volunteers", tone: "success" };
   }
 
   return { label: "Public", tone: "neutral" };
+}
+
+export function toDashboardRoleAssignments(
+  eventRoles: EventRoleAssignment[],
+): FormRoleAssignment[] {
+  return eventRoles.map((role) => ({
+    committeeName: role.committeeName,
+    eventId: role.eventId,
+    role: role.role,
+    userId: role.userId,
+  }));
 }

@@ -87,34 +87,35 @@ export function NotificationsSummaryWidget() {
   }
 
   return (
-    <div className="h-full rounded-2xl border border-border-subtle bg-surface-raised p-5 flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between mb-3 shrink-0">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="size-4 text-primary" aria-hidden />
           <h2 className="text-[15px] font-semibold text-text-strong">Notifications</h2>
-          {unreadCount > 0 && (
+          {unreadCount > 0 ? (
             <Badge tone="primary" className="text-[11px] font-semibold">
               {unreadCount} unread
             </Badge>
-          )}
+          ) : null}
         </div>
         <Link
           href="/dashboard?tab=notifications"
-          className="text-[12px] font-semibold text-primary hover:underline cursor-pointer"
+          className="text-[12px] font-semibold text-primary hover:underline"
+          title="Open notification panel"
         >
-          Open
+          View all
         </Link>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center py-6 text-text-muted">
             <Loader2 className="size-5 animate-spin" aria-hidden />
           </div>
         ) : error ? (
-          <p className="text-[13px] text-danger py-2">{error}</p>
+          <p className="py-2 text-[13px] text-danger">{error}</p>
         ) : items.length === 0 ? (
-          <p className="text-[13px] text-text-muted py-2">You are all caught up.</p>
+          <p className="py-2 text-[13px] text-text-muted">You are all caught up.</p>
         ) : (
           <ul className="space-y-2">
             {items.map((n) => {
@@ -125,7 +126,7 @@ export function NotificationsSummaryWidget() {
                 <li key={n.id}>
                   <button
                     type="button"
-                    className={`w-full rounded-lg border px-3 py-2 text-left text-[12px] cursor-pointer transition-colors hover:border-primary/40 ${
+                    className={`w-full cursor-pointer rounded-lg border px-3 py-2 text-left text-[12px] transition-colors hover:border-primary/40 ${
                       n.readAt
                         ? "border-border-subtle bg-bg-base text-text-muted"
                         : "border-primary-mid bg-primary-soft text-text-body"
@@ -141,8 +142,8 @@ export function NotificationsSummaryWidget() {
                       router.push("/dashboard?tab=notifications");
                     }}
                   >
-                    <p className="font-semibold text-text-strong truncate">{n.title}</p>
-                    <p className="truncate mt-0.5">{n.message}</p>
+                    <p className="truncate font-semibold text-text-strong">{n.title}</p>
+                    <p className="mt-0.5 truncate">{n.message}</p>
                   </button>
                 </li>
               );

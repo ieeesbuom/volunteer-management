@@ -79,6 +79,7 @@ export function EventDetail({
   initialPermissions,
   initialVolunteers,
   isAdmin,
+  isVolunteer = false,
   userEventRole,
 } : Readonly<{
   canManageFormConnections: boolean;
@@ -91,6 +92,7 @@ export function EventDetail({
   initialPermissions: EventPermissions;
   initialVolunteers: EventVolunteerIdentity[];
   isAdmin: boolean;
+  isVolunteer?: boolean;
   userEventRole: EventRole | null;
 }>) {
   const router = useRouter();
@@ -355,6 +357,7 @@ export function EventDetail({
             currentUserId={currentUserId}
             eventId={event.$id}
             initialConnections={initialFormConnections}
+            isVolunteer={isVolunteer}
           />
 
           <Card>

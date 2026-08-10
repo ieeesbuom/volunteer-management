@@ -93,20 +93,20 @@ export function AppShell({
 
   const renderSidebarContent = () => (
     <>
-      <div className="flex h-16 shrink-0 items-center border-b border-border-subtle px-6">
+      <div className="flex h-16 shrink-0 items-center border-b border-border-subtle px-5">
         <Link
           href="/dashboard"
-          className="flex min-w-0 items-center gap-2.5 text-xl font-black tracking-tight text-text-strong transition-opacity hover:opacity-90"
+          aria-label="University of Moratuwa IEEE Student Branch"
+          className="inline-flex min-w-0 items-center transition-opacity hover:opacity-90"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- favicon matches site icon */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- static brand logo */}
           <img
-            src="/favicon.ico"
+            src="/images/ieee-sb-uom-logo.png"
             alt=""
-            width={28}
-            height={28}
-            className="size-7 shrink-0 rounded-md object-contain"
+            width={1024}
+            height={223}
+            className="h-9 w-auto max-w-full object-contain object-left"
           />
-          <span className="truncate">IEEE SB UOM</span>
         </Link>
       </div>
 

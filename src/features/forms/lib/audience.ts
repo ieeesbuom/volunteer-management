@@ -232,7 +232,7 @@ export function isFormBaseEligible(connection: FormConnection, now: Date = new D
 
 /**
  * Whether a form should appear on the signed-in user's dashboard overview.
- * Public / volunteer registration forms are open opportunities.
+ * Public / volunteer open-call forms are open opportunities.
  * Event-team / chair forms appear only when the user is assigned to that event.
  */
 export function isFormEligibleForDashboard(
@@ -247,8 +247,14 @@ export function isFormEligibleForDashboard(
   const { audience } = getFormAudienceMetadata(connection);
   const isTeamScoped = audience === "event_team_only" || audience === "chairs_only";
 
-  // Open opportunities stay registration-focused; assigned-team forms can be any purpose.
-  if (!isTeamScoped && connection.purpose !== "registration") {
+  // Open opportunities exclude operational form types (feedback/attendance/grading).
+  // Registration and "other" open calls (e.g. volunteer crew calls) remain eligible.
+  if (
+    !isTeamScoped &&
+    (connection.purpose === "feedback" ||
+      connection.purpose === "attendance" ||
+      connection.purpose === "grading")
+  ) {
     return false;
   }
 
@@ -286,7 +292,9 @@ export function shouldExcludeAssignedEventOpportunity(
   assignedEventIds: Set<string>,
 ): boolean {
   const { audience } = getFormAudienceMetadata(connection);
-  if (audience === "event_team_only" || audience === "chairs_only") {
+  // Only hide public registration-style opportunities once the user already has an
+  // event role. Verified-volunteer / team / chair forms can still be relevant.
+  if (audience !== "public") {
     return false;
   }
 

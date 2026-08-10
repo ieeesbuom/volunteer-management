@@ -59,21 +59,74 @@ export function assertValidTermDates({ endDate, startDate }: TermDateRange) {
   }
 }
 
+/** Canonical IEEE term labels use short years: 25/26, 26/27. */
 export function formatTermLabel(startDate: string) {
   if (!isIsoDateOnly(startDate)) {
     throw new Error("Term start date must use YYYY-MM-DD format.");
   }
 
   const startYear = Number(startDate.slice(0, 4));
-  const nextYearSuffix = String(startYear + 1).slice(-2);
+  const yy = String(startYear).slice(-2);
+  const nextYy = String(startYear + 1).slice(-2);
 
-  return `${startYear}/${nextYearSuffix}`;
+  return `${yy}/${nextYy}`;
+}
+
+/**
+ * Normalize any common IEEE term spelling to the canonical YY/YY form.
+ * Accepts 25/26, 2025/26, and 2025/2026.
+ */
+export function normalizeIeeeTermLabel(label: string) {
+  const trimmed = label.trim();
+  const short = trimmed.match(/^(\d{2})\/(\d{2})$/);
+  if (short) {
+    return `${short[1]}/${short[2]}`;
+  }
+
+  const mid = trimmed.match(/^(\d{4})\/(\d{2})$/);
+  if (mid) {
+    return `${mid[1].slice(-2)}/${mid[2]}`;
+  }
+
+  const full = trimmed.match(/^(\d{4})\/(\d{4})$/);
+  if (full) {
+    return `${full[1].slice(-2)}/${full[2].slice(-2)}`;
+  }
+
+  return trimmed;
+}
+
+/** Matching variants for queries against mixed historical labels. */
+export function ieeeTermLabelVariants(label: string) {
+  const normalized = normalizeIeeeTermLabel(label);
+  const short = normalized.match(/^(\d{2})\/(\d{2})$/);
+  if (!short) {
+    return Array.from(new Set([trimmedOrEmpty(label), normalized].filter(Boolean)));
+  }
+
+  const startFull = `20${short[1]}`;
+  const endFull = `20${short[2]}`;
+
+  return Array.from(
+    new Set(
+      [
+        normalized,
+        `${startFull}/${short[2]}`,
+        `${startFull}/${endFull}`,
+        trimmedOrEmpty(label),
+      ].filter(Boolean),
+    ),
+  );
+}
+
+function trimmedOrEmpty(value: string) {
+  return value.trim();
 }
 
 export function assertValidTermLabel(label: string, startDate: string) {
   const expectedLabel = formatTermLabel(startDate);
 
-  if (label !== expectedLabel) {
+  if (normalizeIeeeTermLabel(label) !== expectedLabel) {
     throw new Error(`Term label must be ${expectedLabel} for the selected start date.`);
   }
 }
@@ -85,7 +138,7 @@ export function getSuggestedTermRange(reference = new Date()) {
 
   return {
     endDate: `${startYear + 1}-09-30`,
-    label: `${startYear}/${String(startYear + 1).slice(-2)}`,
+    label: formatTermLabel(`${startYear}-10-01`),
     startDate: `${startYear}-10-01`,
   };
 }
@@ -238,20 +291,20 @@ export function buildPermissionOverview(
     eventRoles: EVENT_ROLES.map((role) => ({
       notes:
         role === "Chair"
-          ? "Event-level lead privilege. Multiple Chair assignments display as Co-chair."
-          : "Event-scoped responsibility controlled by Admin assignment.",
+          ? "Event-level lead privilege. Multiple Chair assignments display as Co-chair. A volunteer may hold only one active role per event."
+          : "Event-scoped responsibility controlled by Admin assignment. A volunteer may hold only one active role per event.",
       powers: eventPowerMap[role] ?? DEFAULT_EVENT_ROLE_POWERS[role] ?? [],
       role,
       scope: "event",
     })),
     notes: [
       "Admin is determined only by ADMIN_EMAIL and is not assigned through the database.",
-      "Student Branch roles are term or branch-level privileges.",
-      "Event roles are scoped to a specific event and can differ per event.",
+      "Student Branch roles are term-scoped: a volunteer may hold only one active SB role per term.",
+      "Event roles are scoped to a specific event: a volunteer may hold only one active role per event.",
       "Server-side route guards must be used for protected actions.",
     ],
     sbRoles: SB_ROLES.map((role) => ({
-      notes: "Student Branch privilege assigned and revoked by the Admin account.",
+      notes: "Student Branch privilege assigned and revoked by the Admin account. Assigning a new role replaces any existing role for that term.",
       powers: sbPowerMap[role] ?? DEFAULT_SB_ROLE_POWERS[role] ?? [],
       role,
       scope: "student-branch",

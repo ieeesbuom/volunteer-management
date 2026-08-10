@@ -14,6 +14,7 @@ import {
   assertValidTermLabel,
   assertValidTermDates,
   buildPermissionOverview,
+  formatTermLabel,
   resolveActiveTermState,
 } from "@/features/system-settings/lib/rules";
 import { runTablesTransaction } from "@/features/system-settings/server/transactions";
@@ -208,6 +209,7 @@ export async function createIeeeTerm({
 
   const now = new Date().toISOString();
   const termId = ID.unique();
+  const canonicalLabel = formatTermLabel(startDate);
 
   try {
     return await runTablesTransaction(tables, async (transactionId) => {
@@ -217,7 +219,7 @@ export async function createIeeeTerm({
           createdAt: now,
           createdBy: actorUserId,
           endDate,
-          label,
+          label: canonicalLabel,
           notes: notes ?? "",
           startDate,
           status: "DRAFT",
@@ -234,7 +236,7 @@ export async function createIeeeTerm({
       await writeAuditLog({
         action: "IEEE_TERM_CREATED",
         actorUserId,
-        metadata: { endDate, label, startDate },
+        metadata: { endDate, label: canonicalLabel, startDate },
         targetId: term.$id,
         targetType: "ieee_term",
         transactionId,
@@ -282,6 +284,7 @@ export async function updateIeeeTerm({
   assertValidTermLabel(label, startDate);
   assertNoOverlappingTerms({ $id: termId, endDate, startDate }, existingTerms);
 
+  const canonicalLabel = formatTermLabel(startDate);
   const activeTermSetting =
     nextStatus === "CLOSED" ? await getActiveTermSetting() : null;
 
@@ -290,7 +293,7 @@ export async function updateIeeeTerm({
       data: {
         active: nextStatus === "ACTIVE",
         endDate,
-        label,
+        label: canonicalLabel,
         notes: notes ?? "",
         startDate,
         status: nextStatus,
@@ -327,7 +330,7 @@ export async function updateIeeeTerm({
               },
               reason: "ADMIN_CLOSED",
             }
-          : { endDate, label, startDate, status: nextStatus },
+          : { endDate, label: canonicalLabel, startDate, status: nextStatus },
       targetId: term.$id,
       targetType: "ieee_term",
       transactionId,

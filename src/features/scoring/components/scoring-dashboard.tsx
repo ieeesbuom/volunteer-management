@@ -239,13 +239,20 @@ export function ScoringDashboard({
   const [gradeRequests, setGradeRequests] = useState<GradeRequest[]>([]);
 
 
-  const chairEventIds = useMemo(
+  const chairEventAssignments = useMemo(
     () =>
       user.eventRoles
         .filter((assignment) => assignment.active && assignment.role === "Chair")
-        .map((assignment) => assignment.eventId),
+        .sort((a, b) => a.eventTitle.localeCompare(b.eventTitle)),
     [user.eventRoles],
   );
+
+  const chairEventIds = useMemo(
+    () => chairEventAssignments.map((assignment) => assignment.eventId),
+    [chairEventAssignments],
+  );
+
+  const canManageExtraScores = user.isAdmin || chairEventIds.length > 0;
 
   const activeEventAssignments = useMemo(
     () =>
@@ -287,35 +294,22 @@ export function ScoringDashboard({
     setActiveTab("leaderboard");
   }
 
-  // Dynamic tab list
+  // Dynamic tab list — Extra Scores only for Admin and Chairs (their events).
   const tabs = (() => {
-    switch (derivedRole) {
-      case "Admin":
-        return [
-          { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-          { id: "point-ledger", label: "Point Ledger", icon: Award },
-          { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
-          { id: "admin-tools", label: "Admin Tools", icon: Sliders },
-        ];
-      case "Chairperson":
-        return [
-          { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-          { id: "point-ledger", label: "Point Ledger", icon: Award },
-          { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
-        ];
-      case "Committee Lead":
-        return [
-          { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-          { id: "point-ledger", label: "Point Ledger", icon: Award },
-          { id: "grade-requests", label: "Extra Scores", icon: BookOpen },
-        ];
-      case "Member":
-      default:
-        return [
-          { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-          { id: "point-ledger", label: "Point Ledger", icon: Award },
-        ];
+    const base = [
+      { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+      { id: "point-ledger", label: "Point Ledger", icon: Award },
+    ];
+
+    if (canManageExtraScores) {
+      base.push({ id: "grade-requests", label: "Extra Scores", icon: BookOpen });
     }
+
+    if (derivedRole === "Admin") {
+      base.push({ id: "admin-tools", label: "Admin Tools", icon: Sliders });
+    }
+
+    return base;
   })();
 
   const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : "leaderboard";
@@ -351,8 +345,21 @@ export function ScoringDashboard({
   const [reqEventId, setReqEventId] = useState("");
   const [reqTargetUserId, setReqTargetUserId] = useState("");
   const [reqGradeValue, setReqGradeValue] = useState(5);
-  const selectedRequestEventId =
-    reqEventId || effectiveEventId || (user.isAdmin ? allEvents[0]?.eventId ?? "" : "");
+  const selectedRequestEventId = (() => {
+    if (user.isAdmin) {
+      return reqEventId || effectiveEventId || allEvents[0]?.eventId || "";
+    }
+
+    if (reqEventId && chairEventIds.includes(reqEventId)) {
+      return reqEventId;
+    }
+
+    if (effectiveEventId && chairEventIds.includes(effectiveEventId)) {
+      return effectiveEventId;
+    }
+
+    return chairEventIds[0] ?? "";
+  })();
 
   const [overReviewId, setOverReviewId] = useState("");
   const [overGradeValue, setOverGradeValue] = useState(5);
@@ -979,14 +986,15 @@ export function ScoringDashboard({
         </Card>
       )}
 
-      {currentTab === "grade-requests" && (
+      {currentTab === "grade-requests" && canManageExtraScores && (
         <div className="space-y-8">
-          {(derivedRole === "Admin" || derivedRole === "Chairperson") && (
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle>Submit Extra Score</CardTitle>
                 <CardDescription>
-                  Add the 0-10 extra score for a volunteer (one score per volunteer per event). Chairs submit scores for vice chairs and members; Admins submit scores for chairs and approve all submissions.
+                  Add the 0–10 extra score for a volunteer (one score per volunteer per event).
+                  Chairs submit scores for their own events; admins submit scores for chairs and
+                  approve all submissions before points are awarded.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-2">
@@ -1010,7 +1018,7 @@ export function ScoringDashboard({
                       });
                       const data = await res.json();
                       if (data.error) throw new Error(data.error);
-                      setSuccess("Extra score submitted successfully!");
+                      setSuccess("Extra score submitted successfully! An admin must approve it before points are awarded.");
                       setReqTargetUserId("");
                       setReqGradeValue(5);
                       fetchGradeRequests();
@@ -1024,15 +1032,7 @@ export function ScoringDashboard({
                     <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
                       Event
                     </label>
-                    {!user.isAdmin && effectiveEventId ? (
-                      <input
-                        type="text"
-                        required
-                        disabled
-                        value={eventLabel(effectiveEventId)}
-                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-75"
-                      />
-                    ) : user.isAdmin && allEvents.length > 0 ? (
+                    {user.isAdmin && allEvents.length > 0 ? (
                       <select
                         required
                         value={selectedRequestEventId}
@@ -1048,9 +1048,33 @@ export function ScoringDashboard({
                           </option>
                         ))}
                       </select>
+                    ) : chairEventAssignments.length > 1 ? (
+                      <select
+                        required
+                        value={selectedRequestEventId}
+                        onChange={(e) => {
+                          setReqEventId(e.target.value);
+                          setReqTargetUserId("");
+                        }}
+                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                      >
+                        {chairEventAssignments.map((event) => (
+                          <option key={event.eventId} value={event.eventId}>
+                            {event.eventTitle}
+                          </option>
+                        ))}
+                      </select>
+                    ) : chairEventAssignments.length === 1 ? (
+                      <input
+                        type="text"
+                        required
+                        disabled
+                        value={chairEventAssignments[0].eventTitle}
+                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-75"
+                      />
                     ) : (
                       <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-text-secondary">
-                        Select an assigned event from the scoring workspace first.
+                        You can only submit extra scores for events where you are Chair.
                       </div>
                     )}
                   </div>
@@ -1094,31 +1118,48 @@ export function ScoringDashboard({
                 </form>
               </CardContent>
             </Card>
-          )}
 
           <Card>
             <CardHeader className="gap-6 pb-0 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-1.5">
                 <CardTitle>Submitted extra scores</CardTitle>
-                <CardDescription>Review pending submissions before finalizing points.</CardDescription>
+                <CardDescription>
+                  {user.isAdmin
+                    ? "Review pending submissions and finalize points after approval."
+                    : "Scores you submitted for your events. An admin must approve them before points are awarded."}
+                </CardDescription>
               </div>
               <div className="w-full shrink-0 sm:w-64">
                 <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
                   Filter by event
                 </label>
                 <select
-                  value={effectiveEventId}
-                  onChange={(e) => handleEventContextChange(e.target.value)}
+                  value={
+                    user.isAdmin
+                      ? effectiveEventId
+                      : reqEventId
+                  }
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (user.isAdmin) {
+                      handleEventContextChange(next);
+                      return;
+                    }
+                    setReqEventId(next);
+                    setReqTargetUserId("");
+                  }}
                   className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm"
                 >
-                  <option value="">All actionable events</option>
+                  <option value="">
+                    {user.isAdmin ? "All actionable events" : "All my chair events"}
+                  </option>
                   {user.isAdmin
                     ? allEvents.map((ev) => (
                         <option key={ev.eventId} value={ev.eventId}>
                           {ev.eventTitle}
                         </option>
                       ))
-                    : activeEventAssignments.map((ev) => (
+                    : chairEventAssignments.map((ev) => (
                         <option key={ev.eventId} value={ev.eventId}>
                           {ev.eventTitle}
                         </option>
@@ -1130,7 +1171,7 @@ export function ScoringDashboard({
               <ExtraScoreReviewList
                 authUserId={user.authUser.id}
                 chairEventIds={chairEventIds}
-                derivedRole={derivedRole}
+                derivedRole={user.isAdmin ? "Admin" : "Chairperson"}
                 isAdmin={user.isAdmin}
                 onApprove={setRequestToApprove}
                 onReject={setRequestToReject}
@@ -1149,10 +1190,13 @@ export function ScoringDashboard({
                       ? gradeRequests.filter((req) => req.eventId === effectiveEventId)
                       : gradeRequests
                     : gradeRequests.filter((req) => {
-                        if (effectiveEventId) {
-                          return req.eventId === effectiveEventId;
+                        if (!chairEventIds.includes(req.eventId)) {
+                          return false;
                         }
-                        return chairEventIds.includes(req.eventId);
+                        if (reqEventId) {
+                          return req.eventId === reqEventId;
+                        }
+                        return true;
                       })
                 }
                 volunteerLabel={volunteerLabel}

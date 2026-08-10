@@ -167,14 +167,22 @@ function termVariants(term: string) {
     variants.add(term);
   }
 
+  const yyMatch = term.match(/^(\d{2})\/(\d{2})$/);
+  if (yyMatch) {
+    variants.add(`20${yyMatch[1]}/${yyMatch[2]}`);
+    variants.add(`20${yyMatch[1]}/20${yyMatch[2]}`);
+  }
+
   const fullMatch = term.match(/^(\d{4})\/(\d{4})$/);
   if (fullMatch) {
     variants.add(`${fullMatch[1]}/${fullMatch[2].slice(-2)}`);
+    variants.add(`${fullMatch[1].slice(-2)}/${fullMatch[2].slice(-2)}`);
   }
 
   const shortMatch = term.match(/^(\d{4})\/(\d{2})$/);
   if (shortMatch) {
     variants.add(`${shortMatch[1]}/20${shortMatch[2]}`);
+    variants.add(`${shortMatch[1].slice(-2)}/${shortMatch[2]}`);
   }
 
   const yearMatch = term.match(/^(\d{4})$/);
@@ -182,6 +190,7 @@ function termVariants(term: string) {
     const year = Number(yearMatch[1]);
     variants.add(`${year}/${year + 1}`);
     variants.add(`${year}/${String(year + 1).slice(-2)}`);
+    variants.add(`${String(year).slice(-2)}/${String(year + 1).slice(-2)}`);
   }
 
   return variants;
@@ -277,8 +286,8 @@ function assertCanFinalizeExtraScore({
 
 /**
  * Submits/Creates a grade request for a participant.
- * Extra-score submission follows the event hierarchy:
- * Committee Leads score members, Chairs score Committee Leads, and Admins score Chair/Vice Chair.
+ * Extra-score submission: Chairs score volunteers on their own events;
+ * Admins score chairs (and anyone) and must approve all submissions.
  */
 export async function createGradeRequest(data: {
   eventId: string;
@@ -1069,7 +1078,7 @@ export async function getLeaderboard(params: {
   } else if (validated.term !== undefined) {
     if (!validated.term.includes("/")) {
       const y = Number(validated.term);
-      targetTerm = `${y}/${y + 1}`;
+      targetTerm = `${String(y).slice(-2)}/${String(y + 1).slice(-2)}`;
       targetYear = y;
     } else {
       targetTerm = validated.term;
@@ -1077,7 +1086,7 @@ export async function getLeaderboard(params: {
       targetYear = parsed < 100 ? 2000 + parsed : parsed;
     }
   } else if (validated.year !== undefined) {
-    targetTerm = `${validated.year}/${validated.year + 1}`;
+    targetTerm = `${String(validated.year).slice(-2)}/${String(validated.year + 1).slice(-2)}`;
     targetYear = validated.year;
   } else {
     targetTerm = deriveTermFromDate(new Date().toISOString());

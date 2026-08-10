@@ -119,7 +119,7 @@ describe("system settings lifecycle persistence", () => {
     const input = {
       actorUserId: "admin-1",
       endDate: "2026-09-30",
-      label: "2025/26",
+      label: "25/26",
       startDate: "2025-10-01",
     };
     const results = await Promise.allSettled([

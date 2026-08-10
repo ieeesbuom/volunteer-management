@@ -26,7 +26,7 @@ export default async function VerifyUomPage() {
   }
 
   return (
-    <AppShell active="volunteers" user={user}>
+    <AppShell active="profile" user={user}>
       <AppPage>
         <PageHeader
           title="UoM Email Verification"

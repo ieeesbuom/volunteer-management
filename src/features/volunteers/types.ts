@@ -28,3 +28,11 @@ export type VolunteerProfileSummary = {
   details: VolunteerProfileDetails | null;
   isPrivateView: boolean;
 };
+
+export type VolunteerDirectoryItem = {
+  userId: string;
+  name: string;
+  headline?: string;
+  skills?: string;
+  eventCount: number;
+};

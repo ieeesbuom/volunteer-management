@@ -6,8 +6,8 @@ import { getAppwriteAdminServices } from "@/server/appwrite";
 import { isAppwriteNotFound } from "@/server/errors";
 import { writeAuditLog } from "@/server/audit";
 import { canVolunteer } from "@/features/access-control/lib/rules";
-import { getActiveEventRoleAssignments, getActiveSbRoles } from "@/features/access-control/server/roles";
-import { getProfile } from "@/features/access-control/server/profiles";
+import { getActiveEventRoleAssignments, getActiveSbRoles, listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
+import { getProfile, listProfiles } from "@/features/access-control/server/profiles";
 import {
   canShowVolunteerProfile,
   canViewPrivateVolunteerProfile,
@@ -15,6 +15,7 @@ import {
 } from "@/features/volunteers/lib/profile-visibility";
 import type { SessionUser } from "@/features/access-control/types";
 import type {
+  VolunteerDirectoryItem,
   VolunteerProfileDetails,
   VolunteerProfileSummary,
 } from "@/features/volunteers/types";
@@ -149,16 +150,17 @@ export async function getVolunteerProfileSummary(
     getVolunteerSummaryEventRoles(userId),
   ]);
 
+  const mappedEventRoles = eventRoles.map((role) => ({
+    committeeName: role.committeeName,
+    eventId: role.eventId,
+    eventTitle: role.eventTitle,
+    role: role.role,
+  }));
+
   return {
     details: isPrivateView ? details : toPublicVolunteerProfileDetails(details),
-    eventRoles: isPrivateView
-      ? eventRoles.map((role) => ({
-          committeeName: role.committeeName,
-          eventId: role.eventId,
-          eventTitle: role.eventTitle,
-          role: role.role,
-        }))
-      : [],
+    // Event contributions are shared on public profiles; emails/academic IDs stay private.
+    eventRoles: mappedEventRoles,
     googleEmail: isPrivateView ? profile.googleEmail : undefined,
     isPrivateView,
     name: profile.name,
@@ -190,4 +192,74 @@ async function getVolunteerSummaryEventRoles(userId: string) {
 
     throw error;
   }
+}
+
+function normalizeSearchValue(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export async function listVerifiedVolunteers({
+  limit = 50,
+  offset = 0,
+  term = "",
+}: {
+  limit?: number;
+  offset?: number;
+  term?: string;
+} = {}): Promise<{ items: VolunteerDirectoryItem[]; total: number }> {
+  const pageSize = Math.min(Math.max(Math.trunc(limit) || 50, 1), 100);
+  const pageOffset = Math.max(Math.trunc(offset) || 0, 0);
+  const query = normalizeSearchValue(term);
+
+  const [profiles, assignments] = await Promise.all([
+    listProfiles(),
+    listActiveEventRoleAssignments(),
+  ]);
+
+  const eventCounts = new Map<string, Set<string>>();
+  for (const assignment of assignments) {
+    if (!assignment.active) {
+      continue;
+    }
+    const current = eventCounts.get(assignment.userId) ?? new Set<string>();
+    current.add(assignment.eventId);
+    eventCounts.set(assignment.userId, current);
+  }
+
+  const matched = profiles.filter(canShowVolunteerProfile).filter((profile) => {
+    if (!query) {
+      return true;
+    }
+
+    const haystack = [profile.name, profile.googleEmail, profile.uomEmail]
+      .map(normalizeSearchValue)
+      .join(" ");
+
+    return haystack.includes(query);
+  });
+
+  matched.sort((a, b) => {
+    const aName = normalizeSearchValue(a.name) || normalizeSearchValue(a.googleEmail);
+    const bName = normalizeSearchValue(b.name) || normalizeSearchValue(b.googleEmail);
+    return aName.localeCompare(bName);
+  });
+
+  const total = matched.length;
+  const page = matched.slice(pageOffset, pageOffset + pageSize);
+  const details = await Promise.all(
+    page.map((profile) => getVolunteerProfileDetails(profile.authUserId)),
+  );
+
+  const items: VolunteerDirectoryItem[] = page.map((profile, index) => {
+    const detail = details[index];
+    return {
+      userId: profile.authUserId,
+      name: profile.name?.trim() || profile.googleEmail || "Verified volunteer",
+      headline: detail?.headline,
+      skills: detail?.skills,
+      eventCount: eventCounts.get(profile.authUserId)?.size ?? 0,
+    };
+  });
+
+  return { items, total };
 }

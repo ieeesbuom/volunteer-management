@@ -15,6 +15,7 @@ import {
   Settings,
   Trophy,
   UserRound,
+  Users,
   UsersRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -135,13 +136,22 @@ export function DashboardCommandPalette({
         searchText: normalizeSearchText(["leaderboard", "scoring", "points", "rank"]),
       },
       {
+        id: "nav-volunteers",
+        group: "Navigation",
+        label: "Volunteers",
+        subtitle: "Browse and search volunteer profiles",
+        icon: Users,
+        href: "/volunteers",
+        searchText: normalizeSearchText(["volunteers", "directory", "people", "profiles", "search"]),
+      },
+      {
         id: "nav-profile",
         group: "Navigation",
         label: "Profile",
         subtitle: "Your volunteer profile",
         icon: UserRound,
         href: "/volunteers/me",
-        searchText: normalizeSearchText(["profile", "volunteer", "me"]),
+        searchText: normalizeSearchText(["profile", "my profile", "me"]),
       },
     ];
 

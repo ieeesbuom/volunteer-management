@@ -220,14 +220,26 @@ describe("volunteer profile page smoke tests", () => {
 
   it("renders public volunteer profiles without private identifiers or recommendation text", async () => {
     getCurrentUserMock.mockResolvedValue(null);
-    getSummaryMock.mockResolvedValue(profileSummary({ isPrivateView: false }));
+    getSummaryMock.mockResolvedValue(
+      profileSummary({
+        eventRoles: [
+          { committeeName: "Ops", eventId: "event-1", eventTitle: "Tech Week", role: "Lead" },
+        ],
+        isPrivateView: false,
+      }),
+    );
 
     const html = await htmlFrom(VolunteerProfilePage(routeParams("user-2")));
 
     expect(html).toContain("Logistics lead");
     expect(html).toContain("Target Volunteer");
-    expect(html).toContain("Academic identifiers are visible only to the profile owner and admins.");
+    expect(html).toContain("Tech Week");
+    expect(html).toContain("About");
+    expect(html).toContain("Event contributions");
+    expect(html).toContain("Verified volunteer");
+    expect(html).toContain("Copy link");
     expect(html).toContain("Recommendations are visible only to the profile owner and admins.");
+    expect(html).not.toContain("Academic identifiers are visible only to the profile owner and admins.");
     expect(html).not.toContain("target@uom.lk");
     expect(html).not.toContain("220000A");
     expect(listVisibleMock).not.toHaveBeenCalled();

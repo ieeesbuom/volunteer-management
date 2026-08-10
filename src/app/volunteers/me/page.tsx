@@ -42,7 +42,7 @@ export default async function MyVolunteerProfilePage() {
     : { incoming: [], outgoing: [] };
 
   return (
-    <AppShell active="volunteers" user={user}>
+    <AppShell active="profile" user={user}>
       <AppPage>
         <PageHeader
           title="Volunteer Profile"

@@ -6,7 +6,11 @@ import { getAppwriteAdminServices } from "@/server/appwrite";
 import { isAppwriteNotFound } from "@/server/errors";
 import { writeAuditLog } from "@/server/audit";
 import { canVolunteer } from "@/features/access-control/lib/rules";
-import { getActiveEventRoleAssignments, getActiveSbRoles, listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
+import {
+  getActiveEventRoleAssignments,
+  getActiveSbRoles,
+  listActiveEventRoleAssignments,
+} from "@/features/access-control/server/roles";
 import { getProfile, listProfiles } from "@/features/access-control/server/profiles";
 import {
   canShowVolunteerProfile,

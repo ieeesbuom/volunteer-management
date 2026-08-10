@@ -69,8 +69,8 @@ export function ExtraScoreReviewList({
         const targetVolName = req.targetUserName ?? volunteerLabel(req.targetUserId);
         const canSubmitScoreForEvent = chairEventIds.includes(req.eventId) || isAdmin;
         const showEditSection =
-          (derivedRole === "Chairperson" || derivedRole === "Admin") && req.status !== "finalized";
-        const showAdminActions = derivedRole === "Admin" && req.status !== "finalized";
+          (isAdmin || canSubmitScoreForEvent) && req.status !== "finalized";
+        const showAdminActions = isAdmin && req.status !== "finalized";
 
         const scoreEditForm = (
           <form

@@ -31,6 +31,7 @@ import { ReportsMetricCard } from "@/features/reports/components/reports-metric-
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import { IEEE_TERMS, SB_ROLES } from "@/lib/config";
 import { cn, formatUserFacingError } from "@/lib/utils";
+import { ieeeTermLabelVariants } from "@/features/system-settings/lib/rules";
 import type {
   EventRoleAssignment,
   Profile,
@@ -226,8 +227,9 @@ export function AccessControlPanel({
               Profile directory
             </CardTitle>
             <CardDescription>
-              Only the Admin account can assign or revoke Student Branch roles. Volunteers must verify
-              a UoM email before roles can be granted.
+              Only the Admin account can assign or revoke Student Branch roles. A volunteer may hold
+              only one active SB role per term—assigning another role replaces the current one.
+              Volunteers must verify a UoM email before roles can be granted.
             </CardDescription>
           </div>
         </CardHeader>
@@ -423,8 +425,10 @@ function BranchRoleTable({
                 {pageUsers.map((user, rowIndex) => {
                   const displayName = user.name || "Not provided";
                   const email = user.uomEmail || user.googleEmail;
+                  const termVariants = new Set(ieeeTermLabelVariants(selectedTerm));
                   const activeAssignments = (user.sbRoleAssignments ?? []).filter(
-                    (assignment) => assignment.term === selectedTerm && assignment.active,
+                    (assignment) =>
+                      assignment.active && termVariants.has(assignment.term),
                   );
                   const stripe = rowIndex % 2 === 1 ? "bg-bg-base/70" : "bg-surface-raised";
 
@@ -670,14 +674,16 @@ function BranchRoleControl({
   user: AdminUser;
   selectedTerm: string;
 }) {
+  const termVariants = new Set(ieeeTermLabelVariants(selectedTerm));
   const activeRolesForTerm = (user.sbRoleAssignments ?? [])
-    .filter((assignment) => assignment.term === selectedTerm && assignment.active)
+    .filter((assignment) => assignment.active && termVariants.has(assignment.term))
     .map((assignment) => assignment.role);
+  const currentRole = activeRolesForTerm[0];
 
   const assignableRoles = user.uomVerified
-    ? SB_ROLES.filter((role) => !activeRolesForTerm.includes(role))
+    ? SB_ROLES.filter((role) => role !== currentRole)
     : [];
-  const revokableRoles = SB_ROLES.filter((role) => activeRolesForTerm.includes(role));
+  const revokableRoles = currentRole ? [currentRole] : [];
   const [selectedAssignRole, setSelectedAssignRole] = useState<SbRole | "">(
     assignableRoles[0] ?? "",
   );
@@ -689,13 +695,14 @@ function BranchRoleControl({
   const currentRevokeRole =
     revokableRoles.find((role) => role === selectedRevokeRole) ?? revokableRoles[0];
   const displayName = user.name || user.googleEmail;
+  const assignLabel = currentRole ? "Replace" : "Assign";
 
   return (
     <div className="flex min-w-[260px] flex-col gap-2.5 rounded-xl border border-border-subtle/80 bg-bg-base/50 p-2.5">
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[140px] flex-1">
           <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-            Assign
+            {assignLabel}
           </label>
           <select
             className={cn(selectClasses, "h-9 bg-surface-raised text-[12px]")}
@@ -711,7 +718,7 @@ function BranchRoleControl({
               ))
             ) : (
               <option value="">
-                {user.uomVerified ? "All roles assigned" : "Verification required"}
+                {user.uomVerified ? "No other roles" : "Verification required"}
               </option>
             )}
           </select>
@@ -737,13 +744,17 @@ function BranchRoleControl({
           variant="secondary"
         >
           <ShieldPlus className="size-3.5" aria-hidden="true" />
-          Assign
+          {assignLabel}
         </Button>
       </div>
 
       {!user.uomVerified ? (
         <p className="text-[11px] leading-4 text-warning">
           Verify UoM email before assigning roles.
+        </p>
+      ) : currentRole ? (
+        <p className="text-[11px] leading-4 text-text-muted">
+          One SB role per term. Replacing revokes {currentRole}.
         </p>
       ) : null}
 
@@ -875,7 +886,10 @@ function ConfirmationDialog({
 
 function getConfirmationDetails(confirmation: Confirmation) {
   return [
-    { label: "Action", value: confirmation.variant === "assign" ? "Assign" : "Revoke" },
+    {
+      label: "Action",
+      value: confirmation.variant === "assign" ? "Assign / replace" : "Revoke",
+    },
     { label: "Volunteer", value: confirmation.userName },
     { label: "Role", value: confirmation.role },
     { label: "Term", value: confirmation.term },

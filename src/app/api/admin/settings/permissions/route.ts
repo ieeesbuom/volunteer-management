@@ -6,7 +6,7 @@ import {
 } from "@/features/system-settings/server/settings";
 import { updateRolePermissionsSchema } from "@/features/system-settings/validation";
 import { getServerEnv } from "@/lib/env";
-import { jsonError, routeErrorMessage, routeErrorStatus } from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function GET() {
   try {
@@ -15,10 +15,7 @@ export async function GET() {
 
     return NextResponse.json({ permissions });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not load permission overview."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not load permission overview.");
   }
 }
 
@@ -30,9 +27,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ permissions });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not update permissions."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not update permissions.");
   }
 }

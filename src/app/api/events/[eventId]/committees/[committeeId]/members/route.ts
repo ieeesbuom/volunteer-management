@@ -15,7 +15,7 @@ import {
   listCommitteeMembers,
 } from "@/features/events/server/committees.server";
 import { AddCommitteeMemberInputSchema } from "@/features/events/types";
-import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError, ForbiddenError } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ committeeId: string; eventId: string }>;
@@ -47,10 +47,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const members = await listCommitteeMembers(committeeId);
     return NextResponse.json({ members });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to list committee members."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to list committee members.");
   }
 }
 
@@ -94,9 +91,6 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ member }, { status: 201 });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to add committee member."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to add committee member.");
   }
 }

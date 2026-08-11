@@ -3,7 +3,7 @@ import {
   refreshRecognitionSnapshotJob,
   type RefreshRecognitionSnapshotJobInput,
 } from "@/jobs/refresh-recognition-snapshot-job";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { assertTrustedJobRequest, readOptionalJsonBody } from "@/server/internal-job-auth";
 
 export async function POST(request: Request) {
@@ -14,9 +14,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Recognition snapshot job failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Recognition snapshot job failed.");
   }
 }

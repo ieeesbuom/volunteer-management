@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { listAuditLogs } from "@/features/system-settings/server/settings";
 import { auditLogsQuerySchema } from "@/features/system-settings/validation";
-import { jsonError, routeErrorMessage, routeErrorStatus } from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function GET(request: Request) {
   try {
@@ -29,9 +29,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json(auditPage);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not load audit logs."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not load audit logs.");
   }
 }

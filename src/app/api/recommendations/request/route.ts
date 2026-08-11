@@ -5,7 +5,7 @@ import {
   listRecommendationRequestsForVolunteer,
   requestRecommendation,
 } from "@/features/recommendations/server/recommendations";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import {
   enforceRateLimit,
   rateLimitKey,
@@ -24,10 +24,7 @@ export async function GET() {
 
     return NextResponse.json(requests);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Recommendation request lookup failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Recommendation request lookup failed.");
   }
 }
 
@@ -47,9 +44,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ request: recommendationRequest });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Recommendation request failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Recommendation request failed.");
   }
 }

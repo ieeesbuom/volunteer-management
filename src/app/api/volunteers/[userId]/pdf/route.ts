@@ -3,7 +3,7 @@ import { requireAuth } from "@/features/access-control/server/current-user";
 import { canExportVolunteerProfilePdf } from "@/features/reports/lib/access";
 import { getVolunteerProfile } from "@/features/reports/server/volunteer-profile";
 import { buildVolunteerProfilePdf } from "@/pdf";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError } from "@/server/errors";
 
 export const runtime = "nodejs";
 
@@ -53,10 +53,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     return pdfResponse(result.buffer, result.filename);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Volunteer profile PDF export failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Volunteer profile PDF export failed.");
   }
 }
 

@@ -4,7 +4,7 @@ import {
   upsertNotificationPreferencesForCurrentUser,
 } from "@/features/notifications/server/notification-service";
 import { notificationPreferencesSchema } from "@/features/notifications/validation";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function GET() {
   try {
@@ -12,10 +12,7 @@ export async function GET() {
 
     return NextResponse.json({ preference });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not load notification preferences."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not load notification preferences.");
   }
 }
 
@@ -26,9 +23,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ preference });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not save notification preferences."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not save notification preferences.");
   }
 }

@@ -5,7 +5,7 @@ import {
   listConclusionReportsForUser,
 } from "@/features/reports/server/conclusion-service";
 import { createConclusionReportSchema } from "@/features/reports/lib/validation";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function GET() {
   try {
@@ -14,10 +14,7 @@ export async function GET() {
 
     return NextResponse.json({ reports });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not list conclusion reports."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not list conclusion reports.");
   }
 }
 
@@ -29,9 +26,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ report }, { status: 201 });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not create conclusion report."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not create conclusion report.");
   }
 }

@@ -7,7 +7,7 @@ import {
   getConclusionReport,
   resolveConclusionReportPdf,
 } from "@/features/reports/server/conclusion-service";
-import { jsonError, routeErrorMessage, routeErrorStatus, ValidationError } from "@/server/errors";
+import { jsonError, jsonRouteError, ValidationError } from "@/server/errors";
 
 export const runtime = "nodejs";
 
@@ -43,10 +43,7 @@ export async function GET(_request: Request, context: RouteContext) {
       },
     });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not load conclusion report PDF."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not load conclusion report PDF.");
   }
 }
 
@@ -76,9 +73,6 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ report });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not upload conclusion report PDF."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not upload conclusion report PDF.");
   }
 }

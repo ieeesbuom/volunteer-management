@@ -12,7 +12,7 @@ import {
 } from "@/features/events/server/event-roles.server";
 import { notifyRoleAssignmentWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { AssignEventRoleInputSchema } from "@/features/events/types";
-import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError, ForbiddenError } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ eventId: string }>;
@@ -44,10 +44,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const assignments = await getRoleAssignmentsForEvent(eventId);
     return NextResponse.json({ assignments });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to list event role assignments."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to list event role assignments.");
   }
 }
 
@@ -92,9 +89,6 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ assignment, notification }, { status: 201 });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to assign event role."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to assign event role.");
   }
 }

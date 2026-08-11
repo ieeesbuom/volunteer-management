@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { getVolunteerProfileSummary } from "@/features/volunteers/server/profiles";
 import { listVisibleRecommendationsForVolunteer } from "@/features/recommendations/server/recommendations";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError } from "@/server/errors";
 
 export async function GET(
   _request: Request,
@@ -23,9 +23,6 @@ export async function GET(
 
     return NextResponse.json({ profile, recommendations });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Volunteer profile lookup failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Volunteer profile lookup failed.");
   }
 }

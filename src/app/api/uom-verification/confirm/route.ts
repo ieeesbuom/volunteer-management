@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { confirmUomVerification } from "@/features/access-control/server/uom-verification";
 import { notifyVerificationWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { enforceRateLimit, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
@@ -32,9 +32,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ notification, profile });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Verification confirmation failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Verification confirmation failed.");
   }
 }

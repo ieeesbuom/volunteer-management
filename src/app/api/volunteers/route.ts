@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { listVerifiedVolunteers } from "@/features/volunteers/server/profiles";
-import { ForbiddenError, jsonError, routeErrorMessage, routeErrorStatus } from "@/server/errors";
+import { jsonRouteError, ForbiddenError } from "@/server/errors";
 
 export async function GET(request: Request) {
   try {
@@ -25,9 +25,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not load volunteers."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not load volunteers.");
   }
 }

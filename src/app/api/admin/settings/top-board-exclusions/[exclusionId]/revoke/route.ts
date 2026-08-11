@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { revokeTopBoardExclusion } from "@/features/system-settings/server/top-board-exclusions";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function POST(
   _request: Request,
@@ -17,9 +17,6 @@ export async function POST(
 
     return NextResponse.json({ exclusion });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not revoke Top Board exclusion."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not revoke Top Board exclusion.");
   }
 }

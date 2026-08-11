@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { approveConclusionReportSchema } from "@/features/reports/lib/validation";
 import { reviewConclusionReportRecord } from "@/features/reports/server/conclusion-service";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -17,9 +17,6 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Conclusion report review failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Conclusion report review failed.");
   }
 }

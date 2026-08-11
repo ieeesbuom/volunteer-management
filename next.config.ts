@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const contentSecurityPolicyReportOnly = [
@@ -60,4 +61,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "knurdz",
+  project: "ieee-sb-vm",
+  silent: true,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+  release: {
+    create: Boolean(process.env.SENTRY_AUTH_TOKEN),
+  },
+  telemetry: false,
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
+});

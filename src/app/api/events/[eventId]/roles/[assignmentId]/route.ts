@@ -6,7 +6,7 @@ import {
   getRoleAssignmentsForEvent,
   removeEventRole,
 } from "@/features/events/server/event-roles.server";
-import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError, ForbiddenError } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ assignmentId: string; eventId: string }>;
@@ -45,9 +45,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     await removeEventRole(assignmentId, user!.authUser.id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to remove event role."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to remove event role.");
   }
 }

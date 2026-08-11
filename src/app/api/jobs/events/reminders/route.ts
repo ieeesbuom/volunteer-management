@@ -7,7 +7,7 @@ import {
 import type { Event } from "@/features/events/types";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { sendEventReminderNotificationsJob } from "@/jobs/send-event-reminder-notifications-job";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { assertTrustedJobRequest, readOptionalJsonBody } from "@/server/internal-job-auth";
 
 const reminderRequestSchema = z
@@ -59,10 +59,7 @@ export async function POST(request: Request) {
       results,
     });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Event reminder job failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Event reminder job failed.");
   }
 }
 

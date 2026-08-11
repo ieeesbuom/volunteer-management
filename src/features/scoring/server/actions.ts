@@ -8,7 +8,7 @@ import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
 import { requireAuth, requireAdmin } from "@/features/access-control/server/current-user";
 import { listProfiles } from "@/features/access-control/server/profiles";
-import { listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
+import { getActiveEventRoleAssignments } from "@/features/access-control/server/roles";
 import { hasEventRole } from "@/features/access-control/lib/rules";
 import { listEvents } from "@/features/events/server/event-service";
 import { ROLE_BASE_POINTS } from "@/lib/config";
@@ -464,7 +464,10 @@ export async function listGradeRequests(params?: { limit?: number; offset?: numb
     return enrichedRows;
   }
 
-  return enrichedRows.filter((row) => hasEventRole(user, row.eventId, ["Chair"]));
+  return enrichedRows.filter((row) => {
+    const event = eventMap.get(row.eventId);
+    return hasEventRole(user, row.eventId, ["Chair"], event?.reference);
+  });
 }
 
 /**
@@ -1309,9 +1312,12 @@ export async function deleteGradeRequest(gradeRequestId: string) {
 }
 
 export async function listAllActiveEvents() {
-  await requireAuth();
-  const assignments = await listActiveEventRoleAssignments();
-  const events = assignments.map((r) => ({
+  const user = await requireAuth();
+  const assignments = await getActiveEventRoleAssignments(user.authUser.id);
+  const scopedAssignments = user.isAdmin
+    ? assignments
+    : assignments.filter((assignment) => assignment.role === "Chair");
+  const events = scopedAssignments.map((r) => ({
     eventId: r.eventId,
     eventTitle: r.eventTitle || r.eventId,
   }));

@@ -10,6 +10,7 @@ import {
   shouldExcludeAssignedEventOpportunity,
   getFormAudienceMetadata,
 } from "@/features/forms/lib/audience";
+import { userIsEventChair } from "@/features/access-control/lib/rules";
 import type { EventStatus } from "@/features/events/types";
 import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
 
@@ -39,9 +40,11 @@ export default async function DashboardPage() {
   );
 
   const assignedEventIds = new Set(user.eventRoles.map((role) => role.eventId));
-  const visibleForms = availableForms.filter(
-    (connection) => !shouldExcludeAssignedEventOpportunity(connection, assignedEventIds),
-  );
+  const visibleForms = userIsEventChair(user)
+    ? availableForms
+    : availableForms.filter(
+        (connection) => !shouldExcludeAssignedEventOpportunity(connection, assignedEventIds),
+      );
 
   const opportunityEvents =
     visibleForms.length > 0
@@ -57,9 +60,9 @@ export default async function DashboardPage() {
         return false;
       }
 
-      // Legacy events may store a reference id that also appears in role assignments.
-      // Only hide public registration opportunities in that case.
+      // Chairs keep forms on events they lead; volunteers skip public reg they already joined.
       if (
+        !userIsEventChair(user) &&
         event.reference &&
         assignedEventIds.has(event.reference) &&
         getFormAudienceMetadata(conn).audience === "public"

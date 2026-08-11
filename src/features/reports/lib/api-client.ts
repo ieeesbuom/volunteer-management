@@ -15,10 +15,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload;
 }
 
-export async function listConclusionReportsRequest() {
-  const response = await fetch("/api/reports/conclusions");
-  const payload = await parseResponse<{ reports: ConclusionReport[] }>(response);
-  return payload.reports;
+export async function uploadConclusionReportPdfRequest(reportId: string, file: File) {
+  const formData = new FormData();
+  formData.append("report", file);
+
+  const response = await fetch(`/api/reports/conclusions/${reportId}/attachment`, {
+    body: formData,
+    method: "POST",
+  });
+  const payload = await parseResponse<{ report: ConclusionReport }>(response);
+  return payload.report;
 }
 
 export async function createConclusionReportRequest(input: CreateConclusionReportInput) {

@@ -3240,6 +3240,20 @@
             "antivirus": true
         },
         {
+            "$id": "conclusion_report_files",
+            "$permissions": [],
+            "fileSecurity": true,
+            "name": "Conclusion Report Files",
+            "enabled": true,
+            "maximumFileSize": 10485760,
+            "allowedFileExtensions": [
+                "pdf"
+            ],
+            "compression": "none",
+            "encryption": true,
+            "antivirus": true
+        },
+        {
             "$id": "profile_avatars",
             "$permissions": [],
             "fileSecurity": true,

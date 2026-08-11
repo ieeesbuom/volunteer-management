@@ -1,22 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   canEditReportContent,
-  canExportConclusionReport,
   canSubmitReport,
   canTransitionReportStatus,
 } from "@/features/reports/lib/approval-rules";
 
 describe("report approval rules", () => {
-  it("allows draft reports to move to submitted only when content is complete", () => {
+  it("allows draft reports to move to submitted only when a PDF is uploaded", () => {
     expect(canTransitionReportStatus("DRAFT", "SUBMITTED")).toBe(true);
     expect(
       canSubmitReport({
         content: {
-          attendanceNotes: "",
-          challenges: "",
-          objectives: "Plan outreach",
-          outcomes: "180 attendees",
-          recommendations: "Reserve indoor backup space",
+          additionalInfo: "Extra notes",
+          reportFileId: "conclusion-report-report-1",
         },
         status: "DRAFT",
       }),
@@ -24,20 +20,11 @@ describe("report approval rules", () => {
     expect(
       canSubmitReport({
         content: {
-          attendanceNotes: "",
-          challenges: "",
-          objectives: "",
-          outcomes: "",
-          recommendations: "",
+          additionalInfo: "",
         },
         status: "DRAFT",
       }),
     ).toBe(false);
-  });
-
-  it("blocks conclusion exports until approval", () => {
-    expect(canExportConclusionReport({ status: "SUBMITTED" })).toBe(false);
-    expect(canExportConclusionReport({ status: "APPROVED" })).toBe(true);
   });
 
   it("allows editing only for draft and rejected reports", () => {

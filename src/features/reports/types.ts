@@ -6,11 +6,9 @@ export type EventStatus = (typeof EVENT_STATUSES)[number];
 export type ReportStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
 
 export type ConclusionReportContent = {
-  objectives: string;
-  outcomes: string;
-  challenges: string;
-  recommendations: string;
-  attendanceNotes: string;
+  additionalInfo: string;
+  reportFileId?: string;
+  reportFileName?: string;
 };
 
 export type ConclusionReport = {

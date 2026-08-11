@@ -1,35 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText } from "lucide-react";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadBase64Pdf } from "@/features/reports/lib/download";
-import {
-  exportConclusionReportPdfAction,
-  exportVolunteerProfilePdfAction,
-} from "@/features/reports/server/export-pdf";
+import { exportVolunteerProfilePdfAction } from "@/features/reports/server/export-pdf";
 
-type ExportActionsProps =
-  | {
-      kind: "conclusion";
-      reportId: string;
-      disabled?: boolean;
-      disabledReason?: string;
-    }
-  | {
-      kind: "volunteer";
-      userId: string;
-      disabled?: boolean;
-      disabledReason?: string;
-    };
+type ExportActionsProps = {
+  userId: string;
+  disabled?: boolean;
+  disabledReason?: string;
+};
 
-export function ExportActions(props: ExportActionsProps) {
+export function ExportActions({ disabled, disabledReason, userId }: ExportActionsProps) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<"idle" | "error" | "success">("idle");
 
   async function handleExport() {
-    if (props.disabled) {
+    if (disabled) {
       return;
     }
 
@@ -38,11 +27,7 @@ export function ExportActions(props: ExportActionsProps) {
     setMessage("Generating PDF...");
 
     try {
-      const result =
-        props.kind === "conclusion"
-          ? await exportConclusionReportPdfAction(props.reportId)
-          : await exportVolunteerProfilePdfAction(props.userId);
-
+      const result = await exportVolunteerProfilePdfAction(userId);
       downloadBase64Pdf({ base64: result.data, filename: result.filename });
       setStatus("success");
       setMessage("PDF downloaded.");
@@ -56,21 +41,12 @@ export function ExportActions(props: ExportActionsProps) {
 
   return (
     <div className="space-y-2">
-      <Button
-        disabled={pending || props.disabled}
-        onClick={handleExport}
-        type="button"
-        variant="secondary"
-      >
-        {props.kind === "conclusion" ? (
-          <FileText className="size-4" aria-hidden="true" />
-        ) : (
-          <Download className="size-4" aria-hidden="true" />
-        )}
+      <Button disabled={pending || disabled} onClick={handleExport} type="button" variant="secondary">
+        <Download className="size-4" aria-hidden="true" />
         {pending ? "Exporting..." : "Export PDF"}
       </Button>
-      {props.disabled && props.disabledReason ? (
-        <p className="text-xs text-text-muted">{props.disabledReason}</p>
+      {disabled && disabledReason ? (
+        <p className="text-xs text-text-muted">{disabledReason}</p>
       ) : null}
       {message ? (
         <p

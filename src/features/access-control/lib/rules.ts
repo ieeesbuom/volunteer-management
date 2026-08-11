@@ -58,19 +58,49 @@ export function hasEventRole(
   user: Pick<SessionUser, "isAdmin" | "eventRoles">,
   eventId: string,
   roles: EventRole | EventRole[],
+  eventReference?: string,
 ) {
   if (user.isAdmin) {
     return true;
   }
 
   const requiredRoles = Array.isArray(roles) ? roles : [roles];
-  const normalizedEventId = normalizeEventReference(eventId);
+  const targetEventIds = new Set([normalizeEventReference(eventId)]);
+  if (eventReference) {
+    targetEventIds.add(normalizeEventReference(eventReference));
+  }
 
   return user.eventRoles.some(
     (assignment) =>
       assignment.active &&
-      normalizeEventReference(assignment.eventId) === normalizedEventId &&
+      targetEventIds.has(normalizeEventReference(assignment.eventId)) &&
       requiredRoles.includes(assignment.role),
+  );
+}
+
+export function getChairedEventIds(user: Pick<SessionUser, "eventRoles">) {
+  return user.eventRoles
+    .filter((assignment) => assignment.active && assignment.role === "Chair")
+    .map((assignment) => assignment.eventId);
+}
+
+export function userIsEventChair(user: Pick<SessionUser, "eventRoles" | "isAdmin">) {
+  return !user.isAdmin && getChairedEventIds(user).length > 0;
+}
+
+export function eventIdMatchesStoredAssignment(
+  leftEventId: string,
+  rightEventId: string,
+) {
+  return normalizeEventReference(leftEventId) === normalizeEventReference(rightEventId);
+}
+
+export function isFormOnUserChairedEvent(
+  connectionEventId: string,
+  user: Pick<SessionUser, "eventRoles">,
+) {
+  return getChairedEventIds(user).some((eventId) =>
+    eventIdMatchesStoredAssignment(connectionEventId, eventId),
   );
 }
 

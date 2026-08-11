@@ -214,7 +214,7 @@ export default async function ReportsOverviewPage() {
               description={
                 user.isAdmin
                   ? `${pendingApproval} awaiting approval · ${approvedReports} approved`
-                  : "Create and submit structured conclusion reports for your events."
+                  : "Upload a PDF report and optional notes for your events."
               }
               href="/reports/conclusions"
               icon={ClipboardList}

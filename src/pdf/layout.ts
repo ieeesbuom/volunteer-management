@@ -140,63 +140,6 @@ export function renderSectionHeader(doc: PdfDocument, heading: string) {
   doc.y = nextY + 10;
 }
 
-export function renderSection(doc: PdfDocument, heading: string, body: string) {
-  renderSectionHeader(doc, heading);
-
-  const startX = doc.page.margins.left;
-  const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-
-  doc
-    .fontSize(pdfFonts.body)
-    .fillColor(pdfTheme.text)
-    .text(body || "Not provided.", startX, doc.y, {
-      align: "left",
-      lineGap: pdfLayout.lineGap,
-      width: contentWidth,
-    });
-
-  doc.y += pdfLayout.sectionGap;
-}
-
-export function renderKeyValueTable(
-  doc: PdfDocument,
-  rows: Array<{ label: string; value: string }>,
-) {
-  checkPageBreak(doc, rows.length * 26 + 10);
-
-  const startX = doc.page.margins.left;
-  const tableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const labelWidth = tableWidth * 0.32;
-  const rowHeight = 26;
-  let y = doc.y;
-
-  for (let i = 0; i < rows.length; i += 1) {
-    const row = rows[i];
-    const isEven = i % 2 === 0;
-    const bg = isEven ? pdfTheme.surfaceSubtle : pdfTheme.surface;
-
-    doc
-      .rect(startX, y, tableWidth, rowHeight)
-      .fillAndStroke(bg, pdfTheme.border);
-
-    doc
-      .fillColor(pdfTheme.secondary)
-      .fontSize(pdfFonts.bodySm)
-      .text(row.label, startX + 10, y + 7, { width: labelWidth - 12 });
-
-    doc
-      .fillColor(pdfTheme.text)
-      .fontSize(pdfFonts.body)
-      .text(row.value, startX + labelWidth + 10, y + 7, {
-        width: tableWidth - labelWidth - 20,
-      });
-
-    y += rowHeight;
-  }
-
-  doc.y = y + pdfLayout.sectionGap;
-}
-
 export function renderTable(
   doc: PdfDocument,
   options: {

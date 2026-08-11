@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { ArrowRight, Briefcase } from "lucide-react";
-import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
+import { getEventRoleDisplayName, userIsEventChair } from "@/features/access-control/lib/rules";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
 import { Badge } from "@/components/ui/badge";
 
 export function MyResponsibilitiesWidget() {
   const { user } = useDashboardData();
-  const roles = user.eventRoles.filter((role) => role.active);
+  const activeRoles = user.eventRoles.filter((role) => role.active);
+  const roles = userIsEventChair(user)
+    ? activeRoles.filter((role) => role.role === "Chair")
+    : activeRoles;
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5">

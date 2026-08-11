@@ -30,21 +30,8 @@ export function canEditReportContent(report: Pick<ConclusionReport, "status">) {
   return report.status === "DRAFT" || report.status === "REJECTED";
 }
 
-export function canExportConclusionReport(report: Pick<ConclusionReport, "status">) {
-  return report.status === "APPROVED";
-}
-
-export function hasRequiredContent(
-  content: Pick<
-    ConclusionReport["content"],
-    "objectives" | "outcomes" | "recommendations"
-  >,
-) {
-  return (
-    content.objectives.trim().length > 0 &&
-    content.outcomes.trim().length > 0 &&
-    content.recommendations.trim().length > 0
-  );
+export function hasRequiredContent(content: Pick<ConclusionReport["content"], "reportFileId">) {
+  return Boolean(content.reportFileId?.trim());
 }
 
 export function reportStatusTone(

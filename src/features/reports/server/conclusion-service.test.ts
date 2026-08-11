@@ -165,7 +165,6 @@ vi.mock("@/features/scoring/server/actions", () => ({
 }));
 
 import {
-  assertConclusionReportExportable,
   canManageConclusionReport,
   createConclusionReportRecord,
   reviewConclusionReportRecord,
@@ -175,11 +174,9 @@ import {
 import { finalizeEventRolePoints } from "@/features/scoring/server/actions";
 
 const completeContent: ConclusionReportContent = {
-  attendanceNotes: "Peak attendance in the morning session.",
-  challenges: "Venue setup took longer than planned.",
-  objectives: "Run a technical workshop for student members.",
-  outcomes: "Hosted two sessions with strong attendance.",
-  recommendations: "Confirm venue access one week earlier.",
+  additionalInfo: "Workshop completed successfully with strong attendance.",
+  reportFileId: "conclusion-report-report-1",
+  reportFileName: "ieee-day-report.pdf",
 };
 
 function eventAssignment({
@@ -285,7 +282,7 @@ describe("conclusion report service", () => {
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
 
-    expect(report.content.objectives).toBe("Legacy plain-text objectives only");
+    expect(report.content.additionalInfo).toBe("Legacy plain-text objectives only");
   });
 
   it("allows only admins, chairs, and vice chairs for the target event to manage reports", () => {
@@ -345,20 +342,20 @@ describe("conclusion report service", () => {
 
     await expect(
       updateConclusionReportRecord(otherEventChair, report.$id, {
-        content: { objectives: "Wrong event update" },
+        content: { additionalInfo: "Wrong event update" },
       }),
     ).rejects.toThrow("Required event role is missing.");
 
     await expect(
       updateConclusionReportRecord(chair, report.$id, {
-        content: { objectives: "Updated objective" },
+        content: { additionalInfo: "Updated notes" },
       }),
     ).resolves.toMatchObject({
-      content: expect.objectContaining({ objectives: "Updated objective" }),
+      content: expect.objectContaining({ additionalInfo: "Updated notes" }),
     });
   });
 
-  it("limits review to admins and blocks export until approval exists", async () => {
+  it("limits review to admins", async () => {
     seedEvent();
     const chair = createUser({
       eventRoles: [eventAssignment({ eventId: "event-1", role: "Chair" })],
@@ -373,9 +370,6 @@ describe("conclusion report service", () => {
       status: "SUBMITTED",
     });
 
-    await expect(assertConclusionReportExportable(submitted.$id)).rejects.toThrow(
-      "only after approval",
-    );
     await expect(
       reviewConclusionReportRecord(chair, submitted.$id, { status: "APPROVED" }),
     ).rejects.toThrow("Admin access required.");
@@ -387,9 +381,5 @@ describe("conclusion report service", () => {
 
     expect(reviewed.report.status).toBe("APPROVED");
     expect(finalizeEventRolePoints).toHaveBeenCalledWith("event-1");
-    await expect(assertConclusionReportExportable(submitted.$id)).resolves.toMatchObject({
-      approval: expect.objectContaining({ status: "APPROVED" }),
-      report: expect.objectContaining({ status: "APPROVED" }),
-    });
   });
 });

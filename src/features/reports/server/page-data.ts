@@ -13,40 +13,86 @@ import {
 import { listVolunteerProfiles } from "@/features/reports/server/volunteer-profile";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import type { ReportEvent } from "@/features/reports/types";
-import { listEvents } from "@/features/events/server/event-service";
+import { getEventById, listEvents } from "@/features/events/server/event-service";
 import type { Event } from "@/features/events/types";
 
 const EVENT_LEAD_ROLES = ["Chair", "Vice Chair"] as const;
 
+function normalizeStoredEventStatus(status: string) {
+  return status.trim().toLowerCase();
+}
+
 function toReportEventStatus(event: Event): ReportEvent["status"] {
-  return event.status.toUpperCase() as ReportEvent["status"];
+  return normalizeStoredEventStatus(event.status).toUpperCase() as ReportEvent["status"];
+}
+
+function isEligibleForConclusionReporting(event: Event) {
+  const status = normalizeStoredEventStatus(event.status);
+
+  return (
+    status === "ongoing" ||
+    status === "pending_conclusion" ||
+    event.conclusion_status === "rejected"
+  );
+}
+
+function toReportEvent(event: Event): ReportEvent {
+  const status = normalizeStoredEventStatus(event.status);
+
+  return {
+    eventId: normalizeEventReference(event.$id),
+    eventTitle: event.title,
+    heldOn: event.end_date ?? event.start_date,
+    status: toReportEventStatus(event),
+    summary:
+      event.conclusion_status === "rejected"
+        ? "Conclusion report needs changes."
+        : status === "pending_conclusion"
+          ? "Conclusion report is awaiting admin review."
+          : "Ready for a conclusion report.",
+  };
+}
+
+function userCanManageEventConclusion(user: SessionUser, event: Event) {
+  return (
+    user.isAdmin ||
+    hasEventRole(user, event.$id, [...EVENT_LEAD_ROLES], event.reference)
+  );
 }
 
 async function listPendingConclusionEvents(user: SessionUser): Promise<ReportEvent[]> {
   const events = await listEvents();
 
   return events
-    .filter(
-      (event) =>
-        event.status === "ongoing" ||
-        event.status === "pending_conclusion" ||
-        event.conclusion_status === "rejected",
-    )
-    .filter(
-      (event) => user.isAdmin || hasEventRole(user, event.$id, [...EVENT_LEAD_ROLES]),
-    )
-    .map((event) => ({
-      eventId: normalizeEventReference(event.$id),
-      eventTitle: event.title,
-      heldOn: event.end_date ?? event.start_date,
-      status: toReportEventStatus(event),
-      summary:
-        event.conclusion_status === "rejected"
-          ? "Conclusion report needs changes."
-          : event.status === "pending_conclusion"
-            ? "Conclusion report is awaiting admin review."
-            : "Ready for a structured conclusion report.",
-    }));
+    .filter(isEligibleForConclusionReporting)
+    .filter((event) => userCanManageEventConclusion(user, event))
+    .map(toReportEvent);
+}
+
+export async function appendRequestedConclusionEvent(
+  user: SessionUser,
+  events: ReportEvent[],
+  requestedEventId?: string,
+): Promise<ReportEvent[]> {
+  if (!requestedEventId) {
+    return events;
+  }
+
+  const normalizedRequestedId = normalizeEventReference(requestedEventId);
+  if (events.some((event) => event.eventId === normalizedRequestedId)) {
+    return events;
+  }
+
+  const event = await getEventById(requestedEventId);
+  if (!event || !userCanManageEventConclusion(user, event)) {
+    return events;
+  }
+
+  if (!isEligibleForConclusionReporting(event)) {
+    return events;
+  }
+
+  return [toReportEvent(event), ...events];
 }
 
 async function countActiveProfiles() {

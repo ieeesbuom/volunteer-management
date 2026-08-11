@@ -12,7 +12,11 @@ import { ConclusionsPageContent } from "@/features/reports/components/conclusion
 import { ReportsSection } from "@/features/reports/components/reports-section";
 import { REPORTS_ROUTE_TITLES } from "@/features/reports/lib/page-titles";
 import { canAccessConclusionsTab } from "@/features/reports/lib/access";
-import { getReportsPageData } from "@/features/reports/server/page-data";
+import {
+  appendRequestedConclusionEvent,
+  getReportsPageData,
+} from "@/features/reports/server/page-data";
+import { normalizeEventReference } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +36,7 @@ export default async function ConclusionsPage({
     redirect("/reports/recognition");
   }
 
+  const requestedEventId = (await searchParams)?.eventId;
   const data = await getReportsPageData(user, {
     includeEvents: true,
     includeRecognition: false,
@@ -40,15 +45,15 @@ export default async function ConclusionsPage({
     includeVolunteerCount: false,
     includeVolunteerExports: false,
   });
-  const requestedEventId = (await searchParams)?.eventId;
+  const events = await appendRequestedConclusionEvent(user, data.events, requestedEventId);
+  const normalizedRequestedEventId = requestedEventId
+    ? normalizeEventReference(requestedEventId)
+    : undefined;
   const draftEvent =
-    data.events.find((event) => event.eventId === requestedEventId) ?? data.events[0];
+    events.find((event) => event.eventId === normalizedRequestedEventId) ?? events[0];
   const orderedEvents = draftEvent
-    ? [
-        draftEvent,
-        ...data.events.filter((event) => event.eventId !== draftEvent.eventId),
-      ]
-    : data.events;
+    ? [draftEvent, ...events.filter((event) => event.eventId !== draftEvent.eventId)]
+    : events;
   const draftReport =
     data.reports.find((report) => report.eventId === draftEvent?.eventId) ?? null;
 
@@ -59,8 +64,8 @@ export default async function ConclusionsPage({
       title={REPORTS_ROUTE_TITLES["/reports/conclusions"]}
       description={
         user.isAdmin
-          ? "Create, review, approve, and export event conclusion reports."
-          : "Create and submit structured event conclusion reports."
+          ? "Review uploaded conclusion reports and approve or reject them."
+          : "Upload a PDF report and optional notes for your events."
       }
     >
       <ConclusionsPageContent
@@ -75,10 +80,10 @@ export default async function ConclusionsPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="size-4 text-primary" aria-hidden="true" />
-              Review and export
+              Review reports
             </CardTitle>
             <CardDescription>
-              Approve or reject submitted reports, then export approved reports as PDF.
+              Approve or reject submitted reports. Open the uploaded PDF from the selected report.
             </CardDescription>
           </CardHeader>
           <CardContent>

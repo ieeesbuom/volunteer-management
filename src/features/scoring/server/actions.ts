@@ -9,7 +9,11 @@ import { writeAuditLog } from "@/server/audit";
 import { requireAuth, requireAdmin } from "@/features/access-control/server/current-user";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { getActiveEventRoleAssignments } from "@/features/access-control/server/roles";
-import { hasEventRole } from "@/features/access-control/lib/rules";
+import {
+  eventIdMatchesStoredAssignment,
+  hasEventRole,
+  normalizeEventReference,
+} from "@/features/access-control/lib/rules";
 import { listEvents } from "@/features/events/server/event-service";
 import { ROLE_BASE_POINTS } from "@/lib/config";
 import { getServerEnv } from "@/lib/env";
@@ -99,21 +103,88 @@ async function requireActiveEventRoleAssignment(
     APPWRITE_TABLES.eventRoleAssignments,
     [
       Query.equal("userId", userId),
-      Query.equal("eventId", eventId),
       Query.equal("active", true),
-      Query.limit(1),
+      Query.limit(100),
     ]
   );
 
-  if (result.total === 0) {
+  const assignment = result.rows.find((row) =>
+    eventIdMatchesStoredAssignment(String(row.eventId ?? ""), eventId),
+  );
+
+  if (!assignment) {
     throw new Error("Target volunteer does not have an active responsibility assigned for this event.");
   }
 
-  return result.rows[0] as unknown as { role?: string };
+  return assignment as unknown as { role?: string };
 }
 
+function extraScoreRequestRowId(eventId: string, targetUserId: string) {
+  return `gr_${createHash("sha1")
+    .update(`${normalizeEventReference(eventId)}:${targetUserId}`)
+    .digest("hex")
+    .slice(0, 30)}`;
+}
 
+function scoringEventMatches(event: { $id: string; reference?: string }, eventId: string) {
+  return (
+    eventIdMatchesStoredAssignment(event.$id, eventId) ||
+    Boolean(event.reference && eventIdMatchesStoredAssignment(event.reference, eventId))
+  );
+}
 
+async function extraScoreEventIdCandidates(eventId: string) {
+  const events = await listEvents();
+  const match = events.find((event) => scoringEventMatches(event, eventId));
+
+  return [
+    ...new Set(
+      [eventId, match?.$id, match?.reference].filter(
+        (value): value is string => Boolean(value && value.trim()),
+      ),
+    ),
+  ];
+}
+
+async function resolveCanonicalScoringEventId(eventId: string) {
+  const events = await listEvents();
+  const match = events.find((event) => scoringEventMatches(event, eventId));
+
+  return match?.$id ?? eventId;
+}
+
+async function findExistingExtraScoreRequest(
+  tables: TablesDB,
+  databaseId: string,
+  eventId: string,
+  targetUserId: string,
+) {
+  const candidates = await extraScoreEventIdCandidates(eventId);
+
+  for (const candidate of candidates) {
+    try {
+      const row = await tables.getRow(
+        databaseId,
+        APPWRITE_TABLES.gradeRequests,
+        extraScoreRequestRowId(candidate, targetUserId),
+      );
+      return row as unknown as GradeRequest;
+    } catch {
+      // Look up by event + volunteer next.
+    }
+  }
+
+  const result = await tables.listRows(databaseId, APPWRITE_TABLES.gradeRequests, [
+    Query.equal("targetUserId", targetUserId),
+    Query.limit(100),
+  ]);
+
+  return (
+    (result.rows as unknown as GradeRequest[]).find((row) =>
+      candidates.some((candidate) => eventIdMatchesStoredAssignment(row.eventId, candidate)),
+    ) ?? null
+  );
+}
 
 async function getApprovedConclusionApprovalDate(
   tables: TablesDB,
@@ -250,10 +321,12 @@ async function assertEventEligibleForExtraScoring(
 
 function assertCanSubmitExtraScore({
   eventId,
+  eventReference,
   targetRole,
   user,
 }: {
   eventId: string;
+  eventReference?: string;
   targetRole: ScoringRole | null;
   user: Awaited<ReturnType<typeof requireAuth>>;
 }) {
@@ -265,7 +338,7 @@ function assertCanSubmitExtraScore({
     throw new Error("Only admins can submit extra scores for chairs.");
   }
 
-  if (hasEventRole(user, eventId, ["Chair"])) {
+  if (hasEventRole(user, eventId, ["Chair"], eventReference)) {
     return;
   }
 
@@ -300,6 +373,7 @@ export async function createGradeRequest(data: {
   const graderId = user.authUser.id;
 
   const validated = GradeRequestSchema.parse(data);
+  const eventId = await resolveCanonicalScoringEventId(validated.eventId);
 
   if (graderId === validated.targetUserId) {
     throw new Error("You cannot grade yourself.");
@@ -308,43 +382,41 @@ export async function createGradeRequest(data: {
   await assertEventEligibleForExtraScoring(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    validated.eventId
+    eventId
   );
 
   const targetAssignment = await requireActiveEventRoleAssignment(
     tables,
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     validated.targetUserId,
-    validated.eventId
+    eventId
   );
   const targetRole = resolveTargetScoringRole(targetAssignment);
 
-  assertCanSubmitExtraScore({ eventId: validated.eventId, targetRole, user });
+  assertCanSubmitExtraScore({
+    eventId,
+    eventReference: validated.eventId,
+    targetRole,
+    user,
+  });
 
   if (validated.gradeValue < 0 || validated.gradeValue > 10) {
     throw new Error("Grade value must be between 0 and 10.");
   }
 
-
-
-  const requestId = `gr_${createHash("sha1").update(`${validated.eventId}:${validated.targetUserId}`).digest("hex").slice(0, 30)}`;
-  const now = new Date().toISOString();
-
-  // Check if request already exists (one extra score per event per volunteer)
-  let existingRequest: GradeRequest | null = null;
-  try {
-    existingRequest = (await tables.getRow(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.gradeRequests,
-      requestId
-    )) as unknown as GradeRequest;
-  } catch {
-    existingRequest = null;
-  }
+  const existingRequest = await findExistingExtraScoreRequest(
+    tables,
+    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+    eventId,
+    validated.targetUserId,
+  );
 
   if (existingRequest) {
     throw new Error("An extra score evaluation has already been given to this volunteer for this event.");
   }
+
+  const requestId = extraScoreRequestRowId(eventId, validated.targetUserId);
+  const now = new Date().toISOString();
 
   await tables.createRow(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
@@ -352,7 +424,7 @@ export async function createGradeRequest(data: {
     requestId,
     {
       requestId,
-      eventId: validated.eventId,
+      eventId,
       requestedBy: graderId,
       targetUserId: validated.targetUserId,
       status: "pending",

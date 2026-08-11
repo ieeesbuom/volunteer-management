@@ -108,7 +108,7 @@ export default async function VolunteersPage() {
                       <Badge tone="success">{volunteer.pointsLedger?.total ?? 0}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <ExportActions kind="volunteer" userId={volunteer.userId} />
+                      <ExportActions userId={volunteer.userId} />
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,9 @@
-import { canVolunteer, normalizeEventReference } from "@/features/access-control/lib/rules";
+import {
+  canVolunteer,
+  isFormOnUserChairedEvent,
+  normalizeEventReference,
+  userIsEventChair,
+} from "@/features/access-control/lib/rules";
 import type { EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import type { FormConnection } from "@/features/forms/types";
 
@@ -242,6 +247,23 @@ export function isFormEligibleForDashboard(
 ): boolean {
   if (!isFormBaseEligible(connection, now)) {
     return false;
+  }
+
+  // Event chairs manage forms only on events they lead — not branch-wide open calls.
+  if (userIsEventChair(user)) {
+    if (!isFormOnUserChairedEvent(connection.eventId, user)) {
+      return false;
+    }
+
+    return isFormVisibleToUser({
+      canManage: true,
+      connection,
+      currentUserId: user.authUser.id,
+      isAdmin: user.isAdmin,
+      isVolunteer: canVolunteer(user.profile),
+      now,
+      userRoleAssignments: toDashboardRoleAssignments(user.eventRoles),
+    });
   }
 
   const { audience } = getFormAudienceMetadata(connection);

@@ -10,7 +10,6 @@ import type { SessionUser } from "@/features/access-control/types";
 import {
   canApproveReport,
   canEditReportContent,
-  canExportConclusionReport,
   canSubmitReport,
   canTransitionReportStatus,
   hasRequiredContent,
@@ -25,7 +24,11 @@ import type { ConclusionReport, ConclusionReportContent, ReportApproval } from "
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
-import { isAppwriteNotFound } from "@/server/errors";
+import {
+  getAdminNotificationRecipientIds,
+  getEventNotificationContext,
+} from "@/features/notifications/server/workflow-recipients";
+import { isAppwriteNotFound, ValidationError } from "@/server/errors";
 import {
   getEventById,
   syncEventConclusionReviewed,
@@ -37,9 +40,10 @@ import {
 } from "@/features/notifications/server/workflow-notifications";
 import { finalizeEventRolePoints } from "@/features/scoring/server/actions";
 import {
-  getAdminNotificationRecipientIds,
-  getEventNotificationContext,
-} from "@/features/notifications/server/workflow-recipients";
+  downloadConclusionReportFile,
+  conclusionReportFileId,
+  uploadConclusionReportFile,
+} from "@/features/reports/server/conclusion-attachment";
 
 type AppRow = Models.Row & Record<string, unknown>;
 
@@ -48,34 +52,46 @@ const CONTENT_COLUMN_MAX_LENGTH = 12000;
 
 function emptyContent(): ConclusionReportContent {
   return {
-    attendanceNotes: "",
-    challenges: "",
-    objectives: "",
-    outcomes: "",
-    recommendations: "",
+    additionalInfo: "",
   };
 }
 
-function normalizeContentFields(
-  parsed: Partial<ConclusionReportContent>,
-): ConclusionReportContent {
+type LegacyConclusionContent = Partial<ConclusionReportContent> & {
+  attendanceNotes?: string;
+  challenges?: string;
+  objectives?: string;
+  outcomes?: string;
+  recommendations?: string;
+};
+
+function legacyContentToAdditionalInfo(parsed: LegacyConclusionContent) {
+  const sections = [
+    parsed.objectives ? `Objectives:\n${parsed.objectives}` : "",
+    parsed.outcomes ? `Outcomes:\n${parsed.outcomes}` : "",
+    parsed.challenges ? `Challenges:\n${parsed.challenges}` : "",
+    parsed.recommendations ? `Recommendations:\n${parsed.recommendations}` : "",
+    parsed.attendanceNotes ? `Attendance notes:\n${parsed.attendanceNotes}` : "",
+  ].filter(Boolean);
+
+  return sections.join("\n\n");
+}
+
+function normalizeContentFields(parsed: LegacyConclusionContent): ConclusionReportContent {
   return {
-    attendanceNotes: parsed.attendanceNotes ?? "",
-    challenges: parsed.challenges ?? "",
-    objectives: parsed.objectives ?? "",
-    outcomes: parsed.outcomes ?? "",
-    recommendations: parsed.recommendations ?? "",
+    additionalInfo: parsed.additionalInfo ?? legacyContentToAdditionalInfo(parsed),
+    reportFileId: parsed.reportFileId,
+    reportFileName: parsed.reportFileName,
   };
 }
 
 function contentFromLegacyColumns(row: AppRow): ConclusionReportContent {
-  return {
+  return normalizeContentFields({
     attendanceNotes: String(row.attendanceNotes ?? ""),
     challenges: String(row.challenges ?? ""),
     objectives: String(row.objectives ?? ""),
     outcomes: String(row.outcomes ?? ""),
     recommendations: String(row.recommendations ?? ""),
-  };
+  });
 }
 
 function hasLegacyColumnContent(row: AppRow) {
@@ -97,7 +113,7 @@ function parseStoredContent(row: AppRow): ConclusionReportContent | null {
     const parsed = JSON.parse(row.content) as unknown;
 
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return normalizeContentFields(parsed as Partial<ConclusionReportContent>);
+      return normalizeContentFields(parsed as LegacyConclusionContent);
     }
   } catch {
     // Fall back to legacy columns or plain-text content below.
@@ -120,7 +136,7 @@ function toContent(row: AppRow): ConclusionReportContent {
 
     return {
       ...emptyContent(),
-      objectives: row.content,
+      additionalInfo: row.content,
     };
   }
 
@@ -207,10 +223,14 @@ async function resolveEventTitle(user: SessionUser, eventId: string) {
   throw new Error("Event title could not be resolved for the selected event.");
 }
 
-export function canManageConclusionReport(user: SessionUser, eventId: string) {
+export function canManageConclusionReport(
+  user: SessionUser,
+  eventId: string,
+  eventReference?: string,
+) {
   return (
     user.isAdmin ||
-    hasEventRole(user, eventId, [...EVENT_LEAD_ROLES])
+    hasEventRole(user, eventId, [...EVENT_LEAD_ROLES], eventReference)
   );
 }
 
@@ -224,12 +244,6 @@ export function canViewConclusionReport(user: SessionUser, report: ConclusionRep
   }
 
   return hasEventRole(user, report.eventId, [...EVENT_LEAD_ROLES]);
-}
-
-export function canExportConclusionReportPdf(user: SessionUser, report: ConclusionReport) {
-  return (
-    user.isAdmin || hasEventRole(user, report.eventId, [...EVENT_LEAD_ROLES])
-  );
 }
 
 async function getConclusionReportRow(reportId: string) {
@@ -317,11 +331,9 @@ function mergeDraftContent(
   }
 
   return {
-    attendanceNotes: input.attendanceNotes ?? current.attendanceNotes,
-    challenges: input.challenges ?? current.challenges,
-    objectives: input.objectives ?? current.objectives,
-    outcomes: input.outcomes ?? current.outcomes,
-    recommendations: input.recommendations ?? current.recommendations,
+    additionalInfo: input.additionalInfo ?? current.additionalInfo,
+    reportFileId: input.reportFileId ?? current.reportFileId,
+    reportFileName: input.reportFileName ?? current.reportFileName,
   };
 }
 
@@ -464,6 +476,68 @@ export async function updateConclusionReportRecord(
   return updated;
 }
 
+export async function attachConclusionReportPdf(
+  user: SessionUser,
+  reportId: string,
+  bytes: Buffer,
+  originalFilename: string,
+) {
+  const report = await getConclusionReport(reportId);
+
+  if (!report) {
+    throw new Error("Conclusion report was not found.");
+  }
+
+  if (!canManageConclusionReport(user, report.eventId)) {
+    throw new Error("Required event role is missing.");
+  }
+
+  if (!canEditReportContent(report)) {
+    throw new Error("Submitted and approved reports cannot be edited.");
+  }
+
+  const fileId = conclusionReportFileId(reportId);
+  await uploadConclusionReportFile({
+    bytes,
+    fileId,
+    filename: originalFilename,
+  });
+
+  const nextContent: ConclusionReportContent = {
+    ...report.content,
+    reportFileId: fileId,
+    reportFileName: originalFilename.trim() || "report.pdf",
+  };
+
+  const updated = await updateConclusionReportRow(reportId, contentToRow(nextContent));
+
+  await writeAuditLog({
+    action: "CONCLUSION_REPORT_UPDATED",
+    actorUserId: user.authUser.id,
+    metadata: { attachmentUpdated: true, eventId: report.eventId, fileId },
+    targetId: reportId,
+    targetType: "conclusion_report",
+  });
+
+  return updated;
+}
+
+export async function resolveConclusionReportPdf(report: ConclusionReport) {
+  if (!report.content.reportFileId) {
+    return null;
+  }
+
+  try {
+    return await downloadConclusionReportFile(report.content.reportFileId);
+  } catch (error) {
+    if (!isAppwriteNotFound(error)) {
+      throw error;
+    }
+
+    throw new ValidationError("Uploaded report file could not be found.");
+  }
+}
+
 export async function reopenConclusionReportRecord(user: SessionUser, reportId: string) {
   if (!user.isAdmin) {
     throw new Error("Admin access required.");
@@ -603,24 +677,4 @@ export async function reviewConclusionReportRecord(
     approval: toReportApproval(approvalRow),
     report: updated,
   };
-}
-
-export async function assertConclusionReportExportable(reportId: string) {
-  const report = await getConclusionReport(reportId);
-
-  if (!report) {
-    throw new Error("Conclusion report was not found.");
-  }
-
-  if (!canExportConclusionReport(report)) {
-    throw new Error("Conclusion report exports are available only after approval.");
-  }
-
-  const approval = await getReportApproval(reportId);
-
-  if (!approval || approval.status !== "APPROVED") {
-    throw new Error("A matching approval record is required before export.");
-  }
-
-  return { approval, report };
 }

@@ -266,6 +266,38 @@ describe("isFormEligibleForDashboard", () => {
     ).toBe(false);
   });
 
+  it("shows chairs only forms on events they lead", () => {
+    const chair = createUser({
+      eventRoles: [
+        {
+          $id: "a1",
+          active: true,
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          assignedBy: "admin",
+          eventId: "event-1",
+          eventTitle: "IEEE Day",
+          role: "Chair",
+          userId: "u1",
+        },
+      ],
+    });
+    const ownEventForm = createMockConnection({
+      eventId: "event-1",
+      metadata: { audience: "volunteers_only" },
+      purpose: "other",
+      title: "Call for Logistics Crew",
+    });
+    const otherEventForm = createMockConnection({
+      eventId: "event-2",
+      metadata: { audience: "public" },
+      purpose: "registration",
+      title: "Other event registration",
+    });
+
+    expect(isFormEligibleForDashboard(ownEventForm, chair)).toBe(true);
+    expect(isFormEligibleForDashboard(otherEventForm, chair)).toBe(false);
+  });
+
   it("hides forms outside their availability window", () => {
     const user = createUser();
     const form = createMockConnection({

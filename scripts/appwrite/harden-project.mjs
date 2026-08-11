@@ -193,6 +193,68 @@ try {
   );
 }
 
+const conclusionReportBucketId = "conclusion_report_files";
+
+function ensureConclusionReportBucket() {
+  try {
+    runAppwriteCliVoid([
+      "storage",
+      "update-bucket",
+      "--bucket-id",
+      conclusionReportBucketId,
+      "--name",
+      "Conclusion Report Files",
+      "--file-security",
+      "true",
+      "--enabled",
+      "true",
+      "--maximum-file-size",
+      "10485760",
+      "--allowed-file-extensions",
+      "pdf",
+      "--compression",
+      "none",
+      "--encryption",
+      "true",
+      "--antivirus",
+      "true",
+    ]);
+    console.log(`Hardened conclusion report bucket: ${conclusionReportBucketId}`);
+  } catch {
+    try {
+      runAppwriteCliVoid([
+        "storage",
+        "create-bucket",
+        "--bucket-id",
+        conclusionReportBucketId,
+        "--name",
+        "Conclusion Report Files",
+        "--file-security",
+        "true",
+        "--enabled",
+        "true",
+        "--maximum-file-size",
+        "10485760",
+        "--allowed-file-extensions",
+        "pdf",
+        "--compression",
+        "none",
+        "--encryption",
+        "true",
+        "--antivirus",
+        "true",
+      ]);
+      console.log(`Created conclusion report bucket: ${conclusionReportBucketId}`);
+    } catch (createError) {
+      console.warn(
+        `Bucket hardening skipped (${conclusionReportBucketId}): ${createError instanceof Error ? createError.message : createError}`,
+      );
+    }
+  }
+}
+
+ensureConclusionReportBucket();
+
 const avatarBucketId = "profile_avatars";
 
 try {

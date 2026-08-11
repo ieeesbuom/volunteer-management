@@ -3,21 +3,8 @@
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { canExportVolunteerProfilePdf } from "@/features/reports/lib/access";
-import {
-  assertConclusionReportExportable,
-  canExportConclusionReportPdf,
-} from "@/features/reports/server/conclusion-service";
 import { getVolunteerProfile } from "@/features/reports/server/volunteer-profile";
-import { buildConclusionReportPdf, buildVolunteerProfilePdf } from "@/pdf";
-
-function formatPdfDate(value?: string) {
-  if (!value) {
-    return undefined;
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
+import { buildVolunteerProfilePdf } from "@/pdf";
 
 async function assertVolunteerProfileExportable(userId: string) {
   const profile = await getVolunteerProfile(userId);
@@ -27,29 +14,6 @@ async function assertVolunteerProfileExportable(userId: string) {
   }
 
   return profile;
-}
-
-export async function exportConclusionReportPdfAction(reportId: string) {
-  const user = await requireAuth();
-  const { approval, report } = await assertConclusionReportExportable(reportId);
-
-  if (!canExportConclusionReportPdf(user, report)) {
-    throw new Error("You do not have access to export this report.");
-  }
-
-  const result = await buildConclusionReportPdf({
-    approvedAt: formatPdfDate(approval.reviewedAt),
-    content: report.content,
-    eventId: report.eventId,
-    eventTitle: report.eventTitle,
-    submittedAt: formatPdfDate(report.submittedAt),
-    submittedByName: report.submittedByName,
-  });
-
-  return {
-    data: result.buffer.toString("base64"),
-    filename: result.filename,
-  };
 }
 
 export async function exportVolunteerProfilePdfAction(userId: string) {

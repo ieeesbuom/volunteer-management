@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   canApproveReport,
-  canExportConclusionReport,
   reportStatusTone,
 } from "@/features/reports/lib/approval-rules";
 import {
@@ -14,7 +13,7 @@ import {
   reviewConclusionReportRequest,
 } from "@/features/reports/lib/api-client";
 import type { ConclusionReport } from "@/features/reports/types";
-import { ExportActions } from "@/features/reports/components/export-actions";
+import { conclusionReportAttachmentPath } from "@/features/reports/lib/conclusion-attachment";
 
 const inputClasses =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
@@ -138,30 +137,30 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
 
       {selectedReport ? (
         <section className="rounded-md border border-border bg-surface-subtle p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-text-secondary">Selected report</p>
-              <h3 className="mt-1 text-lg font-semibold text-text-primary">
-                {selectedReport.eventTitle}
-              </h3>
-            </div>
-            {canExportConclusionReport(selectedReport) ? (
-              <ExportActions kind="conclusion" reportId={selectedReport.$id} />
-            ) : null}
+          <div>
+            <p className="text-sm font-medium text-text-secondary">Selected report</p>
+            <h3 className="mt-1 text-lg font-semibold text-text-primary">
+              {selectedReport.eventTitle}
+            </h3>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <ReviewBlock label="Objectives" value={selectedReport.content.objectives} />
-            <ReviewBlock label="Outcomes" value={selectedReport.content.outcomes} />
-            <ReviewBlock label="Challenges" value={selectedReport.content.challenges} />
-            <ReviewBlock
-              label="Recommendations"
-              value={selectedReport.content.recommendations}
-            />
-            <ReviewBlock
-              label="Attendance notes"
-              value={selectedReport.content.attendanceNotes}
-            />
+          <div className="mt-4 space-y-3">
+            <ReviewBlock label="More information" value={selectedReport.content.additionalInfo} />
+            {selectedReport.content.reportFileId ? (
+              <a
+                className="inline-flex text-sm font-medium text-primary hover:underline"
+                href={conclusionReportAttachmentPath(selectedReport.$id)}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                View uploaded report
+                {selectedReport.content.reportFileName
+                  ? ` (${selectedReport.content.reportFileName})`
+                  : ""}
+              </a>
+            ) : (
+              <p className="text-sm text-text-muted">No report PDF uploaded.</p>
+            )}
           </div>
 
           {canApproveReport(selectedReport) ? (

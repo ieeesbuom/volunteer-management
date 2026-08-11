@@ -50,7 +50,7 @@ export default async function MyVolunteerProfilePage() {
           actions={
             canManageVolunteerProfile ? (
               <div className="flex items-center gap-2">
-                <ExportActions kind="volunteer" userId={user.authUser.id} />
+                <ExportActions userId={user.authUser.id} />
                 <Link className={buttonClasses()} href={`/volunteers/${user.authUser.id}`}>
                   <Eye className="size-4" aria-hidden="true" />
                   View Profile

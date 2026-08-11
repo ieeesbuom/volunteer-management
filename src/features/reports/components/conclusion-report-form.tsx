@@ -1,26 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { ClipboardList, Save, Send } from "lucide-react";
+import { useRef, useState } from "react";
+import { ClipboardList, FileUp, Save, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   canEditReportContent,
-  canExportConclusionReport,
   canSubmitReport,
   reportStatusTone,
 } from "@/features/reports/lib/approval-rules";
 import {
   createConclusionReportRequest,
   updateConclusionReportRequest,
+  uploadConclusionReportPdfRequest,
 } from "@/features/reports/lib/api-client";
+import {
+  CONCLUSION_REPORT_PDF_ACCEPT,
+  conclusionReportAttachmentPath,
+} from "@/features/reports/lib/conclusion-attachment";
 import type { ConclusionReport, ReportEvent } from "@/features/reports/types";
-import { ExportActions } from "@/features/reports/components/export-actions";
 
 const inputClasses =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
 
-const textareaClasses = `${inputClasses} min-h-[96px] resize-y`;
+const textareaClasses = `${inputClasses} min-h-[120px] resize-y`;
 
 type ConclusionReportFormProps = {
   events: ReportEvent[];
@@ -33,23 +36,18 @@ export function ConclusionReportForm({
   initialReport,
   onChange,
 }: ConclusionReportFormProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [eventId, setEventId] = useState(initialReport?.eventId ?? events[0]?.eventId ?? "");
-  const [content, setContent] = useState(
-    initialReport?.content ?? {
-      attendanceNotes: "",
-      challenges: "",
-      objectives: "",
-      outcomes: "",
-      recommendations: "",
-    },
-  );
+  const [additionalInfo, setAdditionalInfo] = useState(initialReport?.content.additionalInfo ?? "");
   const [report, setReport] = useState<ConclusionReport | null>(initialReport ?? null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "error" | "success">("idle");
   const [pending, setPending] = useState(false);
+  const [uploadPending, setUploadPending] = useState(false);
 
   const selectedEvent = events.find((event) => event.eventId === eventId);
   const contentEditable = !report || canEditReportContent(report);
+  const uploadedFileName = report?.content.reportFileName;
 
   if (events.length === 0 && !report) {
     return (
@@ -57,6 +55,20 @@ export function ConclusionReportForm({
         No ongoing or pending events are available for conclusion reporting.
       </p>
     );
+  }
+
+  async function ensureReportDraft() {
+    if (report) {
+      return report;
+    }
+
+    const created = await createConclusionReportRequest({
+      content: { additionalInfo },
+      eventId,
+    });
+    setReport(created);
+    onChange(created);
+    return created;
   }
 
   async function persist(nextStatus?: "SUBMITTED") {
@@ -68,13 +80,12 @@ export function ConclusionReportForm({
 
       if (!nextReport) {
         nextReport = await createConclusionReportRequest({
-          content,
+          content: { additionalInfo },
           eventId,
         });
-      } else {
+      } else if (contentEditable) {
         nextReport = await updateConclusionReportRequest(nextReport.$id, {
-          ...(contentEditable ? { content } : {}),
-          status: nextStatus,
+          content: { additionalInfo },
         });
       }
 
@@ -96,8 +107,33 @@ export function ConclusionReportForm({
     }
   }
 
+  async function handlePdfUpload(file: File) {
+    setUploadPending(true);
+    setStatus("idle");
+
+    try {
+      const currentReport = await ensureReportDraft();
+      const updated = await uploadConclusionReportPdfRequest(currentReport.$id, file);
+      setReport(updated);
+      onChange(updated);
+      setStatus("success");
+      setMessage("Report PDF uploaded.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Could not upload report PDF.");
+    } finally {
+      setUploadPending(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
   const draftCandidate = {
-    content,
+    content: {
+      additionalInfo,
+      reportFileId: report?.content.reportFileId,
+    },
     status: report?.status ?? "DRAFT",
   } as const;
 
@@ -136,41 +172,66 @@ export function ConclusionReportForm({
         </label>
       ) : null}
 
-      <div className="grid gap-4">
-        <Field
+      <label className="block space-y-1 text-sm">
+        <span className="font-medium text-text-secondary">More information</span>
+        <textarea
+          className={textareaClasses}
           disabled={!contentEditable}
-          label="Objectives"
-          onChange={(value) => setContent((current) => ({ ...current, objectives: value }))}
-          value={content.objectives}
+          onChange={(event) => setAdditionalInfo(event.target.value)}
+          placeholder="Optional notes or context for the admin reviewer"
+          value={additionalInfo}
         />
-        <Field
-          disabled={!contentEditable}
-          label="Outcomes"
-          onChange={(value) => setContent((current) => ({ ...current, outcomes: value }))}
-          value={content.outcomes}
-        />
-        <Field
-          disabled={!contentEditable}
-          label="Challenges"
-          onChange={(value) => setContent((current) => ({ ...current, challenges: value }))}
-          value={content.challenges}
-        />
-        <Field
-          disabled={!contentEditable}
-          label="Recommendations"
-          onChange={(value) =>
-            setContent((current) => ({ ...current, recommendations: value }))
-          }
-          value={content.recommendations}
-        />
-        <Field
-          disabled={!contentEditable}
-          label="Attendance notes"
-          onChange={(value) =>
-            setContent((current) => ({ ...current, attendanceNotes: value }))
-          }
-          value={content.attendanceNotes}
-        />
+      </label>
+
+      <div className="space-y-2 rounded-md border border-border bg-surface-subtle p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-text-secondary">Report PDF</p>
+            <p className="mt-1 text-xs text-text-muted">Upload the event report as a PDF file only.</p>
+          </div>
+          {uploadedFileName ? (
+            <Badge tone="success">{uploadedFileName}</Badge>
+          ) : (
+            <Badge tone="neutral">Required before submit</Badge>
+          )}
+        </div>
+
+        {contentEditable ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              accept={CONCLUSION_REPORT_PDF_ACCEPT}
+              className="sr-only"
+              disabled={uploadPending || pending}
+              id="conclusion-report-pdf"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handlePdfUpload(file);
+                }
+              }}
+              ref={fileInputRef}
+              type="file"
+            />
+            <Button
+              disabled={uploadPending || pending}
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              variant="secondary"
+            >
+              <FileUp className="size-4" aria-hidden="true" />
+              {uploadPending ? "Uploading..." : uploadedFileName ? "Replace PDF" : "Upload PDF"}
+            </Button>
+          </div>
+        ) : report?.content.reportFileId ? (
+          <a
+            className="inline-flex text-sm font-medium text-primary hover:underline"
+            href={conclusionReportAttachmentPath(report.$id)}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            View uploaded report
+          </a>
+        ) : null}
       </div>
 
       {message ? (
@@ -187,14 +248,14 @@ export function ConclusionReportForm({
 
       <div className="flex flex-wrap gap-2">
         {contentEditable ? (
-          <Button disabled={pending} onClick={() => persist()} type="button">
+          <Button disabled={pending || uploadPending} onClick={() => persist()} type="button">
             <Save className="size-4" aria-hidden="true" />
             Save draft
           </Button>
         ) : null}
         {contentEditable ? (
           <Button
-            disabled={pending || !canSubmitReport(draftCandidate)}
+            disabled={pending || uploadPending || !canSubmitReport(draftCandidate)}
             onClick={() => persist("SUBMITTED")}
             type="button"
             variant="primary"
@@ -203,41 +264,7 @@ export function ConclusionReportForm({
             Submit for approval
           </Button>
         ) : null}
-        {report && canExportConclusionReport(report) ? (
-          <ExportActions kind="conclusion" reportId={report.$id} />
-        ) : report ? (
-          <ExportActions
-            disabled
-            disabledReason="Conclusion report exports are available only after approval."
-            kind="conclusion"
-            reportId={report.$id}
-          />
-        ) : null}
       </div>
     </div>
-  );
-}
-
-function Field({
-  disabled,
-  label,
-  onChange,
-  value,
-}: {
-  disabled?: boolean;
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className="block space-y-1 text-sm">
-      <span className="font-medium text-text-secondary">{label}</span>
-      <textarea
-        className={textareaClasses}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      />
-    </label>
   );
 }

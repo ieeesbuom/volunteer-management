@@ -29,6 +29,7 @@ export const APPWRITE_TABLES = {
 } as const;
 
 export const APPWRITE_BUCKETS = {
+  conclusionReportFiles: "conclusion_report_files",
   profileAvatars: "profile_avatars",
 } as const;
 

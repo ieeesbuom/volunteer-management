@@ -11,7 +11,7 @@ import { createAdminContext, loadLocalEnv } from "./client.mjs";
 
 loadLocalEnv();
 
-const { users, tables, databaseId } = createAdminContext();
+const { users, tables, databaseId, storage } = createAdminContext();
 
 async function check(name, fn) {
   try {
@@ -34,11 +34,20 @@ results.push(
   ),
 );
 
+results.push(await check("buckets.read (storage.listBuckets)", () => storage.listBuckets()));
+results.push(
+  await check("files.read/write scopes (bucket lookup)", () =>
+    storage.getBucket("conclusion_report_files"),
+  ),
+);
+
 if (!results.every(Boolean)) {
   console.error("");
   console.error("APPWRITE_API_KEY is unauthorized or under-scoped.");
   console.error("Create a runtime key with scopes:");
-  console.error("  sessions.write, rows.read, rows.write, users.read, files.read, files.write");
+  console.error(
+    "  sessions.write, rows.read, rows.write, users.read, buckets.read, buckets.write, files.read, files.write",
+  );
   console.error("Then set APPWRITE_API_KEY in .env and restart the app.");
   console.error("Or: npx appwrite login && npm run appwrite:keys && npm run appwrite:keys:sync-env");
   process.exit(1);

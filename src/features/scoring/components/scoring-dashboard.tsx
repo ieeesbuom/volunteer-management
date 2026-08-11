@@ -274,12 +274,20 @@ export function ScoringDashboard({
       return null;
     }
 
+    if (chairEventAssignments.length > 0) {
+      const requestedChairAssignment = qEventId
+        ? chairEventAssignments.find((assignment) => assignment.eventId === qEventId)
+        : undefined;
+
+      return requestedChairAssignment ?? chairEventAssignments[0] ?? null;
+    }
+
     const requestedAssignment = qEventId
       ? activeEventAssignments.find((assignment) => assignment.eventId === qEventId)
       : undefined;
 
     return requestedAssignment ?? activeEventAssignments[0] ?? null;
-  }, [activeEventAssignments, qEventId, user.isAdmin]);
+  }, [activeEventAssignments, chairEventAssignments, qEventId, user.isAdmin]);
 
   const effectiveEventId = user.isAdmin
     ? qEventId ?? ""

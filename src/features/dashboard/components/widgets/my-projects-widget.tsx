@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, ClipboardList, ExternalLink } from "lucide-react";
+import { userIsEventChair } from "@/features/access-control/lib/rules";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,7 +11,8 @@ import {
 } from "@/features/events/lib/event-ui";
 
 export function MyProjectsWidget() {
-  const { opportunityList } = useDashboardData();
+  const { opportunityList, user } = useDashboardData();
+  const isChair = userIsEventChair(user);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5 sm:p-6">
@@ -24,7 +26,9 @@ export function MyProjectsWidget() {
               Available Forms
             </h2>
             <p className="text-[12px] text-text-muted">
-              Forms open to you based on audience and schedule
+              {isChair
+                ? "Active forms on events you chair"
+                : "Forms open to you based on audience and schedule"}
             </p>
           </div>
         </div>
@@ -100,7 +104,9 @@ export function MyProjectsWidget() {
           <div className="rounded-xl border border-dashed border-border-subtle bg-bg-base/60 px-6 py-8 text-center">
             <p className="text-[14px] font-semibold text-text-strong">No forms available for you</p>
             <p className="mx-auto mt-1 max-w-md text-[12px] text-text-muted">
-              Forms appear here when they are open and your role matches the form audience.
+              {isChair
+                ? "Forms for your chaired events appear here when they are active and within schedule."
+                : "Forms appear here when they are open and your role matches the form audience."}
             </p>
             <Link
               href="/events"

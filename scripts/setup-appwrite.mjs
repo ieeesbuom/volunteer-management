@@ -404,6 +404,7 @@ const tableDefinitions = [
       ["grade_requests_target_idx", ["targetUserId"]],
       ["grade_requests_updated_idx", ["updatedAt"]],
       ["grade_requests_target_updated_idx", ["targetUserId", "updatedAt"]],
+      ["grade_requests_event_target_idx", ["eventId", "targetUserId"], "unique"],
     ],
   },
   {

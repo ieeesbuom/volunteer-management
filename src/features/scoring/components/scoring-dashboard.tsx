@@ -20,6 +20,7 @@ import { HallOfFameTable } from "@/features/reports/components/hall-of-fame-tabl
 import { LeaderboardStandingsTable } from "@/features/scoring/components/leaderboard-standings-table";
 import { ExtraScoreAuditTable } from "@/features/scoring/components/extra-score-audit-table";
 import { ExtraScoreReviewList } from "@/features/scoring/components/extra-score-review-list";
+import { eventIdMatchesStoredAssignment } from "@/features/access-control/lib/rules";
 import type { EventRole, EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import {
   toggleTopBoardExclusion,
@@ -650,6 +651,24 @@ export function ScoringDashboard({
     return map;
   }, [gradeRequests, requestVolunteers, user.authUser.email, user.authUser.id, user.authUser.name, volunteers]);
 
+  const eligibleRequestVolunteers = useMemo(() => {
+    if (!selectedRequestEventId) {
+      return [];
+    }
+
+    const alreadyScoredIds = new Set(
+      gradeRequests
+        .filter((request) =>
+          eventIdMatchesStoredAssignment(request.eventId, selectedRequestEventId),
+        )
+        .map((request) => request.targetUserId),
+    );
+
+    return requestVolunteers.filter(
+      (volunteer) => volunteer.id !== user.authUser.id && !alreadyScoredIds.has(volunteer.id),
+    );
+  }, [gradeRequests, requestVolunteers, selectedRequestEventId, user.authUser.id]);
+
   function eventLabel(eventId?: string) {
     if (!eventId) {
       return "Selected event";
@@ -1093,9 +1112,14 @@ export function ScoringDashboard({
                     <VolunteerSelect
                       value={reqTargetUserId}
                       onChange={(val) => setReqTargetUserId(val)}
-                      volunteers={(!selectedRequestEventId ? [] : requestVolunteers).filter((v) => v.id !== user.authUser.id)}
+                      volunteers={eligibleRequestVolunteers}
                       loading={requestVolunteersLoading}
                       error={requestVolunteersError}
+                      placeholder={
+                        requestVolunteers.length > 0 && eligibleRequestVolunteers.length === 0
+                          ? "All volunteers already have an extra score for this event"
+                          : "Select a volunteer..."
+                      }
                     />
                   </div>
                   <div>

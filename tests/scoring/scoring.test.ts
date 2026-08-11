@@ -1307,6 +1307,117 @@ describe("Scoring Extra Requirements Tests", () => {
     ).rejects.toThrow("An extra score evaluation has already been given to this volunteer for this event.");
   });
 
+  it("blocks a second extra score for the same volunteer and event even if the existing row id differs", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r1",
+          userId: "chair-1",
+          eventId: "event-1",
+          eventTitle: "Event One",
+          role: "Chair",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er1", userId: "volunteer-1", eventId: "event-1", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "grade_requests") {
+        return Promise.resolve({
+          total: 1,
+          rows: [
+            {
+              $id: "legacy-grade-request",
+              eventId: "event-1",
+              targetUserId: "volunteer-1",
+              status: "submitted",
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    await expect(
+      createGradeRequest({ eventId: "event-1", targetUserId: "volunteer-1", gradeValue: 9 })
+    ).rejects.toThrow("An extra score evaluation has already been given to this volunteer for this event.");
+  });
+
+  it("allows one extra score for the same volunteer on a different event", async () => {
+    vi.mocked(requireAuth).mockResolvedValue({
+      authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
+      profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
+      isAdmin: false,
+      sbRoles: [],
+      eventRoles: [
+        {
+          $id: "r1",
+          userId: "chair-1",
+          eventId: "event-2",
+          eventTitle: "Event Two",
+          role: "Chair",
+          assignedBy: "admin",
+          assignedAt: "2026-01-01T00:00:00.000Z",
+          active: true,
+        },
+      ],
+    });
+
+    vi.mocked(hasEventRole).mockReturnValue(true);
+    mockTables.listRows.mockImplementation((db: string, table: string) => {
+      if (table === "event_role_assignments") {
+        return Promise.resolve({
+          total: 1,
+          rows: [{ $id: "er2", userId: "volunteer-1", eventId: "event-2", role: "Committee Member", active: true }],
+        });
+      }
+      if (table === "grade_requests") {
+        return Promise.resolve({
+          total: 1,
+          rows: [
+            {
+              $id: "existing-event-1",
+              eventId: "event-1",
+              targetUserId: "volunteer-1",
+              status: "finalized",
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ total: 0, rows: [] });
+    });
+
+    const result = await createGradeRequest({
+      eventId: "event-2",
+      targetUserId: "volunteer-1",
+      gradeValue: 7,
+    });
+
+    expect(result.status).toBe("submitted");
+    expect(mockTables.createRow).toHaveBeenCalledWith(
+      "database-1",
+      "grade_requests",
+      expect.any(String),
+      expect.objectContaining({
+        eventId: "event-2",
+        targetUserId: "volunteer-1",
+      }),
+    );
+  });
+
   it("blocks Chairs from submitting extra score for another Chair (Admin must give that score)", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },

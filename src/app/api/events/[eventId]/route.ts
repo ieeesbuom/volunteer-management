@@ -18,7 +18,7 @@ import {
 import { notifyEventUpdateWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import { UpdateEventInputSchema } from "@/features/events/types";
-import { ForbiddenError, jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError, ForbiddenError, routeErrorMessage } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ eventId: string }>;
@@ -58,10 +58,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     return NextResponse.json({ event });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to fetch event."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to fetch event.");
   }
 }
 
@@ -132,7 +129,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return jsonError(message, 400);
     }
 
-    return jsonError(message, routeErrorStatus(error));
+    return jsonRouteError(error, "Failed to update event.");
   }
 }
 
@@ -163,9 +160,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return jsonError(error.message, 403);
     }
 
-    return jsonError(
-      routeErrorMessage(error, "Failed to delete event."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to delete event.");
   }
 }

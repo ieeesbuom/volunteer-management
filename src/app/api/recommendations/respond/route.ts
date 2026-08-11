@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUomVerifiedVolunteer } from "@/features/access-control/server/current-user";
 import { respondToRecommendationRequest } from "@/features/recommendations/server/recommendations";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { enforceRateLimit, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 
 const respondSchema = z.object({
@@ -28,9 +28,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Recommendation response failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Recommendation response failed.");
   }
 }

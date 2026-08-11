@@ -4,7 +4,7 @@ import { finalizeGrade } from "@/features/scoring/server/actions";
 import { requireAuth } from "@/features/access-control/server/current-user";
 import { notifyEventUpdateWorkflow } from "@/features/notifications/server/workflow-notifications";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 const finalizeSchema = z.object({
   gradeRequestId: z.string().min(1),
@@ -33,9 +33,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ gradeRequest, notifications });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to finalize grade."),
-      routeErrorStatus(error)
-    );
+    return jsonRouteError(error, "Failed to finalize grade.");
   }
 }

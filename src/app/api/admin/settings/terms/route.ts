@@ -5,7 +5,7 @@ import {
   createIeeeTerm,
   listIeeeTerms,
 } from "@/features/system-settings/server/settings";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 const createTermSchema = z.object({
   endDate: z.string().trim().min(10).max(10),
@@ -26,10 +26,7 @@ export async function GET() {
 
     return NextResponse.json({ terms });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not load IEEE terms."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not load IEEE terms.");
   }
 }
 
@@ -44,9 +41,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ term });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not create IEEE term."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not create IEEE term.");
   }
 }

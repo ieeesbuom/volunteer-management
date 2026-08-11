@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getLeaderboard } from "@/features/scoring/server/actions";
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { enforceRateLimit, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 
 export async function GET(request: Request) {
@@ -22,9 +22,6 @@ export async function GET(request: Request) {
     const leaderboard = await getLeaderboard({ term, month, year });
     return NextResponse.json({ leaderboard });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to retrieve leaderboard."),
-      routeErrorStatus(error)
-    );
+    return jsonRouteError(error, "Failed to retrieve leaderboard.");
   }
 }

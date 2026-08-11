@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { markNotificationsReadForCurrentUser } from "@/features/notifications/server/notification-service";
 import { markNotificationsReadSchema } from "@/features/notifications/validation";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function POST(request: Request) {
   try {
@@ -10,9 +10,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ notifications });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not mark notifications read."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not mark notifications read.");
   }
 }

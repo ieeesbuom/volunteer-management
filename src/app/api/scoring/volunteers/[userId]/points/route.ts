@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getVolunteerPoints } from "@/features/scoring/server/actions";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 
 export async function GET(
   request: Request,
@@ -14,9 +14,6 @@ export async function GET(
     const points = await getVolunteerPoints(userId, { limit, offset });
     return NextResponse.json({ points });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to retrieve points."),
-      routeErrorStatus(error)
-    );
+    return jsonRouteError(error, "Failed to retrieve points.");
   }
 }

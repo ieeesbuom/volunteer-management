@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { requestUomVerification } from "@/features/access-control/server/uom-verification";
 import { isUomEmail, UOM_EMAIL_DOMAIN } from "@/lib/config";
 import {
@@ -33,9 +33,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Verification request failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Verification request failed.");
   }
 }

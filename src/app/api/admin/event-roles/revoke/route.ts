@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/features/access-control/server/current-user";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { revokeEventRole } from "@/features/access-control/server/roles";
 
 const revokeSchema = z.object({
@@ -19,9 +19,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ assignment });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Event role revoke failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Event role revoke failed.");
   }
 }

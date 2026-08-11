@@ -67,6 +67,10 @@ For production background jobs and trusted notification creation, set
 `x-internal-job-token`. Workflow notification emails require
 `NOTIFICATION_EMAILS_ENABLED=true` plus SMTP settings.
 
+Optional Sentry monitoring (org `knurdz`, project `ieee-sb-vm`): set
+`NEXT_PUBLIC_SENTRY_DSN` in production, and `SENTRY_AUTH_TOKEN` only on builds
+that should upload source maps. Local and CI builds work without either value.
+
 ## Getting Started
 
 First, run the development server:

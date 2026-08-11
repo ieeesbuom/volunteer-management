@@ -8,7 +8,7 @@ import {
 } from "@/features/events/server/event-route-helpers";
 import { createEvent, getEvents } from "@/features/events/server/event-service";
 import { CreateEventInputSchema } from "@/features/events/types";
-import { jsonError, routeErrorMessage, routeErrorStatus } from "@/server/errors";
+import { jsonError, jsonRouteError } from "@/server/errors";
 
 const MAX_EVENT_LIST_LIMIT = 500;
 
@@ -49,10 +49,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to list events."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to list events.");
   }
 }
 
@@ -76,9 +73,6 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ event }, { status: 201 });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to create event."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to create event.");
   }
 }

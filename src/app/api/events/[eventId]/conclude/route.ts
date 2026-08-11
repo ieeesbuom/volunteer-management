@@ -5,7 +5,7 @@ import {
   requireVisibleEvent,
 } from "@/features/events/server/event-route-helpers";
 import { ConclusionActionSchema } from "@/features/events/types";
-import { jsonError, routeErrorStatus , routeErrorMessage} from "@/server/errors";
+import { jsonError, jsonRouteError } from "@/server/errors";
 
 type RouteContext = {
   params: Promise<{ eventId: string }>;
@@ -33,9 +33,6 @@ export async function PATCH(request: Request, context: RouteContext) {
       409,
     );
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Failed to process conclusion action."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Failed to process conclusion action.");
   }
 }

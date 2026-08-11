@@ -26,6 +26,7 @@
     "appwrite:backups": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/configure-backups.mjs"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.70.0",
     "@types/pdfkit": "^0.17.6",
     "appwrite": "^25.2.0",
     "clsx": "^2.1.1",

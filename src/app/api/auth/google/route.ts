@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createGoogleOAuthUrl } from "@/features/access-control/server/oauth";
 import { assertAppwriteApiKeyAuthorized } from "@/server/appwrite";
-import { jsonError, routeErrorMessage } from "@/server/errors";
+import { jsonRouteError } from "@/server/errors";
 import { enforceRateLimit, getClientIp, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 import { applyOAuthLoginNonceCookie, createOAuthLoginNonce } from "@/server/session";
 
@@ -23,9 +23,6 @@ export async function GET(request: Request) {
       );
     }
 
-    return jsonError(
-      routeErrorMessage(error, "Unable to start Google login."),
-      500,
-    );
+    return jsonRouteError(error, "Unable to start Google login.", 500);
   }
 }

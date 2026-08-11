@@ -9,12 +9,7 @@ import { ensureGoogleAvatarUrl, readAvatarUrlFromPrefs } from "@/features/access
 import { PROFILE_AVATAR_MAX_BYTES } from "@/features/access-control/lib/avatar-image";
 import { getAppwriteSessionServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
-import {
-  jsonError,
-  routeErrorMessage,
-  routeErrorStatus,
-  ValidationError,
-} from "@/server/errors";
+import { jsonRouteError, ValidationError } from "@/server/errors";
 import { enforceRateLimit, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 import { getSessionSecret } from "@/server/session";
 
@@ -88,10 +83,7 @@ export async function POST(request: Request) {
       profile: result.profile,
     });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Profile photo upload failed."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Profile photo upload failed.");
   }
 }
 
@@ -128,9 +120,6 @@ export async function DELETE() {
       profile: result.profile,
     });
   } catch (error) {
-    return jsonError(
-      routeErrorMessage(error, "Could not remove profile photo."),
-      routeErrorStatus(error),
-    );
+    return jsonRouteError(error, "Could not remove profile photo.");
   }
 }

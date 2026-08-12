@@ -87,4 +87,7 @@ export const RATE_LIMITS = {
   internalJobPerIp: { limit: 30, windowMs: 60_000 },
   profileAvatarWritePerUser: { limit: 10, windowMs: 60 * 60 * 1000 },
   profileAvatarReadPerIp: { limit: 120, windowMs: 60_000 },
+  lavaFormSubmitPerUser: { limit: 30, windowMs: 60 * 60 * 1000 },
+  lavaFormManagePerUser: { limit: 60, windowMs: 60 * 60 * 1000 },
+  lavaFormFileReadPerIp: { limit: 120, windowMs: 60_000 },
 } as const;

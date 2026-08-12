@@ -81,7 +81,14 @@ export function MyProjectsWidget() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {conn.formUrl ? (
+                      {conn.provider === "lava" ? (
+                        <Link
+                          href={`/events/${conn.eventId}/forms/${conn.id}`}
+                          className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
+                        >
+                          Open
+                        </Link>
+                      ) : conn.formUrl ? (
                         <a
                           href={conn.formUrl}
                           target="_blank"

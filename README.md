@@ -20,7 +20,9 @@ The product scope is internal volunteer management for IEEE SB UoM:
 - Student Branch roles: ExCom, SB Lead, SB Member.
 - Event roles: Chair, Vice Chair, Committee Lead, Committee Member.
 - No university index number validation.
-- No in-house form builder.
+- Chairs may attach a Google Form link or build a custom in-app form
+  (registration, grants, t-shirt orders, OC progress, team registration, and more).
+  After pulling purpose/schema changes for custom forms, run `npm run setup:appwrite`.
 - SMTP-based UoM verification email sender.
 - No public event discovery module.
 - Lifetime volunteer points, with monthly/yearly best selections based on points
@@ -34,7 +36,8 @@ Use Node 22 or newer for local development. The npm scripts set
 `FORCE_NODE_FETCH=1` so the Appwrite server SDK works cleanly on Node 26.
 
 Copy `.env.example` to `.env.local` and fill the Appwrite project values before
-running the app.
+running the app. After pulling schema changes (including custom Lava forms and
+new form purposes), run `npm run setup:appwrite`.
 
 For Google login, create a Google OAuth Web Client and add this authorized
 redirect URI in Google Cloud:
@@ -89,7 +92,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run typecheck` - TypeScript validation
 - `npm run check` - lint and typecheck
 - `npm run test` - unit tests
-- `npm run setup:appwrite` - create/reuse Appwrite tables
+- `npm run setup:appwrite` - create/reuse Appwrite tables (run after pull when schema changes, including Lava custom forms)
 - `npm run setup:appwrite:oauth` - configure Appwrite Google OAuth provider
 - `npm run appwrite:audit` - PII-safe Appwrite security audit (JSON)
 - `npm run appwrite:harden` - apply auth/session/service hardening (CLI)

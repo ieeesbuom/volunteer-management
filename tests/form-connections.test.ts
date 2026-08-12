@@ -9,6 +9,11 @@ const eventHelperMocks = vi.hoisted(() => ({
 
 vi.mock("@/features/events/server/event-route-helpers", () => eventHelperMocks);
 
+vi.mock("@/features/forms/server/lava-form-store", () => ({
+  purgeLavaFormRecords: vi.fn(),
+  syncLavaFormStatus: vi.fn(),
+}));
+
 import {
   canListFormConnections,
   canManageFormConnections,
@@ -96,6 +101,53 @@ describe("form connections", () => {
         title: "Registration form",
       }),
     ).toThrow();
+  });
+
+  it("stores a Lava form reference id without an external URL or embedded fields", async () => {
+    const repository = createFakeFormConnectionRepository();
+    const service = createFormConnectionService({
+      now: fixedNow,
+      repository,
+    });
+
+    const connection = await service.createFormConnection({
+      input: {
+        eventId: "event-1",
+        externalFormId: "lavaFormRef01",
+        provider: "lava",
+        purpose: "registration",
+        title: "Custom registration",
+      },
+      user: fakeUser({ isAdmin: true }),
+    });
+
+    expect(connection).toMatchObject({
+      eventId: "event-1",
+      externalFormId: "lavaFormRef01",
+      provider: "lava",
+      title: "Custom registration",
+    });
+    expect(connection.formUrl).toBeUndefined();
+    expect("fields" in connection).toBe(false);
+    expect(() =>
+      createFormConnectionSchema.parse({
+        eventId: "event-1",
+        fields: [{ label: "Name" }],
+        externalFormId: "lavaFormRef01",
+        provider: "lava",
+        purpose: "registration",
+        title: "Custom registration",
+      }),
+    ).toThrow();
+    expect(() =>
+      createFormConnectionSchema.parse({
+        eventId: "event-1",
+        formUrl: "https://docs.google.com/forms/d/example/viewform",
+        provider: "lava",
+        purpose: "registration",
+        title: "Custom registration",
+      }),
+    ).toThrow("Custom forms");
   });
 
   it("rejects secrets and unsupported provider or status values", () => {

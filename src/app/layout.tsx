@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Nunito_Sans } from "next/font/google";
+import "@knurdz/lava-form-builder/styles.css";
 import "./globals.css";
 
 const inter = Inter({

@@ -217,8 +217,14 @@ export function DashboardCommandPalette({
         label: title,
         subtitle: conn.title !== title ? conn.title : "Volunteer registration",
         icon: Megaphone,
-        href: event?.$id ? `/events/${event.$id}` : undefined,
-        externalHref: !event?.$id ? conn.formUrl : undefined,
+        href:
+          conn.provider === "lava"
+            ? `/events/${conn.eventId}/forms/${conn.id}`
+            : event?.$id
+              ? `/events/${event.$id}`
+              : undefined,
+        externalHref:
+          conn.provider === "lava" || event?.$id ? undefined : conn.formUrl,
         searchText: normalizeSearchText([
           title,
           conn.title,

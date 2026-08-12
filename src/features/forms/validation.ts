@@ -51,11 +51,28 @@ export const baseFormConnectionObjectSchema = z.object({
 export const createFormConnectionSchema = baseFormConnectionObjectSchema
   .extend({ status: formConnectionStatusSchema.default("active") })
   .strict()
-  .refine((value) => value.externalFormId || value.formUrl, {
-    message: "Provide an external form ID or form URL.",
-    path: ["formUrl"],
-  })
+  .refine(
+    (value) =>
+      value.provider === "lava"
+        ? Boolean(value.externalFormId)
+        : Boolean(value.externalFormId || value.formUrl),
+    {
+      message: "Provide an external form ID or form URL.",
+      path: ["formUrl"],
+    },
+  )
   .superRefine((value, ctx) => {
+    if (value.provider === "lava") {
+      if (value.formUrl) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Custom forms do not use an external form URL.",
+          path: ["formUrl"],
+        });
+      }
+      return;
+    }
+
     if (!value.formUrl) {
       return;
     }
@@ -74,7 +91,16 @@ export const updateFormConnectionSchema = baseFormConnectionObjectSchema
   .partial()
   .strict()
   .superRefine((value, ctx) => {
-    if (!value.formUrl) {
+    if (value.provider === "lava" && value.formUrl) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Custom forms do not use an external form URL.",
+        path: ["formUrl"],
+      });
+      return;
+    }
+
+    if (!value.formUrl || value.provider === "lava") {
       return;
     }
 

@@ -20,6 +20,7 @@ const APPROVED_FORM_HOSTS: Record<FormConnectionProvider, readonly string[]> = {
     "www.jotform.com",
   ],
   google_forms: ["docs.google.com", "forms.gle", "forms.google.com"],
+  lava: [],
   other: [],
 };
 
@@ -71,6 +72,10 @@ export function isProviderApprovedFormUrl(
 
   if (provider === "other") {
     return true;
+  }
+
+  if (provider === "lava") {
+    return false;
   }
 
   if (!hostMatches(parsed.hostname, APPROVED_FORM_HOSTS[provider])) {

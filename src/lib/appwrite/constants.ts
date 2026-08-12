@@ -26,11 +26,16 @@ export const APPWRITE_TABLES = {
   notifications: "notifications",
   notificationPreferences: "notification_preferences",
   formConnections: "form_connections",
+  lavaForms: "lava_forms",
+  lavaFormFields: "lava_form_fields",
+  lavaFormSubmissions: "lava_form_submissions",
+  lavaFormUniqueKeys: "lava_form_unique_keys",
 } as const;
 
 export const APPWRITE_BUCKETS = {
   conclusionReportFiles: "conclusion_report_files",
   profileAvatars: "profile_avatars",
+  lavaFormFiles: "lava_form_files",
 } as const;
 
 export const UOM_VERIFICATION_CODE_TTL_MINUTES = 15;

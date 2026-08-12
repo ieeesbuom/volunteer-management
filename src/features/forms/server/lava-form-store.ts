@@ -24,7 +24,6 @@ import {
   parseMemberAnswers,
   parseSubmissionAnswers,
   serializeAnswers,
-  serializeJson,
   slugifyFormTitle,
   toFieldDefinition,
   toFormDefinition,

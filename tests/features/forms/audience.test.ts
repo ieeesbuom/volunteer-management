@@ -3,6 +3,7 @@ import {
   formatAudienceBadge,
   getFormAudienceMetadata,
   isEligibleForGlobalDashboard,
+  isFormBaseEligible,
   isFormEligibleForDashboard,
   isFormScheduleOpen,
   isFormVisibleToUser,
@@ -76,6 +77,20 @@ describe("getFormAudienceMetadata", () => {
   });
 });
 
+describe("isFormBaseEligible", () => {
+  it("treats Lava forms as eligible without an external form URL", () => {
+    const lava = createMockConnection({
+      externalFormId: "lavaFormRef01",
+      formUrl: undefined,
+      provider: "lava",
+    });
+    expect(isFormBaseEligible(lava)).toBe(true);
+
+    const google = createMockConnection({ formUrl: undefined });
+    expect(isFormBaseEligible(google)).toBe(false);
+  });
+});
+
 describe("isFormScheduleOpen", () => {
   it("respects open and close windows", () => {
     const conn = createMockConnection({
@@ -88,6 +103,19 @@ describe("isFormScheduleOpen", () => {
     expect(isFormScheduleOpen(conn, new Date("2026-04-30T23:00:00.000Z"))).toBe(false);
     expect(isFormScheduleOpen(conn, new Date("2026-05-05T12:00:00.000Z"))).toBe(true);
     expect(isFormScheduleOpen(conn, new Date("2026-05-11T00:00:00.000Z"))).toBe(false);
+  });
+
+  it("parses FormBuilder date-only open and close values", () => {
+    const conn = createMockConnection({
+      metadata: {
+        openAt: "2026/08/11",
+        closeAt: "2026/08/20",
+      },
+    });
+
+    expect(isFormScheduleOpen(conn, new Date("2026-08-10T18:29:00.000Z"))).toBe(false);
+    expect(isFormScheduleOpen(conn, new Date("2026-08-11T12:00:00.000Z"))).toBe(true);
+    expect(isFormScheduleOpen(conn, new Date("2026-08-20T18:30:00.000Z"))).toBe(false);
   });
 });
 
@@ -251,6 +279,41 @@ describe("isFormEligibleForDashboard", () => {
         user,
       ),
     ).toBe(true);
+  });
+
+  it("shows public grant and t-shirt forms as open opportunities", () => {
+    const user = createUser();
+    expect(
+      isFormEligibleForDashboard(
+        createMockConnection({
+          metadata: { audience: "public" },
+          purpose: "grant_request",
+        }),
+        user,
+      ),
+    ).toBe(true);
+    expect(
+      isFormEligibleForDashboard(
+        createMockConnection({
+          metadata: { audience: "volunteers_only" },
+          purpose: "tshirt_order",
+        }),
+        user,
+      ),
+    ).toBe(true);
+  });
+
+  it("hides operational OC progress forms from open opportunities", () => {
+    const user = createUser();
+    expect(
+      isFormEligibleForDashboard(
+        createMockConnection({
+          metadata: { audience: "public" },
+          purpose: "oc_progress",
+        }),
+        user,
+      ),
+    ).toBe(false);
   });
 
   it("hides feedback forms from the open-opportunity overview", () => {

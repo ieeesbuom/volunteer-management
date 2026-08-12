@@ -5,7 +5,9 @@ import {
   userIsEventChair,
 } from "@/features/access-control/lib/rules";
 import type { EventRoleAssignment, SessionUser } from "@/features/access-control/types";
-import type { FormConnection } from "@/features/forms/types";
+import { parseLavaScheduleMs } from "@/features/forms/lib/lava-schedule";
+import { isOperationalFormPurpose } from "@/features/forms/lib/lava-form-presets";
+import { isLavaFormProvider, type FormConnection } from "@/features/forms/types";
 
 export const FORM_AUDIENCE_TIERS = [
   "public",
@@ -32,15 +34,8 @@ export type FormRoleAssignment = {
   userId: string;
 };
 
-function parseScheduleInstant(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  // datetime-local values are timezone-less; treat as local wall time.
-  const ms = Date.parse(trimmed);
-  return Number.isNaN(ms) ? null : ms;
+function parseScheduleInstant(value: string, endOfDay = false): number | null {
+  return parseLavaScheduleMs(value, endOfDay);
 }
 
 export function getFormAudienceMetadata(connection: FormConnection): FormAudienceMetadata {
@@ -89,7 +84,7 @@ export function isFormScheduleOpen(
   }
 
   if (closeAt) {
-    const closeMs = parseScheduleInstant(closeAt);
+    const closeMs = parseScheduleInstant(closeAt, true);
     if (closeMs !== null && nowMs > closeMs) {
       return false;
     }
@@ -226,11 +221,19 @@ export function isFormVisibleToUser({
   return false;
 }
 
-/** Active form with URL that is currently within its availability window. */
+export function hasFormDestination(connection: FormConnection) {
+  if (isLavaFormProvider(connection.provider)) {
+    return Boolean(connection.externalFormId);
+  }
+
+  return Boolean(connection.formUrl);
+}
+
+/** Active form with a destination that is currently within its availability window. */
 export function isFormBaseEligible(connection: FormConnection, now: Date = new Date()) {
   return (
     connection.status === "active" &&
-    Boolean(connection.formUrl) &&
+    hasFormDestination(connection) &&
     isFormScheduleOpen(connection, now)
   );
 }
@@ -269,14 +272,9 @@ export function isFormEligibleForDashboard(
   const { audience } = getFormAudienceMetadata(connection);
   const isTeamScoped = audience === "event_team_only" || audience === "chairs_only";
 
-  // Open opportunities exclude operational form types (feedback/attendance/grading).
-  // Registration and "other" open calls (e.g. volunteer crew calls) remain eligible.
-  if (
-    !isTeamScoped &&
-    (connection.purpose === "feedback" ||
-      connection.purpose === "attendance" ||
-      connection.purpose === "grading")
-  ) {
+  // Open opportunities exclude operational form types.
+  // Registration, grants, t-shirts, team calls, and "other" remain eligible.
+  if (!isTeamScoped && isOperationalFormPurpose(connection.purpose)) {
     return false;
   }
 
@@ -295,7 +293,7 @@ export function isEligibleForGlobalDashboard(connection: FormConnection): boolea
   if (
     connection.status !== "active" ||
     connection.purpose !== "registration" ||
-    !connection.formUrl
+    !hasFormDestination(connection)
   ) {
     return false;
   }

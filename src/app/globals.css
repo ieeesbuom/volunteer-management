@@ -149,3 +149,18 @@ button * {
   cursor: pointer !important;
 }
 
+/* Lava Form Builder token mapping — do not restyle internals beyond these. */
+.lfb-root {
+  --lfb-bg: var(--bg-base);
+  --lfb-fg: var(--text-strong);
+  --lfb-border: var(--border-default);
+  --lfb-muted: var(--text-muted);
+  --lfb-accent: var(--primary);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+}
+
+.lfb-root--vms-builder [data-vms-hide="true"] {
+  display: none !important;
+}
+

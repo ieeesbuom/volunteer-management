@@ -3,6 +3,7 @@ import type { SafeJsonObject } from "@/lib/validation/safe-json";
 export const FORM_CONNECTION_PROVIDERS = [
   "google_forms",
   "external_form_builder",
+  "lava",
   "other",
 ] as const;
 
@@ -11,6 +12,10 @@ export const FORM_CONNECTION_PURPOSES = [
   "feedback",
   "attendance",
   "grading",
+  "grant_request",
+  "tshirt_order",
+  "oc_progress",
+  "team_registration",
   "other",
 ] as const;
 
@@ -21,6 +26,10 @@ export const FORM_CONNECTION_STATUSES = [
 ] as const;
 
 export type FormConnectionProvider = (typeof FORM_CONNECTION_PROVIDERS)[number];
+
+export function isLavaFormProvider(provider: FormConnectionProvider) {
+  return provider === "lava";
+}
 export type FormConnectionPurpose = (typeof FORM_CONNECTION_PURPOSES)[number];
 export type FormConnectionStatus = (typeof FORM_CONNECTION_STATUSES)[number];
 

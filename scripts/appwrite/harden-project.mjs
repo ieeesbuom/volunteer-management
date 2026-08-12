@@ -255,6 +255,108 @@ function ensureConclusionReportBucket() {
 
 ensureConclusionReportBucket();
 
+const lavaFormFilesBucketId = "lava_form_files";
+
+function ensureLavaFormFilesBucket() {
+  try {
+    runAppwriteCliVoid([
+      "storage",
+      "update-bucket",
+      "--bucket-id",
+      lavaFormFilesBucketId,
+      "--name",
+      "Lava Form Files",
+      "--file-security",
+      "true",
+      "--enabled",
+      "true",
+      "--maximum-file-size",
+      "10485760",
+      "--allowed-file-extensions",
+      "jpg",
+      "--allowed-file-extensions",
+      "jpeg",
+      "--allowed-file-extensions",
+      "png",
+      "--allowed-file-extensions",
+      "webp",
+      "--allowed-file-extensions",
+      "gif",
+      "--allowed-file-extensions",
+      "pdf",
+      "--allowed-file-extensions",
+      "doc",
+      "--allowed-file-extensions",
+      "docx",
+      "--allowed-file-extensions",
+      "txt",
+      "--allowed-file-extensions",
+      "csv",
+      "--allowed-file-extensions",
+      "xlsx",
+      "--compression",
+      "none",
+      "--encryption",
+      "true",
+      "--antivirus",
+      "true",
+    ]);
+    console.log(`Hardened lava form files bucket: ${lavaFormFilesBucketId}`);
+  } catch {
+    try {
+      runAppwriteCliVoid([
+        "storage",
+        "create-bucket",
+        "--bucket-id",
+        lavaFormFilesBucketId,
+        "--name",
+        "Lava Form Files",
+        "--file-security",
+        "true",
+        "--enabled",
+        "true",
+        "--maximum-file-size",
+        "10485760",
+        "--allowed-file-extensions",
+        "jpg",
+        "--allowed-file-extensions",
+        "jpeg",
+        "--allowed-file-extensions",
+        "png",
+        "--allowed-file-extensions",
+        "webp",
+        "--allowed-file-extensions",
+        "gif",
+        "--allowed-file-extensions",
+        "pdf",
+        "--allowed-file-extensions",
+        "doc",
+        "--allowed-file-extensions",
+        "docx",
+        "--allowed-file-extensions",
+        "txt",
+        "--allowed-file-extensions",
+        "csv",
+        "--allowed-file-extensions",
+        "xlsx",
+        "--compression",
+        "none",
+        "--encryption",
+        "true",
+        "--antivirus",
+        "true",
+      ]);
+      console.log(`Created lava form files bucket: ${lavaFormFilesBucketId}`);
+    } catch (createError) {
+      console.warn(
+        `Bucket hardening skipped (${lavaFormFilesBucketId}): ${createError instanceof Error ? createError.message : createError}`,
+      );
+    }
+  }
+}
+
+ensureLavaFormFilesBucket();
+
 const avatarBucketId = "profile_avatars";
 
 try {

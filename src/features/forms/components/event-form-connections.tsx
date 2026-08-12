@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Check,
   Clipboard,
   ExternalLink,
+  FilePenLine,
   Link2,
+  ListChecks,
   Loader2,
   Pencil,
   Play,
@@ -30,40 +34,34 @@ import {
   isFormVisibleToUser,
   type FormAudienceTier,
 } from "@/features/forms/lib/audience";
+import {
+  defaultGroupAnswersForPurpose,
+  getFormPurposeOptions,
+  isGroupAnswersEnabled,
+} from "@/features/forms/lib/lava-form-presets";
+import { createCustomEventFormAction } from "@/features/forms/server/lava-form-actions";
+import { lavaEditPath, lavaFillPath } from "@/features/forms/lib/lava-paths";
 import type {
   FormConnection,
   FormConnectionProvider,
   FormConnectionPurpose,
 } from "@/features/forms/types";
+import { isLavaFormProvider } from "@/features/forms/types";
 import { cn } from "@/lib/utils";
 
 const PROVIDERS: Array<{ label: string; value: FormConnectionProvider }> = [
   { label: "Google Forms", value: "google_forms" },
+  { label: "Custom form", value: "lava" },
   { label: "External Builder", value: "external_form_builder" },
   { label: "Other", value: "other" },
 ];
 
-const PURPOSES: Array<{ label: string; value: FormConnectionPurpose }> = [
-  { label: "Registration", value: "registration" },
-  { label: "Feedback", value: "feedback" },
-  { label: "Attendance", value: "attendance" },
-  { label: "Grading", value: "grading" },
-  { label: "Other", value: "other" },
-];
+const PURPOSES = getFormPurposeOptions();
 
 function detectProvider(url: string): FormConnectionProvider {
   if (url.includes("docs.google.com/forms") || url.includes("forms.gle")) {
     return "google_forms";
   }
-  return "other";
-}
-
-function detectPurpose(titleText: string): FormConnectionPurpose {
-  const t = titleText.toLowerCase();
-  if (t.includes("register") || t.includes("registration") || t.includes("sign up")) return "registration";
-  if (t.includes("feedback") || t.includes("survey")) return "feedback";
-  if (t.includes("attendance")) return "attendance";
-  if (t.includes("grade") || t.includes("grading") || t.includes("score")) return "grading";
   return "other";
 }
 
@@ -97,8 +95,12 @@ export function EventFormConnections({
   initialConnections: FormConnection[];
   isVolunteer?: boolean;
 }) {
+  const router = useRouter();
   const [connections, setConnections] = useState(initialConnections);
   const [showForm, setShowForm] = useState(initialConnections.length === 0 && canManage);
+  const [addMode, setAddMode] = useState<"choose" | "google" | "custom">(
+    initialConnections.length === 0 && canManage ? "choose" : "choose",
+  );
 
   const committeesMap = useMemo(
     () => new Map(committees.map((c) => [c.$id, c.name])),
@@ -108,6 +110,8 @@ export function EventFormConnections({
   // Add form state
   const [title, setTitle] = useState("");
   const [formUrl, setFormUrl] = useState("");
+  const [addPurpose, setAddPurpose] = useState<FormConnectionPurpose>("registration");
+  const [addGroupAnswers, setAddGroupAnswers] = useState(false);
   const [addOpenAt, setAddOpenAt] = useState("");
   const [addCloseAt, setAddCloseAt] = useState("");
   const [addAudience, setAddAudience] = useState<FormAudienceTier>("public");
@@ -117,6 +121,7 @@ export function EventFormConnections({
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editFormUrl, setEditFormUrl] = useState("");
+  const [editPurpose, setEditPurpose] = useState<FormConnectionPurpose>("registration");
   const [editOpenAt, setEditOpenAt] = useState("");
   const [editCloseAt, setEditCloseAt] = useState("");
   const [editAudience, setEditAudience] = useState<FormAudienceTier>("public");
@@ -181,7 +186,7 @@ export function EventFormConnections({
           formUrl: formUrl || undefined,
           metadata: Object.keys(metadata).length ? metadata : undefined,
           provider: detectProvider(formUrl),
-          purpose: detectPurpose(title),
+          purpose: addPurpose,
           title,
         }),
         headers: { "Content-Type": "application/json" },
@@ -196,14 +201,59 @@ export function EventFormConnections({
       setConnections((current) => [payload.connection!, ...current]);
       setTitle("");
       setFormUrl("");
+      setAddPurpose("registration");
+      setAddGroupAnswers(false);
       setAddOpenAt("");
       setAddCloseAt("");
       setAddAudience("public");
       setAddTargetCommitteeId("");
       setShowForm(false);
+      setAddMode("choose");
       setMessage("Form connection saved.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save form connection.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function buildAudienceMetadata(openAt: string, closeAt: string, audience: FormAudienceTier, committeeId: string) {
+    const metadata: Record<string, string> = {};
+    if (openAt) metadata.openAt = openAt;
+    if (closeAt) metadata.closeAt = closeAt;
+    if (audience && audience !== "public") metadata.audience = audience;
+    if (audience === "event_team_only" && committeeId) {
+      metadata.targetCommitteeId = committeeId;
+      const committeeName = committeesMap.get(committeeId);
+      if (committeeName) {
+        metadata.targetCommitteeName = committeeName;
+      }
+    }
+    return metadata;
+  }
+
+  async function submitCustomForm(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await createCustomEventFormAction({
+        eventId,
+        groupAnswersEnabled: addGroupAnswers,
+        metadata: buildAudienceMetadata(addOpenAt, addCloseAt, addAudience, addTargetCommitteeId),
+        purpose: addPurpose,
+        title,
+      });
+
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      router.push(lavaEditPath(eventId, result.connectionId));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not create custom form.");
     } finally {
       setSubmitting(false);
     }
@@ -226,13 +276,35 @@ export function EventFormConnections({
       }
     }
 
+    const existing = connections.find((connection) => connection.id === id);
+    const isLava = existing ? isLavaFormProvider(existing.provider) : false;
+    const nextMetadata: Record<string, string | boolean> = {};
+    for (const [key, value] of Object.entries(existing?.metadata ?? {})) {
+      if (typeof value === "string" || typeof value === "boolean") {
+        nextMetadata[key] = value;
+      }
+    }
+    Object.assign(nextMetadata, metadata);
+    if (isLava) {
+      nextMetadata.groupAnswersEnabled = isGroupAnswersEnabled(existing!);
+    } else {
+      delete nextMetadata.groupAnswersEnabled;
+    }
+    if (!editOpenAt) delete nextMetadata.openAt;
+    if (!editCloseAt) delete nextMetadata.closeAt;
+    if (editAudience === "public") {
+      delete nextMetadata.audience;
+      delete nextMetadata.targetCommitteeId;
+      delete nextMetadata.targetCommitteeName;
+    }
+
     try {
       const response = await fetch(`/api/forms/connections/${id}`, {
         body: JSON.stringify({
-          formUrl: editFormUrl || undefined,
-          metadata: Object.keys(metadata).length ? metadata : undefined,
-          provider: detectProvider(editFormUrl),
-          purpose: detectPurpose(editTitle),
+          formUrl: isLava ? undefined : editFormUrl || undefined,
+          metadata: nextMetadata,
+          provider: isLava ? "lava" : detectProvider(editFormUrl),
+          purpose: editPurpose,
           title: editTitle,
         }),
         headers: { "Content-Type": "application/json" },
@@ -345,18 +417,27 @@ export function EventFormConnections({
               Event Forms
             </CardTitle>
             <CardDescription>
-              Quick access links for volunteers and organizers.
+              Attach a Google Form link or build a custom in-app form.
             </CardDescription>
           </div>
           {canManage ? (
             <Button
-              onClick={() => setShowForm((v) => !v)}
+              onClick={() => {
+                setShowForm((open) => {
+                  if (open) {
+                    setAddMode("choose");
+                    return false;
+                  }
+                  setAddMode("choose");
+                  return true;
+                });
+              }}
               type="button"
               variant={showForm ? "secondary" : "primary"}
               className="cursor-pointer"
             >
               <Plus className={cn("size-4 transition-transform", showForm && "rotate-45")} aria-hidden="true" />
-              {showForm ? "Cancel" : "Add Form Link"}
+              {showForm ? "Cancel" : "Add Form"}
             </Button>
           ) : null}
         </div>
@@ -371,6 +452,9 @@ export function EventFormConnections({
             <div className="grid gap-4 sm:grid-cols-2">
               {visibleConnections.map((connection) => {
                 const isClosed = connection.status === "disabled";
+                const isLava = isLavaFormProvider(connection.provider);
+                const fillPath = lavaFillPath(eventId, connection.id);
+                const editPath = lavaEditPath(eventId, connection.id);
                 const { openAt, closeAt } = getSchedule(connection);
                 return (
                   <div
@@ -396,16 +480,32 @@ export function EventFormConnections({
                           />
                         </label>
                         <label className="block text-xs font-semibold text-text-secondary">
-                          URL
-                          <input
-                            className={cn(eventInputClasses, "mt-1 text-sm font-normal py-1.5")}
-                            value={editFormUrl}
-                            onChange={(e) => setEditFormUrl(e.target.value)}
-                            maxLength={1024}
-                            required
-                            type="url"
-                          />
+                          Purpose
+                          <select
+                            className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5 cursor-pointer")}
+                            value={editPurpose}
+                            onChange={(e) => setEditPurpose(e.target.value as FormConnectionPurpose)}
+                          >
+                            {PURPOSES.map((purpose) => (
+                              <option key={purpose.value} value={purpose.value}>
+                                {purpose.label}
+                              </option>
+                            ))}
+                          </select>
                         </label>
+                        {isLava ? null : (
+                          <label className="block text-xs font-semibold text-text-secondary">
+                            URL
+                            <input
+                              className={cn(eventInputClasses, "mt-1 text-sm font-normal py-1.5")}
+                              value={editFormUrl}
+                              onChange={(e) => setEditFormUrl(e.target.value)}
+                              maxLength={1024}
+                              required
+                              type="url"
+                            />
+                          </label>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
                           <label className="block text-xs font-semibold text-text-secondary">
                             Opens at
@@ -471,7 +571,7 @@ export function EventFormConnections({
                             variant="primary"
                             className="cursor-pointer h-8 px-3 text-xs"
                             onClick={() => handleUpdateConnection(connection.id)}
-                            disabled={submitting || !editTitle || !editFormUrl}
+                            disabled={submitting || !editTitle || (!isLava && !editFormUrl)}
                           >
                             {submitting ? "Saving…" : "Save"}
                           </Button>
@@ -521,6 +621,7 @@ export function EventFormConnections({
                                       setEditingConnectionId(connection.id);
                                       setEditTitle(connection.title);
                                       setEditFormUrl(connection.formUrl ?? "");
+                                      setEditPurpose(connection.purpose);
                                       setEditOpenAt(oa);
                                       setEditCloseAt(ca);
                                       setEditAudience(aud);
@@ -585,7 +686,69 @@ export function EventFormConnections({
                         </div>
 
                         {/* Bottom Buttons — Disabled if closed */}
-                        {connection.formUrl ? (
+                        {isLava ? (
+                          <div className="mt-4 flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              {isClosed ? (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary/40 px-4 py-2.5 text-sm font-semibold text-white/70 cursor-not-allowed"
+                                >
+                                  Fill form
+                                </button>
+                              ) : (
+                                <Link
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover"
+                                  href={fillPath}
+                                >
+                                  Fill form
+                                </Link>
+                              )}
+                              <button
+                                onClick={() =>
+                                  handleCopy(
+                                    connection.id,
+                                    `${window.location.origin}${fillPath}`,
+                                  )
+                                }
+                                type="button"
+                                disabled={isClosed}
+                                className={cn(
+                                  "inline-flex items-center justify-center rounded-lg border bg-surface-subtle p-2.5 text-text-secondary transition",
+                                  isClosed
+                                    ? "border-border/50 opacity-40 cursor-not-allowed"
+                                    : "border-border hover:bg-surface hover:text-primary cursor-pointer",
+                                )}
+                                title="Copy form link"
+                              >
+                                {copiedId === connection.id ? (
+                                  <Check className="size-4 text-success" aria-hidden="true" />
+                                ) : (
+                                  <Clipboard className="size-4" aria-hidden="true" />
+                                )}
+                              </button>
+                            </div>
+                            {canManage ? (
+                              <div className="flex gap-2">
+                                <Link
+                                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface hover:text-primary"
+                                  href={editPath}
+                                >
+                                  <FilePenLine className="size-3.5" aria-hidden="true" />
+                                  Edit form
+                                </Link>
+                                <Link
+                                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface hover:text-primary"
+                                  href={`${editPath}#responses`}
+                                >
+                                  <ListChecks className="size-3.5" aria-hidden="true" />
+                                  Responses
+                                </Link>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : connection.formUrl ? (
                           <div className="mt-4 flex gap-2">
                             {isClosed ? (
                               <button
@@ -644,12 +807,19 @@ export function EventFormConnections({
             <div className="rounded-full bg-surface-subtle p-4 mb-4">
               <Link2 className="size-8 text-text-muted" aria-hidden="true" />
             </div>
-            <h4 className="font-semibold text-text-primary text-base mb-1">No forms linked yet</h4>
+            <h4 className="font-semibold text-text-primary text-base mb-1">No forms yet</h4>
             <p className="text-sm text-text-secondary max-w-sm mb-4">
-              Volunteers will see direct links here once they are added by the event chair or admin.
+              Volunteers will see Google Form links or in-app custom forms once a chair or admin adds them.
             </p>
             {canManage ? (
-              <Button onClick={() => setShowForm(true)} variant="secondary" className="cursor-pointer">
+              <Button
+                onClick={() => {
+                  setAddMode("choose");
+                  setShowForm(true);
+                }}
+                variant="secondary"
+                className="cursor-pointer"
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 Add First Form
               </Button>
@@ -660,9 +830,37 @@ export function EventFormConnections({
         {/* Add Form Panel */}
         {showForm ? (
           <div className="rounded-xl border border-border bg-surface-subtle/30 p-5 shadow-inner">
-            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Add Form Link</h3>
-            <form className="space-y-4" onSubmit={submitConnection}>
-              <div className="grid gap-4 sm:grid-cols-2">
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">
+              {addMode === "custom" ? "Build custom form" : addMode === "google" ? "Add Google Form link" : "Add form"}
+            </h3>
+            {addMode === "choose" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  className="rounded-xl border border-border bg-surface p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
+                  onClick={() => setAddMode("google")}
+                  type="button"
+                >
+                  <ExternalLink className="size-5 text-primary" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-semibold text-text-strong">Google Form link</p>
+                  <p className="mt-1 text-xs leading-5 text-text-muted">
+                    Paste an existing Google Form URL. Volunteers open it in a new tab.
+                  </p>
+                </button>
+                <button
+                  className="rounded-xl border border-border bg-surface p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
+                  onClick={() => setAddMode("custom")}
+                  type="button"
+                >
+                  <FilePenLine className="size-5 text-primary" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-semibold text-text-strong">Custom form</p>
+                  <p className="mt-1 text-xs leading-5 text-text-muted">
+                    Build questions in the app. Volunteers fill it here and you can view responses.
+                  </p>
+                </button>
+              </div>
+            ) : (
+            <form className="space-y-4" onSubmit={addMode === "custom" ? submitCustomForm : submitConnection}>
+              <div className={cn("grid gap-4", addMode === "google" && "sm:grid-cols-2")}>
                 <label className="block text-sm font-semibold text-text-secondary">
                   Form Title
                   <input
@@ -674,18 +872,62 @@ export function EventFormConnections({
                     value={title}
                   />
                 </label>
+                {addMode === "google" ? (
+                  <label className="block text-sm font-semibold text-text-secondary">
+                    Form URL
+                    <input
+                      className={cn(eventInputClasses, "mt-1.5 font-normal")}
+                      maxLength={1024}
+                      onChange={(e) => setFormUrl(e.target.value)}
+                      placeholder="https://forms.gle/..."
+                      required
+                      type="url"
+                      value={formUrl}
+                    />
+                  </label>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-text-secondary">
-                  Form URL
-                  <input
-                    className={cn(eventInputClasses, "mt-1.5 font-normal")}
-                    maxLength={1024}
-                    onChange={(e) => setFormUrl(e.target.value)}
-                    placeholder="https://forms.gle/..."
-                    required
-                    type="url"
-                    value={formUrl}
-                  />
+                  Purpose
+                  <select
+                    className={cn(eventInputClasses, "mt-1.5 font-normal cursor-pointer")}
+                    value={addPurpose}
+                    onChange={(e) => {
+                      const next = e.target.value as FormConnectionPurpose;
+                      setAddPurpose(next);
+                      setAddGroupAnswers(defaultGroupAnswersForPurpose(next));
+                    }}
+                  >
+                    {PURPOSES.map((purpose) => (
+                      <option key={purpose.value} value={purpose.value}>
+                        {purpose.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-text-muted">
+                    {PURPOSES.find((purpose) => purpose.value === addPurpose)?.description}
+                  </span>
                 </label>
+                {addMode === "custom" ? (
+                  <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 text-sm text-text-secondary">
+                    <input
+                      checked={addGroupAnswers}
+                      className="mt-1 size-4 accent-(--primary)"
+                      onChange={(e) => setAddGroupAnswers(e.target.checked)}
+                      type="checkbox"
+                    />
+                    <span>
+                      <span className="font-semibold text-text-strong">Collect group / team answers</span>
+                      <span className="mt-1 block text-xs font-normal text-text-muted">
+                        Lets volunteers enter a group size and answer some questions per member. Turn this on for team registrations.
+                      </span>
+                    </span>
+                  </label>
+                ) : (
+                  <div />
+                )}
               </div>
 
               {/* Schedule */}
@@ -744,9 +986,18 @@ export function EventFormConnections({
                 ) : null}
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
                 <Button
-                  disabled={submitting || !title || !formUrl}
+                  disabled={submitting}
+                  onClick={() => setAddMode("choose")}
+                  type="button"
+                  variant="ghost"
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  Back
+                </Button>
+                <Button
+                  disabled={submitting || !title || (addMode === "google" && !formUrl)}
                   type="submit"
                   variant="primary"
                   className="cursor-pointer w-full sm:w-auto"
@@ -756,10 +1007,11 @@ export function EventFormConnections({
                   ) : (
                     <Plus className="size-4" aria-hidden="true" />
                   )}
-                  Save Form Link
+                  {addMode === "custom" ? "Create and open builder" : "Save Form Link"}
                 </Button>
               </div>
             </form>
+            )}
           </div>
         ) : null}
 

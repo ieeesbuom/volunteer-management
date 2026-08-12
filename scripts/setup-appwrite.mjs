@@ -46,7 +46,8 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-const { Client, Databases, Query, TablesDB, TablesDBIndexType } = await import("node-appwrite");
+const { Client, Compression, Databases, Query, Storage, TablesDB, TablesDBIndexType } =
+  await import("node-appwrite");
 
 const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
 const client = new Client()
@@ -75,12 +76,33 @@ const notificationTypeElements = [
   "report_approval",
   "system",
 ];
-const formProviderElements = ["google_forms", "external_form_builder", "other"];
+const formProviderElements = ["google_forms", "external_form_builder", "lava", "other"];
+const lavaFormStatusElements = ["draft", "open", "closed"];
+const lavaFieldScopeElements = ["submission", "member"];
+const lavaFieldTypeElements = [
+  "text",
+  "textarea",
+  "email",
+  "tel",
+  "url",
+  "number",
+  "select",
+  "radio",
+  "checkbox",
+  "date",
+  "time",
+  "file",
+  "page_break",
+];
 const formPurposeElements = [
   "registration",
   "feedback",
   "attendance",
   "grading",
+  "grant_request",
+  "tshirt_order",
+  "oc_progress",
+  "team_registration",
   "other",
 ];
 const formStatusElements = ["active", "disabled", "archived"];
@@ -611,6 +633,101 @@ const tableDefinitions = [
       ["form_connections_event_updated_idx", ["eventId", "updatedAt"]],
     ],
   },
+  {
+    id: "lava_forms",
+    name: "Lava Forms",
+    columns: [
+      ["string", "eventId", 128, true],
+      ["string", "connectionId", 64, false],
+      ["string", "createdBy", 64, true],
+      ["string", "slug", 80, true],
+      ["string", "title", 160, true],
+      ["string", "description", 2000, false],
+      ["string", "kind", 64, true],
+      ["enum", "status", lavaFormStatusElements, true],
+      ["string", "openAt", 40, false],
+      ["string", "closeAt", 40, false],
+      ["string", "successMessage", 2000, false],
+      ["boolean", "confirmationEmailEnabled", true],
+      ["string", "confirmationEmailTemplate", 5000, false],
+      ["string", "confirmationEmailFieldId", 64, false],
+      ["string", "confirmationNameFieldId", 64, false],
+      ["string", "confirmationEmailSelectedFieldIds", 2000, false],
+      ["boolean", "googleSheetsSyncEnabled", true],
+      ["string", "googleSheetsSelectedFieldIds", 2000, false],
+      ["string", "googleSheetsAdminUserId", 64, false],
+      ["string", "googleSheetsSheetTitle", 160, false],
+      ["integer", "teamMinMembers", true],
+      ["integer", "teamMaxMembers", true],
+      ["string", "bannerFileId", 64, false],
+      ["integer", "sortOrder", true],
+      ["datetime", "createdAt", true],
+      ["datetime", "updatedAt", true],
+    ],
+    indexes: [
+      ["lava_forms_event_idx", ["eventId"]],
+      ["lava_forms_connection_idx", ["connectionId"]],
+      ["lava_forms_event_slug_idx", ["eventId", "slug"], "unique"],
+    ],
+  },
+  {
+    id: "lava_form_fields",
+    name: "Lava Form Fields",
+    columns: [
+      ["string", "formId", 64, true],
+      ["enum", "scope", lavaFieldScopeElements, true],
+      ["string", "key", 80, true],
+      ["string", "label", 160, true],
+      ["enum", "type", lavaFieldTypeElements, true],
+      ["boolean", "required", true],
+      ["integer", "sortOrder", true],
+      ["string", "optionsJson", 8000, false],
+      ["string", "placeholder", 240, false],
+      ["string", "helpText", 500, false],
+      ["boolean", "isUnique", true],
+      ["boolean", "uniqueCaseSensitive", true],
+      ["string", "validationPattern", 240, false],
+      ["string", "validationPatternMessage", 240, false],
+    ],
+    indexes: [
+      ["lava_form_fields_form_idx", ["formId"]],
+      ["lava_form_fields_form_sort_idx", ["formId", "sortOrder"]],
+    ],
+  },
+  {
+    id: "lava_form_submissions",
+    name: "Lava Form Submissions",
+    columns: [
+      ["string", "formId", 64, true],
+      ["string", "eventId", 128, true],
+      ["string", "submittedBy", 64, true],
+      ["string", "answersJson", 65535, true],
+      ["string", "memberAnswersJson", 65535, false],
+      ["string", "teamName", 160, false],
+      ["datetime", "createdAt", true],
+    ],
+    indexes: [
+      ["lava_form_submissions_form_idx", ["formId"]],
+      ["lava_submissions_created_idx", ["formId", "createdAt"]],
+      ["lava_submissions_submitter_idx", ["submittedBy"]],
+    ],
+  },
+  {
+    id: "lava_form_unique_keys",
+    name: "Lava Form Unique Keys",
+    columns: [
+      ["string", "uniqueKey", 400, true],
+      ["string", "formId", 64, true],
+      ["string", "fieldId", 64, true],
+      ["string", "normalizedValue", 240, true],
+      ["string", "submissionId", 64, false],
+    ],
+    indexes: [
+      ["lava_form_unique_keys_key_idx", ["uniqueKey"], "unique"],
+      ["lava_form_unique_keys_form_idx", ["formId"]],
+      ["lava_form_unique_keys_submission_idx", ["submissionId"]],
+    ],
+  },
 ];
 
 async function ignoreAlreadyExists(action, label) {
@@ -817,6 +934,7 @@ async function main() {
   await migrateRecommendationRequestKeys();
   await migrateLegacyEventCommittees();
   await migrateEventRoleNames();
+  await ensureLavaFormFilesBucket();
 }
 
 async function ensureIndex({ columns, indexId, indexType, tableId }) {
@@ -907,6 +1025,48 @@ async function migrateRecommendationRequestKeys() {
   }
 
   console.log(`migrated recommendation request keys: ${migrated}`);
+}
+
+async function ensureLavaFormFilesBucket() {
+  const storage = new Storage(client);
+  const bucketId = "lava_form_files";
+  const extensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "pdf",
+    "doc",
+    "docx",
+    "txt",
+    "csv",
+    "xlsx",
+  ];
+
+  try {
+    await storage.getBucket({ bucketId });
+    console.log(`exists bucket ${bucketId}`);
+    return;
+  } catch (error) {
+    if (error?.code !== 404) {
+      throw error;
+    }
+  }
+
+  await storage.createBucket({
+    allowedFileExtensions: extensions,
+    antivirus: true,
+    bucketId,
+    compression: Compression.None,
+    enabled: true,
+    encryption: true,
+    fileSecurity: true,
+    maximumFileSize: 10 * 1024 * 1024,
+    name: "Lava Form Files",
+    permissions: [],
+  });
+  console.log(`created bucket ${bucketId}`);
 }
 
 async function migrateEventRoleNames() {

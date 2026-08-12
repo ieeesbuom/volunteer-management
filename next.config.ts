@@ -49,6 +49,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  transpilePackages: ["@knurdz/lava-form-builder"],
   poweredByHeader: false,
   serverExternalPackages: ["pdfkit"],
   async headers() {

@@ -11,8 +11,12 @@ import {
 } from "@/features/forms/server/form-connection-repository";
 import { createFormConnectionSchema } from "@/features/forms/validation";
 import { isProviderApprovedFormUrl } from "@/lib/validation/safe-links";
-import type { CreateFormConnectionInput } from "@/features/forms/types";
+import { isLavaFormProvider, type CreateFormConnectionInput } from "@/features/forms/types";
 import type { SessionUser } from "@/features/access-control/types";
+import {
+  purgeLavaFormRecords,
+  syncLavaFormStatus,
+} from "@/features/forms/server/lava-form-store";
 
 type FormConnectionServiceDeps = {
   now?: () => Date;
@@ -80,16 +84,30 @@ export function createFormConnectionService({
       }
 
       const provider = input.provider ?? existing.provider;
-      if (input.formUrl && !isProviderApprovedFormUrl(input.formUrl, provider)) {
+      if (
+        input.formUrl &&
+        provider !== "lava" &&
+        !isProviderApprovedFormUrl(input.formUrl, provider)
+      ) {
         throw new Error(
           "Form URLs must be HTTPS URLs approved for the selected provider.",
         );
       }
 
-      return repository.update(id, {
+      const updated = await repository.update(id, {
         ...input,
         updatedAt: now().toISOString(),
       });
+
+      if (
+        isLavaFormProvider(updated.provider) &&
+        updated.externalFormId &&
+        input.status
+      ) {
+        await syncLavaFormStatus(updated.externalFormId, updated.status);
+      }
+
+      return updated;
     },
 
     async deleteFormConnection({
@@ -106,6 +124,10 @@ export function createFormConnectionService({
 
       if (!(await canManageFormConnectionsForEvent(user, existing.eventId))) {
         throw new Error("Event form connection permission is required.");
+      }
+
+      if (isLavaFormProvider(existing.provider) && existing.externalFormId) {
+        await purgeLavaFormRecords({ formId: existing.externalFormId });
       }
 
       return repository.delete(id);

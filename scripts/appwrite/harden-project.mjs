@@ -7,7 +7,7 @@
  */
 
 import { loadLocalEnv } from "./client.mjs";
-import { runAppwriteCliVoid } from "./cli.mjs";
+import { runAppwriteCli, runAppwriteCliVoid } from "./cli.mjs";
 
 loadLocalEnv();
 

@@ -33,6 +33,14 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
     };
   }
 
+  if (rawError === "oauth_start_failed") {
+    return {
+      details:
+        "Appwrite rejected the login redirect URL. Register https://ieeevm.knurdz.org as a Web platform in Appwrite, set APP_URL in production, and confirm Google OAuth credentials in Appwrite.",
+      title: "Unable to start Google login",
+    };
+  }
+
   if (rawError === "oauth_failed") {
     return {
       details:

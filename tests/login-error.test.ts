@@ -32,4 +32,12 @@ describe("login error messages", () => {
   it("explains missing OAuth login nonce cookies", () => {
     expect(getLoginErrorMessage("oauth_state_missing")?.title).toBe("Login session expired");
   });
+
+  it("explains oauth start failures", () => {
+    expect(getLoginErrorMessage("oauth_start_failed")).toEqual({
+      details:
+        "Appwrite rejected the login redirect URL. Register https://ieeevm.knurdz.org as a Web platform in Appwrite, set APP_URL in production, and confirm Google OAuth credentials in Appwrite.",
+      title: "Unable to start Google login",
+    });
+  });
 });

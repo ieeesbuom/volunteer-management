@@ -4,7 +4,9 @@ import { z } from "zod";
 import {
   ConflictError,
   ForbiddenError,
+  isAppwriteUnauthorized,
   isExpectedRouteError,
+  isInvalidOAuthRedirect,
   NotFoundError,
   ValidationError,
 } from "@/server/errors";
@@ -36,5 +38,24 @@ describe("isExpectedRouteError", () => {
     expect(isExpectedRouteError(new TypeError("Cannot read properties of undefined"))).toBe(false);
     expect(isExpectedRouteError(new Error("APPWRITE_API_KEY_UNAUTHORIZED"))).toBe(false);
     expect(isExpectedRouteError(new AppwriteException("Missing scope", 401))).toBe(false);
+  });
+});
+
+describe("Appwrite auth error helpers", () => {
+  it("detects unauthorized Appwrite errors without relying on instanceof", () => {
+    expect(
+      isAppwriteUnauthorized({
+        code: 401,
+        type: "user_unauthorized",
+        message: "The current user is not authorized to perform the requested action.",
+      }),
+    ).toBe(true);
+    expect(isAppwriteUnauthorized(new AppwriteException("Missing scope", 401))).toBe(false);
+  });
+
+  it("detects Appwrite OAuth invalid redirects", () => {
+    expect(isInvalidOAuthRedirect(new AppwriteException("Invalid redirect", 400))).toBe(true);
+    expect(isInvalidOAuthRedirect(new Error("Invalid redirect"))).toBe(true);
+    expect(isInvalidOAuthRedirect(new Error("Something else"))).toBe(false);
   });
 });

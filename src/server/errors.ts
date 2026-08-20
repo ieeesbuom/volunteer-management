@@ -50,11 +50,29 @@ export function isAppwriteConflict(error: unknown) {
 }
 
 export function isAppwriteUnauthorized(error: unknown) {
+  const code = getErrorProperty(error, "code");
+  const type = getErrorProperty(error, "type");
+
   return (
-    error instanceof AppwriteException &&
-    error.code === 401 &&
-    (error.type === "user_unauthorized" || error.type === "general_unauthorized_scope")
+    code === 401 &&
+    (type === "user_unauthorized"
+      || type === "general_unauthorized_scope"
+      || type === "general_unauthorized")
   );
+}
+
+export function isInvalidOAuthRedirect(error: unknown) {
+  const message = error instanceof Error ? error.message : getErrorProperty(error, "message");
+
+  return message === "Invalid redirect";
+}
+
+function getErrorProperty(error: unknown, key: string) {
+  if (typeof error !== "object" || error === null || !(key in error)) {
+    return undefined;
+  }
+
+  return (error as Record<string, unknown>)[key];
 }
 
 export function jsonError(message: string, status = 400) {

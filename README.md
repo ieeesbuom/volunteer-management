@@ -40,17 +40,28 @@ running the app. After pulling schema changes (including custom Lava forms and
 new form purposes), run `npm run setup:appwrite`.
 
 For Google login, create a Google OAuth Web Client and add this authorized
-redirect URI in Google Cloud:
+redirect URI in Google Cloud (this is Appwrite's callback, not the app URL):
 
 ```txt
 https://YOUR_APPWRITE_REGION.cloud.appwrite.io/v1/account/sessions/oauth2/callback/google/YOUR_APPWRITE_PROJECT_ID
 ```
+
+Do **not** use `https://ieeevm.knurdz.org/api/auth/callback` as the Google
+redirect URI. That path is the app's return URL after Appwrite completes OAuth.
 
 Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, then run:
 
 ```bash
 npm run setup:appwrite:oauth
 ```
+
+Production also needs:
+
+- `APP_URL=https://ieeevm.knurdz.org` so OAuth redirects use the public hostname
+  behind reverse proxies.
+- Appwrite project Overview → add a **Web platform** with hostname
+  `ieeevm.knurdz.org`, or set `APPWRITE_PRODUCTION_HOSTNAME=ieeevm.knurdz.org`
+  and run `npm run appwrite:harden`.
 
 For UoM verification emails, configure SMTP in `.env`. The app sends email
 directly from the Next.js server; no KNURDZ email API is required.
@@ -98,6 +109,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run appwrite:harden` - apply auth/session/service hardening (CLI)
 - `npm run appwrite:keys` / `appwrite:keys:sync-env` - rotate/sync API keys
 
-## Appwrite — pending
+## Production auth checklist
 
-- **Production web platform hostname** — not decided yet. When you have the live app URL, set `APPWRITE_PRODUCTION_HOSTNAME` in `.env.local` (see `.env.example`) and run `npm run appwrite:harden` to register the web platform in Appwrite. Until then, skip this step; local dev continues to use `localhost`.
+- Set `APP_URL=https://ieeevm.knurdz.org` in the production runtime env.
+- Register `ieeevm.knurdz.org` as an Appwrite Web platform (`APPWRITE_PRODUCTION_HOSTNAME` + `npm run appwrite:harden`, or Appwrite Console).
+- Confirm Google OAuth redirect URI points at Appwrite (`npm run setup:appwrite:oauth` prints the exact URL).

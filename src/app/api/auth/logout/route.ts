@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { APPWRITE_SESSION_COOKIE } from "@/lib/appwrite/constants";
 import { getAppwriteSessionServices } from "@/server/appwrite";
+import { getPublicAppOrigin } from "@/server/public-origin";
 import { getSessionSecret } from "@/server/session";
 
 const clearCookieOptions = {
@@ -27,7 +28,7 @@ async function logout(request: Request) {
     }
   }
 
-  const response = NextResponse.redirect(new URL("/login", new URL(request.url).origin), 303);
+  const response = NextResponse.redirect(new URL("/login", getPublicAppOrigin(request)), 303);
   response.cookies.set(APPWRITE_SESSION_COOKIE, "", clearCookieOptions);
 
   return response;

@@ -23,6 +23,11 @@ const optionalBooleanString = z.preprocess(
     .transform((option) => option === "true"),
 );
 
+const optionalUrl = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().url().optional(),
+);
+
 const serverEnvSchema = z.object({
   NEXT_PUBLIC_APPWRITE_ENDPOINT: z.string().url(),
   NEXT_PUBLIC_APPWRITE_PROJECT_ID: z.string().min(1),
@@ -42,6 +47,7 @@ const serverEnvSchema = z.object({
   INTERNAL_JOB_TOKEN: optionalString,
   VERIFICATION_PEPPER: optionalString,
   NOTIFICATION_EMAILS_ENABLED: optionalBooleanString,
+  APP_URL: optionalUrl,
 });
 
 const publicEnvSchema = z.object({

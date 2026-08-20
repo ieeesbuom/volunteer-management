@@ -4,6 +4,7 @@ import { ensureGoogleAvatarUrl } from "@/features/access-control/server/google-a
 import { createSessionFromOAuthToken } from "@/features/access-control/server/oauth";
 import { bootstrapProfile } from "@/features/access-control/server/profiles";
 import { isAppwriteUnauthorized } from "@/server/errors";
+import { getPublicAppOrigin } from "@/server/public-origin";
 import {
   applySessionSecretCookie,
   clearOAuthLoginNonceCookie,
@@ -13,19 +14,20 @@ import {
 } from "@/server/session";
 
 export async function GET(request: Request) {
+  const origin = getPublicAppOrigin(request);
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId");
   const secret = url.searchParams.get("secret");
   let sessionSecret: string | null = null;
 
   if (!userId || !secret) {
-    return NextResponse.redirect(new URL("/login?error=missing_callback", url.origin));
+    return NextResponse.redirect(new URL("/login?error=missing_callback", origin));
   }
 
   const oauthNonce = await readOAuthLoginNonce();
 
   if (!oauthNonce) {
-    return NextResponse.redirect(new URL("/login?error=oauth_state_missing", url.origin));
+    return NextResponse.redirect(new URL("/login?error=oauth_state_missing", origin));
   }
 
   try {
@@ -34,11 +36,11 @@ export async function GET(request: Request) {
     const session = await createSessionFromOAuthToken({ secret, userId });
 
     if (!session.secret) {
-      const errResponse = NextResponse.redirect(
-        new URL("/login?error=session_secret_missing", url.origin),
+      const response = NextResponse.redirect(
+        new URL("/login?error=session_secret_missing", origin),
       );
-      clearOAuthLoginNonceCookie(errResponse);
-      return errResponse;
+      clearOAuthLoginNonceCookie(response);
+      return response;
     }
 
     sessionSecret = session.secret;
@@ -46,7 +48,7 @@ export async function GET(request: Request) {
     await bootstrapProfile(await account.get());
     await ensureGoogleAvatarUrl(account).catch(() => undefined);
 
-    const response = NextResponse.redirect(new URL("/dashboard", url.origin));
+    const response = NextResponse.redirect(new URL("/dashboard", origin));
     clearOAuthLoginNonceCookie(response);
     applySessionSecretCookie(response, sessionSecret, session.expire);
     return response;
@@ -66,7 +68,7 @@ export async function GET(request: Request) {
     const errorCode = isAppwriteUnauthorized(error)
       ? "api_key_unauthorized"
       : "callback_failed";
-    const response = NextResponse.redirect(new URL(`/login?error=${errorCode}`, url.origin));
+    const response = NextResponse.redirect(new URL(`/login?error=${errorCode}`, origin));
     clearOAuthLoginNonceCookie(response);
     clearSessionSecretCookie(response);
     return response;

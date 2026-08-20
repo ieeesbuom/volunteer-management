@@ -36,7 +36,7 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "oauth_start_failed") {
     return {
       details:
-        "Appwrite rejected the login redirect URL. Register https://ieeevm.knurdz.org as a Web platform in Appwrite, set APP_URL in production, and confirm Google OAuth credentials in Appwrite.",
+        "Appwrite rejected the login redirect URL. Register ieeevm.knurdz.org as a Web platform in Appwrite, set APP_URL=https://ieeevm.knurdz.org in Vercel production, and confirm Google OAuth credentials in Appwrite.",
       title: "Unable to start Google login",
     };
   }
@@ -52,7 +52,7 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "api_key_unauthorized") {
     return {
       details:
-        "APPWRITE_API_KEY in .env is revoked or missing required scopes (sessions.write, users.read, rows.read, rows.write). Create a new key in the Appwrite Console, update .env, then restart npm run dev.",
+        "APPWRITE_API_KEY is revoked or missing required scopes (sessions.write, users.read, rows.read, rows.write). Create a new key in the Appwrite Console, then update APPWRITE_API_KEY in .env locally or in Vercel production and redeploy.",
       title: "Appwrite API key is unauthorized",
     };
   }

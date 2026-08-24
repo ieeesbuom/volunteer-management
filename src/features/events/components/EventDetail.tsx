@@ -203,6 +203,8 @@ export function EventDetail({
     initialVolunteers.map((volunteer) => [volunteer.userId, volunteer]),
   );
   const isPrivileged = isAdmin || userEventRole === "Chair";
+  const canViewLifecycle =
+    isAdmin || userEventRole === "Chair" || userEventRole === "Vice Chair";
   const canChangeStatus =
     (isAdmin || userEventRole === "Chair") && statusTransitions.length > 0;
   const currentStatusIndex = EVENT_STATUSES.indexOf(event.status);
@@ -233,14 +235,16 @@ export function EventDetail({
       <Card>
         <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              <Badge tone={getEventStatusBadgeTone(event.status)}>
-                {formatEventStatus(event.status)}
-              </Badge>
-              <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
-                {formatConclusionStatus(event.conclusion_status)}
-              </Badge>
-            </div>
+            {canViewLifecycle ? (
+              <div className="flex flex-wrap gap-2">
+                <Badge tone={getEventStatusBadgeTone(event.status)}>
+                  {formatEventStatus(event.status)}
+                </Badge>
+                <Badge tone={getConclusionStatusBadgeTone(event.conclusion_status)}>
+                  {formatConclusionStatus(event.conclusion_status)}
+                </Badge>
+              </div>
+            ) : null}
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-text-secondary">Start date</dt>

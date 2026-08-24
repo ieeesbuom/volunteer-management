@@ -50,6 +50,24 @@ export function isEventVisibleToUser(
   return false;
 }
 
+/** Lifecycle phases (ongoing, closed, conclusion, etc.) are for managers, not public volunteers. */
+export function canViewEventLifecycle(
+  isAdmin: boolean,
+  eventId: string,
+  eventRoles: Array<{ active?: boolean; eventId?: string; role?: string }> = [],
+) {
+  if (isAdmin) {
+    return true;
+  }
+
+  return eventRoles.some(
+    (role) =>
+      role.active !== false &&
+      role.eventId === eventId &&
+      (role.role === "Chair" || role.role === "Vice Chair"),
+  );
+}
+
 export function getEventPermissions(
   userId: string,
   isAdmin: boolean,

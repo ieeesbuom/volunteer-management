@@ -20,10 +20,9 @@ export function canViewEventRoleAssignments(
 ) {
   return (
     user.isAdmin ||
-    canManageStructuralCommittees({
-      isAdmin: false,
-      userEventRole,
-    })
+    userEventRole === "Chair" ||
+    userEventRole === "Vice Chair" ||
+    userEventRole === "Committee Lead"
   );
 }
 
@@ -43,12 +42,7 @@ export function canManageStructuralCommittees({
   isAdmin: boolean;
   userEventRole: EventRole | null;
 }) {
-  return (
-    isAdmin ||
-    userEventRole === "Chair" ||
-    userEventRole === "Vice Chair" ||
-    userEventRole === "Committee Lead"
-  );
+  return isAdmin || userEventRole === "Chair";
 }
 
 export function canAssignCommitteeRole({

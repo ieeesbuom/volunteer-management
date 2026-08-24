@@ -236,6 +236,28 @@ describe("getEventPermissions", () => {
     expect(ongoingPermissions.canSubmitConclusion).toBe(true);
   });
 
+  it("allows Vice Chair and Committee Lead to submit or view without managing committees", () => {
+    const viceChair = getEventPermissions(
+      "vc-user",
+      false,
+      createEventFixture({ status: "ongoing" }),
+      "Vice Chair",
+    );
+    const lead = getEventPermissions(
+      "lead-user",
+      false,
+      createEventFixture({ status: "ongoing" }),
+      "Committee Lead",
+    );
+
+    expect(viceChair.canManageCommittee).toBe(false);
+    expect(viceChair.canAssignRoles).toBe(false);
+    expect(viceChair.canSubmitConclusion).toBe(true);
+    expect(lead.canManageCommittee).toBe(false);
+    expect(lead.canAssignRoles).toBe(false);
+    expect(lead.canSubmitConclusion).toBe(false);
+  });
+
   it("grants view-only permissions to non-members", () => {
     const permissions = getEventPermissions(
       "user-1",

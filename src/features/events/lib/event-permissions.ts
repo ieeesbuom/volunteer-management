@@ -88,7 +88,7 @@ export function getEventPermissions(
       canAssignRoles: userEventRole === "Chair",
       canDelete: false,
       canEdit: userEventRole === "Chair" && EDITABLE_STATUSES.includes(event.status),
-      canManageCommittee: true,
+      canManageCommittee: userEventRole === "Chair",
       canPublish: false,
       canSubmitConclusion:
         (userEventRole === "Chair" || userEventRole === "Vice Chair") &&

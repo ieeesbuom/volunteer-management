@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import { canAssignCommitteeRole, canManageStructuralCommittees } from "@/features/events/lib/committee-permissions";
+import { canAssignCommitteeRole, canViewEventRoleAssignments } from "@/features/events/lib/committee-permissions";
 import {
   parseValidationBody,
   requireVerifiedVolunteer,
@@ -31,13 +31,7 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const { userEventRole } = await requireVisibleEvent(eventId, user!);
 
-    if (
-      !user!.isAdmin &&
-      !canManageStructuralCommittees({
-        isAdmin: false,
-        userEventRole,
-      })
-    ) {
+    if (!canViewEventRoleAssignments(user!, userEventRole)) {
       throw new ForbiddenError("You do not have permission to view event role assignments.");
     }
 

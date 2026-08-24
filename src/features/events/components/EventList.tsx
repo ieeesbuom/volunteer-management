@@ -8,6 +8,7 @@ import { AppPage } from "@/components/layout/app-page";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventListingCard } from "@/features/events/components/event-listing-card";
+import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
 import {
   formatConclusionStatus,
   formatEventStatus,
@@ -29,21 +30,25 @@ function formatRoleLabel(role: EventRoleAssignment) {
   });
 }
 
-function buildAllEventsTags(event: Event) {
+function buildAllEventsTags(event: Event, showLifecycle: boolean) {
   return [
     event.term,
     String(event.year),
-    formatConclusionStatus(event.conclusion_status),
+    ...(showLifecycle ? [formatConclusionStatus(event.conclusion_status)] : []),
     event.reference,
   ].filter(Boolean);
 }
 
-function buildMyEventsTags(event: Event, role: EventRoleAssignment) {
+function buildMyEventsTags(
+  event: Event,
+  role: EventRoleAssignment,
+  showLifecycle: boolean,
+) {
   const tags = [
     formatRoleLabel(role),
     event.term,
     String(event.year),
-    formatEventStatus(event.status),
+    ...(showLifecycle ? [formatEventStatus(event.status)] : []),
   ];
   if (role.committeeName) {
     tags.push(role.committeeName);
@@ -86,7 +91,7 @@ export function EventList({
     <AppPage>
       <PageHeader
         title="Events"
-        description="Branch events and their lifecycle status."
+        description="Branch events you can browse and join."
         actions={
           canCreate ? (
             <Link className={buttonClasses({ variant: "primary" })} href="/events/new">
@@ -175,6 +180,7 @@ export function EventList({
           {allEvents.map((event) => {
             const showReference =
               isAdmin || userRoles.some((r) => r.eventId === event.$id && r.role === "Chair");
+            const showLifecycle = canViewEventLifecycle(isAdmin, event.$id, userRoles);
             return (
               <EventListingCard
                 key={event.$id}
@@ -185,7 +191,11 @@ export function EventList({
                     ? `${event.reference} · IEEE SB UoM`
                     : `IEEE SB UoM · ${event.term} ${event.year}`
                 }
-                tagLabels={buildAllEventsTags(event).filter((tag) => tag !== event.reference)}
+                showLifecycle={showLifecycle}
+                showConclusionInInfo={showLifecycle}
+                tagLabels={buildAllEventsTags(event, showLifecycle).filter(
+                  (tag) => tag !== event.reference,
+                )}
               />
             );
           })}
@@ -196,6 +206,10 @@ export function EventList({
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {myEvents.map(({ event, role }) => {
             const showReference = isAdmin || role.role === "Chair";
+            const showLifecycle = canViewEventLifecycle(isAdmin, event.$id, [
+              ...userRoles,
+              role,
+            ]);
             return (
               <EventListingCard
                 key={event.$id}
@@ -206,11 +220,16 @@ export function EventList({
                     ? `${event.reference} · ${formatRoleLabel(role)}`
                     : `${formatRoleLabel(role)} · IEEE SB UoM`
                 }
-                primaryPills={[
-                  formatEventStatus(event.status).toUpperCase(),
-                  formatRoleLabel(role).toUpperCase(),
-                ]}
-                tagLabels={buildMyEventsTags(event, role)}
+                primaryPills={
+                  showLifecycle
+                    ? [
+                        formatEventStatus(event.status).toUpperCase(),
+                        formatRoleLabel(role).toUpperCase(),
+                      ]
+                    : [formatRoleLabel(role).toUpperCase()]
+                }
+                tagLabels={buildMyEventsTags(event, role, showLifecycle)}
+                showLifecycle={showLifecycle}
                 showConclusionInInfo={false}
               />
             );

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AppPage } from "@/components/layout/app-page";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventListingCard } from "@/features/events/components/event-listing-card";
+import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
 import { formatEventStatus } from "@/features/events/lib/event-ui";
 import type { Event } from "@/features/events/types";
 
@@ -23,8 +24,10 @@ function formatRoleLabel(role: EventRoleAssignment) {
 
 export function MyEvents({
   events,
+  isAdmin = false,
 }: Readonly<{
   events: UserEvent[];
+  isAdmin?: boolean;
 }>) {
   return (
     <AppPage>
@@ -44,26 +47,34 @@ export function MyEvents({
         </Card>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {events.map(({ event, role }) => (
-            <EventListingCard
-              key={event.$id}
-              event={event}
-              href={`/events/${event.$id}`}
-              subtitle={`${event.reference} · ${formatRoleLabel(role)}`}
-              primaryPills={[
-                formatEventStatus(event.status).toUpperCase(),
-                formatRoleLabel(role).toUpperCase(),
-              ]}
-              tagLabels={[
-                formatRoleLabel(role),
-                event.term,
-                String(event.year),
-                formatEventStatus(event.status),
-                ...(role.committeeName ? [role.committeeName] : []),
-              ]}
-              showConclusionInInfo={false}
-            />
-          ))}
+          {events.map(({ event, role }) => {
+            const showLifecycle = canViewEventLifecycle(isAdmin, event.$id, [role]);
+            return (
+              <EventListingCard
+                key={event.$id}
+                event={event}
+                href={`/events/${event.$id}`}
+                subtitle={`${event.reference} · ${formatRoleLabel(role)}`}
+                primaryPills={
+                  showLifecycle
+                    ? [
+                        formatEventStatus(event.status).toUpperCase(),
+                        formatRoleLabel(role).toUpperCase(),
+                      ]
+                    : [formatRoleLabel(role).toUpperCase()]
+                }
+                tagLabels={[
+                  formatRoleLabel(role),
+                  event.term,
+                  String(event.year),
+                  ...(showLifecycle ? [formatEventStatus(event.status)] : []),
+                  ...(role.committeeName ? [role.committeeName] : []),
+                ]}
+                showLifecycle={showLifecycle}
+                showConclusionInInfo={false}
+              />
+            );
+          })}
         </div>
       )}
     </AppPage>

@@ -65,6 +65,8 @@ export type EventListingCardProps = {
   primaryPills?: string[];
   tagLabels: string[];
   showConclusionInInfo?: boolean;
+  /** When false, hides event phase pills and conclusion status (volunteer/public view). */
+  showLifecycle?: boolean;
 };
 
 export function EventListingCard({
@@ -74,11 +76,17 @@ export function EventListingCard({
   primaryPills,
   tagLabels,
   showConclusionInInfo = true,
+  showLifecycle = true,
 }: EventListingCardProps) {
-  const pills = primaryPills ?? [formatEventStatus(event.status).toUpperCase()];
+  const statusLabel = formatEventStatus(event.status).toUpperCase();
+  const rawPills = primaryPills ?? (showLifecycle ? [statusLabel] : []);
+  const pills = showLifecycle
+    ? rawPills
+    : rawPills.filter((pill) => pill !== statusLabel);
   const visibleTags = tagLabels.slice(0, 4);
   const overflowCount = tagLabels.length - visibleTags.length;
   const relativeCreated = formatRelativeTime(event.$createdAt);
+  const showConclusion = showLifecycle && showConclusionInInfo;
 
   return (
     <Link
@@ -122,21 +130,23 @@ export function EventListingCard({
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {pills.map((pill) => (
-            <span
-              key={pill}
-              className={cn(
-                "inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide",
-                pill === formatEventStatus(event.status).toUpperCase()
-                  ? badgeToneClassName[getEventStatusBadgeTone(event.status)]
-                  : badgeToneClassName.primary,
-              )}
-            >
-              {pill}
-            </span>
-          ))}
-        </div>
+        {pills.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {pills.map((pill) => (
+              <span
+                key={pill}
+                className={cn(
+                  "inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide",
+                  pill === statusLabel
+                    ? badgeToneClassName[getEventStatusBadgeTone(event.status)]
+                    : badgeToneClassName.primary,
+                )}
+              >
+                {pill}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-3 rounded-2xl border border-primary-mid/60 bg-primary-soft/70 p-3.5 space-y-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -161,7 +171,7 @@ export function EventListingCard({
               </p>
             </div>
           </div>
-          {showConclusionInInfo ? (
+          {showConclusion ? (
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-surface-raised">
                 <ClipboardList className="size-4 text-primary" aria-hidden />

@@ -136,15 +136,6 @@ export function DashboardCommandPalette({
         searchText: normalizeSearchText(["leaderboard", "scoring", "points", "rank"]),
       },
       {
-        id: "nav-volunteers",
-        group: "Navigation",
-        label: "Volunteers",
-        subtitle: "Browse and search volunteer profiles",
-        icon: Users,
-        href: "/volunteers",
-        searchText: normalizeSearchText(["volunteers", "directory", "people", "profiles", "search"]),
-      },
-      {
         id: "nav-profile",
         group: "Navigation",
         label: "Profile",
@@ -156,6 +147,15 @@ export function DashboardCommandPalette({
     ];
 
     if (user.isAdmin) {
+      items.splice(3, 0, {
+        id: "nav-volunteers",
+        group: "Navigation",
+        label: "Volunteers",
+        subtitle: "Browse and search volunteer profiles",
+        icon: Users,
+        href: "/volunteers",
+        searchText: normalizeSearchText(["volunteers", "directory", "people", "profiles", "search"]),
+      });
       items.push(
         {
           id: "action-new-project",

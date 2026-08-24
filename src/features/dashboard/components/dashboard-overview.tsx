@@ -11,7 +11,7 @@ import { WelcomeGreetingWidget } from "@/features/dashboard/components/widgets/w
 import { VerifyUomBanner } from "@/features/dashboard/components/widgets/verify-uom-banner";
 import { MyProjectsWidget } from "@/features/dashboard/components/widgets/my-projects-widget";
 import { MyResponsibilitiesWidget } from "@/features/dashboard/components/widgets/my-responsibilities-widget";
-import { NotificationsSummaryWidget } from "@/features/dashboard/components/widgets/notifications-summary-widget";
+import { VolunteerSearchWidget } from "@/features/dashboard/components/widgets/volunteer-search-widget";
 import { LeaderboardMiniWidget } from "@/features/dashboard/components/widgets/leaderboard-mini-widget";
 
 interface DashboardOverviewProps {
@@ -52,11 +52,11 @@ export function DashboardOverview({ user, opportunityList }: DashboardOverviewPr
         <VerifyUomBanner />
         <MyProjectsWidget />
         <div className="grid gap-4 lg:grid-cols-12">
-          <div className="min-h-[240px] lg:col-span-6">
+          <div className="min-h-60 lg:col-span-6">
             <MyResponsibilitiesWidget />
           </div>
-          <div className="min-h-[240px] lg:col-span-6">
-            <NotificationsSummaryWidget />
+          <div className="min-h-70 lg:col-span-6">
+            <VolunteerSearchWidget />
           </div>
         </div>
         <LeaderboardMiniWidget />

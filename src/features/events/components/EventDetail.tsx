@@ -70,7 +70,6 @@ export type EventVolunteerIdentity = {
 
 export function EventDetail({
   canManageFormConnections,
-  canViewMoreInfo,
   currentUserId,
   initialAssignments,
   initialCommittees,
@@ -83,7 +82,6 @@ export function EventDetail({
   userEventRole,
 } : Readonly<{
   canManageFormConnections: boolean;
-  canViewMoreInfo: boolean;
   currentUserId: string;
   initialAssignments: EventRoleAssignment[];
   initialCommittees: Array<Committee & { members: CommitteeMember[] }>;
@@ -344,69 +342,65 @@ export function EventDetail({
         </Card>
       ) : null}
 
-      {canViewMoreInfo ? (
-        <>
-          <CommitteeManagement
-            canManage={permissions.canManageCommittee}
-            eventId={event.$id}
-            initialCommittees={initialCommittees}
-            volunteerOptions={initialVolunteers}
-            onCommitteesChange={setCommittees}
-          />
+      <CommitteeManagement
+        canManage={permissions.canManageCommittee}
+        eventId={event.$id}
+        initialCommittees={initialCommittees}
+        volunteerOptions={initialVolunteers}
+        onCommitteesChange={setCommittees}
+      />
 
-          <EventFormConnections
-            assignments={assignments}
-            canManage={canManageFormConnections}
-            committees={committees}
-            currentUserId={currentUserId}
-            eventId={event.$id}
-            initialConnections={initialFormConnections}
-            isVolunteer={isVolunteer}
-          />
+      <EventFormConnections
+        assignments={assignments}
+        canManage={canManageFormConnections}
+        committees={committees}
+        currentUserId={currentUserId}
+        eventId={event.$id}
+        initialConnections={initialFormConnections}
+        isVolunteer={isVolunteer}
+      />
 
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="size-4 text-text-muted" aria-hidden="true" />
-                    Members & roles
-                  </CardTitle>
-                  <CardDescription>Active role assignments for this event.</CardDescription>
-                </div>
-                {permissions.canAssignRoles ? (
-                  <Button onClick={() => setShowAssignModal(true)} type="button" variant="primary">
-                    <UserPlus className="size-4" aria-hidden="true" />
-                    Add member
-                  </Button>
-                ) : null}
-              </div>
-            </CardHeader>
-            <CardContent className="min-w-0">
-              {assignments.length > 0 ? (
-                <EventRoleAssignmentsTable
-                  assignments={assignments}
-                  canManageActions={permissions.canAssignRoles}
-                  canRemoveAssignment={(assignment) =>
-                    canRemoveCommitteeRole({
-                      actorEventRole: userEventRole,
-                      actorUserId: currentUserId,
-                      isAdmin,
-                      targetAssignment: assignment,
-                    })
-                  }
-                  formatRole={formatAssignmentRole}
-                  onRemove={setRemoveTarget}
-                  pendingRemoveId={pendingAction}
-                  volunteersByUserId={volunteersByUserId}
-                />
-              ) : (
-                <EventMembersEmptyState />
-              )}
-            </CardContent>
-          </Card>
-      </>
-      ) : null}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="size-4 text-text-muted" aria-hidden="true" />
+                Members & roles
+              </CardTitle>
+              <CardDescription>Active role assignments for this event.</CardDescription>
+            </div>
+            {permissions.canAssignRoles ? (
+              <Button onClick={() => setShowAssignModal(true)} type="button" variant="primary">
+                <UserPlus className="size-4" aria-hidden="true" />
+                Add member
+              </Button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="min-w-0">
+          {assignments.length > 0 ? (
+            <EventRoleAssignmentsTable
+              assignments={assignments}
+              canManageActions={permissions.canAssignRoles}
+              canRemoveAssignment={(assignment) =>
+                canRemoveCommitteeRole({
+                  actorEventRole: userEventRole,
+                  actorUserId: currentUserId,
+                  isAdmin,
+                  targetAssignment: assignment,
+                })
+              }
+              formatRole={formatAssignmentRole}
+              onRemove={setRemoveTarget}
+              pendingRemoveId={pendingAction}
+              volunteersByUserId={volunteersByUserId}
+            />
+          ) : (
+            <EventMembersEmptyState />
+          )}
+        </CardContent>
+      </Card>
 
       {isPrivileged ? (
         <Card>

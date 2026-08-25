@@ -155,3 +155,33 @@ export const listProfiles = cache(async function listProfiles() {
 
   return result.rows.map((row) => toProfile(row as AppRow));
 });
+
+/** Load a small set of profiles by auth user id (profile document id). */
+export async function getProfilesByUserIds(userIds: string[]) {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const env = getServerEnv();
+  const { Query } = await import("node-appwrite");
+  const { tables } = getAppwriteAdminServices();
+  const profiles: Profile[] = [];
+
+  // Appwrite equal queries accept limited array sizes; chunk conservatively.
+  const chunkSize = 50;
+  for (let index = 0; index < uniqueIds.length; index += chunkSize) {
+    const chunk = uniqueIds.slice(index, index + chunkSize);
+    const result = await tables.listRows(
+      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+      APPWRITE_TABLES.profiles,
+      [Query.equal("$id", chunk), Query.limit(chunk.length)],
+      undefined,
+      false,
+    );
+    profiles.push(...result.rows.map((row) => toProfile(row as AppRow)));
+  }
+
+  return profiles;
+}

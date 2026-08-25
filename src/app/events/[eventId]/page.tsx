@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { canVolunteer, hasSbRole } from "@/features/access-control/lib/rules";
+import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import { listProfiles } from "@/features/access-control/server/profiles";
-import { EXCOM_ROLES } from "@/lib/config";
-import { EventDetail } from "@/features/events/components/EventDetail";
 import {
-  canViewEventRoleAssignments,
-} from "@/features/events/lib/committee-permissions";
+  getProfilesByUserIds,
+  listProfiles,
+} from "@/features/access-control/server/profiles";
+import type { Profile } from "@/features/access-control/types";
+import { EventDetail } from "@/features/events/components/EventDetail";
 import {
   getEventUserContext,
   getPermissionsForUser,
@@ -26,6 +26,15 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: Promise<{ eventId: string }>;
 };
+
+function toVolunteerOption(profile: Profile) {
+  return {
+    googleEmail: profile.googleEmail,
+    name: profile.name || profile.uomEmail || profile.googleEmail,
+    uomEmail: profile.uomEmail,
+    userId: profile.authUserId,
+  };
+}
 
 export default async function EventDetailPage({ params }: PageProps) {
   const user = await getCurrentUser();
@@ -52,9 +61,11 @@ export default async function EventDetailPage({ params }: PageProps) {
   }
 
   const permissions = getPermissionsForUser(user, event, userEventRole);
-  const canManageVolunteerDirectory = canViewEventRoleAssignments(user, userEventRole);
-  const [assignments, committees, formConnections, profiles] = await Promise.all([
-    canManageVolunteerDirectory ? getRoleAssignmentsForEvent(eventId) : Promise.resolve([]),
+  const canLoadFullVolunteerDirectory =
+    permissions.canManageCommittee || permissions.canAssignRoles;
+
+  const [assignments, committees, formConnections] = await Promise.all([
+    getRoleAssignmentsForEvent(eventId),
     listCommitteesForEvent(eventId).then(async (items) => {
       const members = await listCommitteeMembersForCommittees(
         items.map((committee) => committee.$id),
@@ -72,16 +83,26 @@ export default async function EventDetailPage({ params }: PageProps) {
       }));
     }),
     listFormConnectionsForCurrentUser(eventId).catch(() => []),
-    canManageVolunteerDirectory ? listProfiles() : Promise.resolve([]),
   ]);
-  const volunteerOptions = profiles
-    .filter((profile) => profile.status === "ACTIVE" && profile.uomVerified)
-    .map((profile) => ({
-      googleEmail: profile.googleEmail,
-      name: profile.name || profile.uomEmail || profile.googleEmail,
-      uomEmail: profile.uomEmail,
-      userId: profile.authUserId,
-    }));
+
+  let volunteerOptions;
+
+  if (canLoadFullVolunteerDirectory) {
+    const profiles = await listProfiles();
+    volunteerOptions = profiles
+      .filter((profile) => profile.status === "ACTIVE" && profile.uomVerified)
+      .map(toVolunteerOption);
+  } else {
+    const rosterUserIds = [
+      ...assignments.map((assignment) => assignment.userId),
+      ...committees.flatMap((committee) =>
+        committee.members.map((member) => member.user_id),
+      ),
+    ];
+    const profiles = await getProfilesByUserIds(rosterUserIds);
+    volunteerOptions = profiles.map(toVolunteerOption);
+  }
+
   const canManageFormConnections =
     permissions.canManageCommittee ||
     permissions.canEdit ||
@@ -89,17 +110,10 @@ export default async function EventDetailPage({ params }: PageProps) {
     userEventRole === "Vice Chair" ||
     userEventRole === "Committee Lead";
 
-  const canViewMoreInfo =
-    user.isAdmin ||
-    hasSbRole(user, [...EXCOM_ROLES, "SB Lead"]) ||
-    userEventRole === "Chair" ||
-    userEventRole === "Vice Chair";
-
   return (
     <AppShell active="events" user={user}>
       <EventDetail
         canManageFormConnections={canManageFormConnections}
-        canViewMoreInfo={canViewMoreInfo}
         currentUserId={user.authUser.id}
         initialAssignments={assignments}
         initialCommittees={committees}

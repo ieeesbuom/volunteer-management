@@ -14,16 +14,12 @@ const CHAIR_REMOVABLE_ROLES: EventRole[] = [
   "Committee Member",
 ];
 
+/** Roster is readable by anyone who can open the event (caller enforces visibility). */
 export function canViewEventRoleAssignments(
-  user: Pick<SessionUser, "isAdmin">,
-  userEventRole: EventRole | null,
+  _user: Pick<SessionUser, "isAdmin">,
+  _userEventRole: EventRole | null,
 ) {
-  return (
-    user.isAdmin ||
-    userEventRole === "Chair" ||
-    userEventRole === "Vice Chair" ||
-    userEventRole === "Committee Lead"
-  );
+  return true;
 }
 
 export function canViewEventCommittees(

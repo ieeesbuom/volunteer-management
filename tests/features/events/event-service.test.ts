@@ -275,6 +275,21 @@ describe("getEventPermissions", () => {
       canSubmitConclusion: false,
     });
   });
+
+  it("grants view-only permissions to Committee Member", () => {
+    const permissions = getEventPermissions(
+      "member-user",
+      false,
+      createEventFixture({ status: "ongoing" }),
+      "Committee Member",
+    );
+
+    expect(permissions.canManageCommittee).toBe(false);
+    expect(permissions.canAssignRoles).toBe(false);
+    expect(permissions.canEdit).toBe(false);
+    expect(permissions.canDelete).toBe(false);
+    expect(permissions.canSubmitConclusion).toBe(false);
+  });
 });
 
 describe("event service operations", () => {

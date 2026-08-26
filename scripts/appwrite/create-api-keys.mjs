@@ -31,6 +31,7 @@ const RUNTIME_SCOPES = [
   "rows.read",
   "rows.write",
   "users.read",
+  "users.write", // Auth labels sync (admin / sb*)
   // Profile avatar uploads/serving via server SDK (bucket stays client-locked)
   "files.read",
   "files.write",
@@ -47,6 +48,7 @@ const SETUP_SCOPES = [
   "rows.read",
   "rows.write",
   "users.read",
+  "users.write",
   "sessions.write",
   "files.read",
   "files.write",

@@ -23,6 +23,7 @@
     "appwrite:sessions:revoke-stale": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/revoke-stale-sessions.mjs",
     "appwrite:migrate:uom": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/migrate-uom-integrity.mjs",
     "appwrite:migrate:ledger": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/migrate-point-ledger.mjs",
+    "appwrite:seed:admin-label": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/seed-admin-label.mjs",
     "appwrite:backups": "cross-env FORCE_NODE_FETCH=1 node scripts/appwrite/configure-backups.mjs"
   },
   "dependencies": {

@@ -347,6 +347,7 @@ describe("form connections", () => {
       canManageFormConnections(
         fakeUser({
           isAdmin: true,
+          labels: [],
           profile: {
             $id: "admin-a",
             authUserId: "admin-a",
@@ -362,6 +363,7 @@ describe("form connections", () => {
       canManageFormConnections(
         fakeUser({
           isAdmin: true,
+          labels: [],
           profile: {
             $id: "admin-a",
             authUserId: "admin-a",
@@ -430,6 +432,7 @@ function fakeUser(input: Partial<SessionUser> = {}): SessionUser {
     },
     eventRoles: [],
     isAdmin: false,
+    labels: [],
     profile: {
       $id: "user-a",
       authUserId: "user-a",

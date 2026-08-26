@@ -42,6 +42,7 @@ function fakeUser(): SessionUser {
     authUser: { email: "chair@example.com", id: "user-a", name: "Chair" },
     eventRoles: [],
     isAdmin: true,
+    labels: [],
     profile: {
       $id: "user-a",
       authUserId: "user-a",

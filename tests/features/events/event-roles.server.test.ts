@@ -381,6 +381,7 @@ describe("admin verification bypass", () => {
       authUser: { email: "user@uom.lk", id: "user-1", name: "Volunteer" },
       eventRoles: [],
       isAdmin: false,
+      labels: [],
       profile: {
         $id: "profile-1",
         authUserId: "user-1",
@@ -403,6 +404,7 @@ describe("admin verification bypass", () => {
       authUser: { email: "admin@example.com", id: "admin-1", name: "Admin" },
       eventRoles: [],
       isAdmin: true,
+      labels: [],
       profile: {
         $id: "profile-admin",
         authUserId: "admin-1",

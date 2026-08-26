@@ -407,6 +407,11 @@ export async function assignSbRole({
     targetType: "profile",
   });
 
+  const { syncManagedAuthLabels } = await import(
+    "@/features/access-control/server/sync-user-labels"
+  );
+  await syncManagedAuthLabels(userId);
+
   return toRoleAssignment(row);
 }
 
@@ -592,6 +597,11 @@ export async function revokeSbRole({
     targetId: userId,
     targetType: "profile",
   });
+
+  const { syncManagedAuthLabels } = await import(
+    "@/features/access-control/server/sync-user-labels"
+  );
+  await syncManagedAuthLabels(userId);
 
   return toRoleAssignment(row);
 }

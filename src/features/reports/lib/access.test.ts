@@ -15,6 +15,7 @@ function createUser(overrides: Partial<SessionUser> = {}): SessionUser {
     },
     eventRoles: [],
     isAdmin: false,
+    labels: [],
     profile: {
       $id: "profile-1",
       authUserId: "user-1",

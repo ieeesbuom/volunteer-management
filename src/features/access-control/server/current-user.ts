@@ -3,7 +3,8 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getServerEnv } from "@/lib/env";
-import { canVolunteer, hasEventRole, hasSbRole, isAdminEmail } from "@/features/access-control/lib/rules";
+import { mergeSbRoles, resolveIsAdmin } from "@/features/access-control/lib/appwrite-labels";
+import { canVolunteer, hasEventRole, hasSbRole } from "@/features/access-control/lib/rules";
 import { getAppwriteSessionServices } from "@/server/appwrite";
 import { ensureGoogleAvatarUrl, readAvatarUrlFromPrefs } from "@/features/access-control/server/google-avatar";
 import { resolveAuthAvatarUrl } from "@/features/access-control/server/profile-avatar";
@@ -23,8 +24,9 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     const env = getServerEnv();
     const { account } = getAppwriteSessionServices(sessionSecret);
     const appwriteUser = await account.get();
+    const labels = Array.isArray(appwriteUser.labels) ? appwriteUser.labels : [];
     const cachedAvatarUrl = readAvatarUrlFromPrefs(appwriteUser.prefs);
-    const [profile, sbRoles, eventRoles, googleAvatarUrl] = await Promise.all([
+    const [profile, tableSbRoles, eventRoles, googleAvatarUrl] = await Promise.all([
       getOrCreateProfile(appwriteUser),
       getActiveSbRoles(appwriteUser.$id),
       getActiveEventRoleAssignments(appwriteUser.$id, { includeChairCounts: false }),
@@ -43,9 +45,14 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
         name: appwriteUser.name ?? "",
       },
       eventRoles,
-      isAdmin: isAdminEmail(appwriteUser.email, env.ADMIN_EMAIL),
+      isAdmin: resolveIsAdmin({
+        adminEmail: env.ADMIN_EMAIL,
+        email: appwriteUser.email,
+        labels,
+      }),
+      labels,
       profile,
-      sbRoles,
+      sbRoles: mergeSbRoles(tableSbRoles, labels),
     };
   } catch {
     return null;

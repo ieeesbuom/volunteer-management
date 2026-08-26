@@ -125,6 +125,7 @@ describe("GET /api/volunteers", () => {
     requireAuthMock.mockResolvedValue(
       makeSessionUser({
         isAdmin: true,
+        labels: [],
         profile: {
           $id: "profile-admin",
           authUserId: "admin-1",

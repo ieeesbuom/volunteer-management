@@ -287,7 +287,7 @@ export function buildPermissionOverview(
 
   return {
     adminEmail,
-    adminSource: "ADMIN_EMAIL",
+    adminSource: "ADMIN_EMAIL_OR_LABEL",
     eventRoles: EVENT_ROLES.map((role) => ({
       notes:
         role === "Chair"
@@ -298,8 +298,8 @@ export function buildPermissionOverview(
       scope: "event",
     })),
     notes: [
-      "Admin is determined only by ADMIN_EMAIL and is not assigned through the database.",
-      "Student Branch roles are term-scoped: a volunteer may hold only one active SB role per term.",
+      "Admin is determined by ADMIN_EMAIL or the Appwrite Auth `admin` label (OR). ADMIN_EMAIL is still required for notifications and bootstrap.",
+      "Student Branch roles are term-scoped in the database; active SB roles may also be mirrored on Auth labels for dual-read. Event roles stay table-only (per event).",
       "Event roles are scoped to a specific event: a volunteer may hold only one active role per event.",
       "Server-side route guards must be used for protected actions.",
     ],

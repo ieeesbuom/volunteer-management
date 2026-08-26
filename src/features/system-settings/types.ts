@@ -38,7 +38,7 @@ export type TopBoardExclusion = {
 
 export type PermissionOverview = {
   adminEmail: string;
-  adminSource: "ADMIN_EMAIL";
+  adminSource: "ADMIN_EMAIL" | "ADMIN_EMAIL_OR_LABEL";
   eventRoles: Array<{
     notes: string;
     powers: string[];

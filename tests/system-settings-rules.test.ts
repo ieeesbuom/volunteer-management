@@ -237,7 +237,7 @@ describe("system settings rules", () => {
     const overview = buildPermissionOverview("admin@example.com");
 
     expect(overview.adminEmail).toBe("admin@example.com");
-    expect(overview.adminSource).toBe("ADMIN_EMAIL");
+    expect(overview.adminSource).toBe("ADMIN_EMAIL_OR_LABEL");
     expect(overview.sbRoles.map((role) => role.role)).toEqual([
       "Chairperson",
       "Vice Chairperson",

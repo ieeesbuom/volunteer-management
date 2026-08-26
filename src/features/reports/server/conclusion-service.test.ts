@@ -221,6 +221,7 @@ function createUser({
     },
     eventRoles,
     isAdmin,
+    labels: [],
     profile: {
       $id: `profile-${id}`,
       authUserId: id,

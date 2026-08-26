@@ -46,7 +46,7 @@ if (!results.every(Boolean)) {
   console.error("APPWRITE_API_KEY is unauthorized or under-scoped.");
   console.error("Create a runtime key with scopes:");
   console.error(
-    "  sessions.write, rows.read, rows.write, users.read, buckets.read, buckets.write, files.read, files.write",
+    "  sessions.write, rows.read, rows.write, users.read, users.write, buckets.read, buckets.write, files.read, files.write",
   );
   console.error("Then set APPWRITE_API_KEY in .env and restart the app.");
   console.error("Or: npx appwrite login && npm run appwrite:keys && npm run appwrite:keys:sync-env");

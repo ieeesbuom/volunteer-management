@@ -10,6 +10,7 @@ function fakeUser(overrides: Partial<SessionUser> = {}): SessionUser {
     authUser: { email: "user@uom.lk", id: "user-1", name: "User" },
     eventRoles: [],
     isAdmin: false,
+    labels: [],
     profile: {
       $id: "user-1",
       authUserId: "user-1",

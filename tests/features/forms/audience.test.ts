@@ -33,6 +33,7 @@ function createUser(overrides: Partial<SessionUser> = {}): SessionUser {
     authUser: { email: "v@uom.lk", id: "u1", name: "Volunteer" },
     eventRoles: [],
     isAdmin: false,
+    labels: [],
     profile: {
       $id: "profile-1",
       authUserId: "u1",

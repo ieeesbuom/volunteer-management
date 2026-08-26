@@ -258,6 +258,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -308,6 +309,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
@@ -327,6 +329,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -410,6 +413,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
@@ -497,6 +501,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "member-1", name: "Member User", email: "mem@uom.lk" },
       profile: { $id: "mem-1", authUserId: "member-1", googleEmail: "mem@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -533,6 +538,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [],
     });
@@ -555,6 +561,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -671,6 +678,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "volunteer-1", name: "Volunteer One", email: "vol1@uom.lk" },
       profile: { $id: "volunteer-1", authUserId: "volunteer-1", googleEmail: "vol1@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -696,6 +704,7 @@ describe("Scoring Server Actions & Access Control", () => {
       authUser: { id: "volunteer-1", name: "Volunteer One", email: "vol1@uom.lk" },
       profile: { $id: "volunteer-1", authUserId: "volunteer-1", googleEmail: "vol1@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -790,6 +799,7 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
       authUser: { id: "user-1", name: "User 1", email: "user1@uom.lk" },
       profile: { $id: "user-1", authUserId: "user-1", googleEmail: "user1@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [],
     });
@@ -811,6 +821,7 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [],
     });
@@ -858,6 +869,7 @@ describe("Scoring New Gated Actions & Helper Actions", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [],
     });
@@ -936,6 +948,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin User", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -992,6 +1005,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "lead-1", name: "Lead User", email: "lead@uom.lk" },
       profile: { $id: "lead-1", authUserId: "lead-1", googleEmail: "lead@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1039,6 +1053,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
@@ -1106,6 +1121,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
       profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1150,6 +1166,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "reviewer-1", name: "Reviewer User", email: "rev@uom.lk" },
       profile: { $id: "rev-1", authUserId: "reviewer-1", googleEmail: "rev@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [],
     });
@@ -1157,6 +1174,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
@@ -1173,6 +1191,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
@@ -1230,6 +1249,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1262,6 +1282,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1312,6 +1333,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1361,6 +1383,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1423,6 +1446,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1459,6 +1483,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "chair-1", name: "Chair User", email: "chair@uom.lk" },
       profile: { $id: "chair-1", authUserId: "chair-1", googleEmail: "chair@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1501,6 +1526,7 @@ describe("Scoring Extra Requirements Tests", () => {
       authUser: { id: "admin-1", name: "Admin", email: "admin@uom.lk" },
       profile: { $id: "admin-1", authUserId: "admin-1", googleEmail: "admin@uom.lk", uomVerified: true, status: "ACTIVE" },
       isAdmin: true,
+      labels: [],
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
@@ -1544,6 +1570,7 @@ describe("Scoring Extra Requirements Tests", () => {
         status: "ACTIVE",
       },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {
@@ -1599,6 +1626,7 @@ describe("Scoring Extra Requirements Tests", () => {
         status: "ACTIVE",
       },
       isAdmin: false,
+      labels: [],
       sbRoles: [],
       eventRoles: [
         {

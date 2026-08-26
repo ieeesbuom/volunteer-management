@@ -107,6 +107,8 @@ export type SessionUser = {
   authUser: AuthUser;
   profile: Profile;
   isAdmin: boolean;
+  /** Appwrite Auth labels (debug / dual-read source). Event roles are never encoded here. */
+  labels: string[];
   sbRoles: SbRole[];
   eventRoles: EventRoleAssignment[];
 };

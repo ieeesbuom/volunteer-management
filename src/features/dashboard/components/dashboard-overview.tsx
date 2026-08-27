@@ -52,10 +52,10 @@ export function DashboardOverview({ user, opportunityList }: DashboardOverviewPr
         <VerifyUomBanner />
         <MyProjectsWidget />
         <div className="grid gap-4 lg:grid-cols-12">
-          <div className="min-h-60 lg:col-span-6">
+          <div className="flex min-h-60 max-h-[28rem] lg:col-span-6 lg:h-[28rem]">
             <MyResponsibilitiesWidget />
           </div>
-          <div className="min-h-70 lg:col-span-6">
+          <div className="flex min-h-60 max-h-[28rem] lg:col-span-6 lg:h-[28rem]">
             <VolunteerSearchWidget />
           </div>
         </div>

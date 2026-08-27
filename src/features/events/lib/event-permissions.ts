@@ -2,12 +2,13 @@ import type { EventRole } from "@/features/access-control/types";
 import type { Event, EventPermissions, EventStatus } from "@/features/events/types";
 
 const EDITABLE_STATUSES: EventStatus[] = ["draft", "planning"];
-const PUBLICLY_VISIBLE_STATUSES: EventStatus[] = [
+const EARLY_CREATOR_STATUSES: EventStatus[] = ["draft", "planning"];
+/** Shown in All Events for every verified volunteer; detail page stays members-only. */
+export const LISTABLE_PUBLIC_STATUSES: EventStatus[] = [
   "published",
   "ongoing",
   "pending_conclusion",
 ];
-const RESTRICTED_STATUSES: EventStatus[] = ["draft", "planning", "closed"];
 
 const VIEW_ONLY_PERMISSIONS: EventPermissions = {
   canApproveConclusion: false,
@@ -39,18 +40,32 @@ export function isEventVisibleToUser(
     return true;
   }
 
-  if (PUBLICLY_VISIBLE_STATUSES.includes(event.status)) {
+  if (userEventRole != null) {
     return true;
   }
 
-  if (RESTRICTED_STATUSES.includes(event.status)) {
-    return event.created_by === userId || userEventRole != null;
+  if (event.created_by === userId && EARLY_CREATOR_STATUSES.includes(event.status)) {
+    return true;
   }
 
   return false;
 }
 
-/** Lifecycle phases (ongoing, closed, conclusion, etc.) are for managers, not public volunteers. */
+/** Whether an event card may appear in browse lists (broader than detail access). */
+export function isEventListedForUser(
+  userId: string,
+  isAdmin: boolean,
+  event: Event,
+  userEventRole?: EventRole | null,
+) {
+  if (isEventVisibleToUser(userId, isAdmin, event, userEventRole)) {
+    return true;
+  }
+
+  return LISTABLE_PUBLIC_STATUSES.includes(event.status);
+}
+
+/** Lifecycle phases (ongoing, closed, conclusion, etc.) are for admin and event Chair only. */
 export function canViewEventLifecycle(
   isAdmin: boolean,
   eventId: string,
@@ -64,7 +79,7 @@ export function canViewEventLifecycle(
     (role) =>
       role.active !== false &&
       role.eventId === eventId &&
-      (role.role === "Chair" || role.role === "Vice Chair"),
+      role.role === "Chair",
   );
 }
 

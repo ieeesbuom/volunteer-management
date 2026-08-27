@@ -8,7 +8,10 @@ import { AppPage } from "@/components/layout/app-page";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventListingCard } from "@/features/events/components/event-listing-card";
-import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
+import {
+  canViewEventLifecycle,
+  isEventVisibleToUser,
+} from "@/features/events/lib/event-permissions";
 import {
   formatConclusionStatus,
   formatEventStatus,
@@ -28,6 +31,21 @@ function formatRoleLabel(role: EventRoleAssignment) {
   return getEventRoleDisplayName(role.role, {
     chairCount: role.eventChairCount ?? 0,
   });
+}
+
+function getUserEventRole(user: SessionUser | undefined, event: Event) {
+  if (!user) {
+    return null;
+  }
+
+  const assignment = user.eventRoles.find(
+    (role) =>
+      role.active !== false &&
+      (role.eventId === event.$id ||
+        (event.reference != null && role.eventId === event.reference)),
+  );
+
+  return assignment?.role ?? null;
 }
 
 function buildAllEventsTags(event: Event, showLifecycle: boolean) {
@@ -181,11 +199,15 @@ export function EventList({
             const showReference =
               isAdmin || userRoles.some((r) => r.eventId === event.$id && r.role === "Chair");
             const showLifecycle = canViewEventLifecycle(isAdmin, event.$id, userRoles);
+            const userEventRole = getUserEventRole(user, event);
+            const canOpenEvent = user
+              ? isEventVisibleToUser(user.authUser.id, isAdmin, event, userEventRole)
+              : false;
             return (
               <EventListingCard
                 key={event.$id}
                 event={event}
-                href={`/events/${event.$id}`}
+                href={canOpenEvent ? `/events/${event.$id}` : undefined}
                 subtitle={
                   showReference
                     ? `${event.reference} · IEEE SB UoM`

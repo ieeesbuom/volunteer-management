@@ -34,6 +34,7 @@ import { EventLifecycleStepper } from "@/features/events/components/event-lifecy
 import { AssignRoleModal } from "@/features/events/components/AssignRoleModal";
 import { EventFormConnections } from "@/features/forms/components/event-form-connections";
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
+import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
 import {
   formatConclusionStatus,
   formatEventDate,
@@ -201,8 +202,13 @@ export function EventDetail({
     initialVolunteers.map((volunteer) => [volunteer.userId, volunteer]),
   );
   const isPrivileged = isAdmin || userEventRole === "Chair";
-  const canViewLifecycle =
-    isAdmin || userEventRole === "Chair" || userEventRole === "Vice Chair";
+  const canViewLifecycle = canViewEventLifecycle(
+    isAdmin,
+    event.$id,
+    userEventRole
+      ? [{ active: true, eventId: event.$id, role: userEventRole }]
+      : [],
+  );
   const canChangeStatus =
     (isAdmin || userEventRole === "Chair") && statusTransitions.length > 0;
   const currentStatusIndex = EVENT_STATUSES.indexOf(event.status);

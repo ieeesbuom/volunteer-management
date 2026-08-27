@@ -8,6 +8,7 @@ import { getActiveEventRoleAssignments } from "@/features/access-control/server/
 import {
   assertOperationalStatusTransition,
 } from "@/features/events/lib/event-status-transitions";
+import { LISTABLE_PUBLIC_STATUSES } from "@/features/events/lib/event-permissions";
 import {
   assertEventDateRange,
   assertEventYear,
@@ -41,8 +42,7 @@ import {
 
 type AppRow = Models.Row & Record<string, unknown>;
 
-const PUBLIC_STATUSES: EventStatus[] = ["published", "ongoing", "pending_conclusion"];
-const RESTRICTED_STATUSES: EventStatus[] = ["draft", "planning", "closed"];
+const EARLY_CREATOR_STATUSES: EventStatus[] = ["draft", "planning"];
 
 export function toEvent(row: AppRow): Event {
   return {
@@ -106,15 +106,23 @@ function isEventVisibleToQuery({
     return true;
   }
 
-  if (PUBLIC_STATUSES.includes(event.status)) {
+  if (eventMatchesAssignedIds(event, userAssignedEventIds)) {
     return true;
   }
 
-  if (!userId || !RESTRICTED_STATUSES.includes(event.status)) {
-    return false;
+  if (
+    userId &&
+    event.created_by === userId &&
+    EARLY_CREATOR_STATUSES.includes(event.status)
+  ) {
+    return true;
   }
 
-  return event.created_by === userId || eventMatchesAssignedIds(event, userAssignedEventIds);
+  if (LISTABLE_PUBLIC_STATUSES.includes(event.status)) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function getEvents(options: GetEventsOptions = {}): Promise<GetEventsResult> {

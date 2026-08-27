@@ -60,7 +60,7 @@ function TagChip({ children }: { children: React.ReactNode }) {
 
 export type EventListingCardProps = {
   event: Event;
-  href: string;
+  href?: string;
   subtitle?: string;
   primaryPills?: string[];
   tagLabels: string[];
@@ -87,19 +87,18 @@ export function EventListingCard({
   const overflowCount = tagLabels.length - visibleTags.length;
   const relativeCreated = formatRelativeTime(event.$createdAt);
   const showConclusion = showLifecycle && showConclusionInInfo;
+  const isOpenable = Boolean(href);
 
-  return (
-    <Link
-      href={href}
-      className="group block h-full outline-none cursor-pointer"
+  const cardBody = (
+    <article
+      className={cn(
+        "flex h-full flex-col rounded-[20px] border border-border-subtle bg-surface-raised p-5",
+        "shadow-sm transition-all duration-200",
+        isOpenable
+          ? "hover:-translate-y-0.5 hover:border-border-default hover:shadow-md"
+          : "opacity-95",
+      )}
     >
-      <article
-        className={cn(
-          "flex h-full flex-col rounded-[20px] border border-border-subtle bg-surface-raised p-5",
-          "shadow-sm transition-all duration-200",
-          "hover:-translate-y-0.5 hover:border-border-default hover:shadow-md",
-        )}
-      >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <div
@@ -196,17 +195,32 @@ export function EventListingCard({
         ) : null}
 
         <div className="mt-auto pt-4">
-          <span
-            className={cn(
-              "flex w-full items-center justify-center rounded-full py-3 text-[13px] font-semibold text-white",
-              "bg-gradient-to-r from-primary to-primary-hover shadow-sm",
-              "transition group-hover:brightness-[1.03]",
-            )}
-          >
-            View event
-          </span>
+          {isOpenable ? (
+            <span
+              className={cn(
+                "flex w-full items-center justify-center rounded-full py-3 text-[13px] font-semibold text-white",
+                "bg-gradient-to-r from-primary to-primary-hover shadow-sm",
+                "transition group-hover:brightness-[1.03]",
+              )}
+            >
+              View event
+            </span>
+          ) : (
+            <span className="flex w-full items-center justify-center rounded-full border border-border-subtle bg-bg-base py-3 text-[13px] font-medium text-text-muted">
+              Members only
+            </span>
+          )}
         </div>
       </article>
-    </Link>
   );
+
+  if (isOpenable && href) {
+    return (
+      <Link href={href} className="group block h-full outline-none cursor-pointer">
+        {cardBody}
+      </Link>
+    );
+  }
+
+  return <div className="block h-full">{cardBody}</div>;
 }

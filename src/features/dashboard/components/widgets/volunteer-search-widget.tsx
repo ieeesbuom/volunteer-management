@@ -81,7 +81,7 @@ export function VolunteerSearchWidget() {
   }, [debouncedQuery]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5">
       <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Users className="size-4 shrink-0 text-primary" aria-hidden />
@@ -113,7 +113,7 @@ export function VolunteerSearchWidget() {
             : `${total} verified volunteer${total === 1 ? "" : "s"}`}
       </p>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {error ? (
           <p className="rounded-lg border border-danger/25 bg-danger-soft px-3 py-2 text-[13px] text-danger">
             {error}
@@ -157,6 +157,17 @@ export function VolunteerSearchWidget() {
           </ul>
         ) : null}
       </div>
+
+      {!loading && total > items.length ? (
+        <div className="mt-3 shrink-0 border-t border-border-subtle pt-3">
+          <Link
+            href="/volunteers"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
+          >
+            View all {total} volunteers
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -14,7 +14,7 @@ export function MyResponsibilitiesWidget() {
     : activeRoles;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-raised p-5">
       <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Briefcase className="size-4 shrink-0 text-primary" aria-hidden />
@@ -28,7 +28,7 @@ export function MyResponsibilitiesWidget() {
         </Link>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {roles.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border-subtle bg-bg-base/60 px-4 py-6 text-center">
             <p className="text-[13px] font-medium text-text-strong">No event assignments yet</p>

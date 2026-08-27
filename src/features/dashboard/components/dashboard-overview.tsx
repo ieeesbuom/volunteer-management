@@ -12,14 +12,22 @@ import { VerifyUomBanner } from "@/features/dashboard/components/widgets/verify-
 import { MyProjectsWidget } from "@/features/dashboard/components/widgets/my-projects-widget";
 import { MyResponsibilitiesWidget } from "@/features/dashboard/components/widgets/my-responsibilities-widget";
 import { VolunteerSearchWidget } from "@/features/dashboard/components/widgets/volunteer-search-widget";
-import { LeaderboardMiniWidget } from "@/features/dashboard/components/widgets/leaderboard-mini-widget";
+import {
+  LeaderboardMiniWidget,
+  type LeaderboardPreviewEntry,
+} from "@/features/dashboard/components/widgets/leaderboard-mini-widget";
 
 interface DashboardOverviewProps {
   user: SessionUser;
   opportunityList: DashboardOpportunityItem[];
+  leaderboardPreview: LeaderboardPreviewEntry[];
 }
 
-export function DashboardOverview({ user, opportunityList }: DashboardOverviewProps) {
+export function DashboardOverview({
+  user,
+  opportunityList,
+  leaderboardPreview,
+}: DashboardOverviewProps) {
   const { setNavExtras, setOpportunityList } = useAppPageNav();
 
   useLayoutEffect(() => {
@@ -59,7 +67,7 @@ export function DashboardOverview({ user, opportunityList }: DashboardOverviewPr
             <VolunteerSearchWidget />
           </div>
         </div>
-        <LeaderboardMiniWidget />
+        <LeaderboardMiniWidget entries={leaderboardPreview} />
       </div>
     </DashboardDataProvider>
   );

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getEventPermissions,
   isEventVisibleToUser,
+  isEventListedForUser,
+  canViewEventLifecycle,
 } from "@/features/events/lib/event-permissions";
 import {
   assertLegalEventStatusTransition,
@@ -155,29 +157,31 @@ describe("isEventVisibleToUser", () => {
     );
   });
 
-  it("shows draft events to their creator", () => {
+  it("shows draft and planning events to their creator", () => {
     const draftEvent = createEventFixture({ created_by: "user-1", status: "draft" });
+    const planningEvent = createEventFixture({ created_by: "user-1", status: "planning" });
 
     expect(isEventVisibleToUser("user-1", false, draftEvent)).toBe(true);
+    expect(isEventVisibleToUser("user-1", false, planningEvent)).toBe(true);
     expect(isEventVisibleToUser("user-2", false, draftEvent)).toBe(false);
   });
 
-  it("shows published, ongoing, and pending_conclusion events to other users", () => {
+  it("hides published lifecycle events from users without an assignment", () => {
     const userId = "user-1";
 
     expect(
       isEventVisibleToUser(userId, false, createEventFixture({ status: "published" })),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isEventVisibleToUser(userId, false, createEventFixture({ status: "ongoing" })),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isEventVisibleToUser(
         userId,
         false,
         createEventFixture({ status: "pending_conclusion" }),
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isEventVisibleToUser(userId, false, createEventFixture({ status: "draft" })),
     ).toBe(false);
@@ -186,6 +190,82 @@ describe("isEventVisibleToUser", () => {
     ).toBe(false);
     expect(
       isEventVisibleToUser(userId, false, createEventFixture({ status: "closed" })),
+    ).toBe(false);
+  });
+
+  it("shows published lifecycle events to assigned volunteers", () => {
+    expect(
+      isEventVisibleToUser(
+        "user-1",
+        false,
+        createEventFixture({ status: "published" }),
+        "Committee Member",
+      ),
+    ).toBe(true);
+    expect(
+      isEventVisibleToUser(
+        "user-1",
+        false,
+        createEventFixture({ status: "ongoing" }),
+        "Committee Lead",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not show published events to creators without an assignment", () => {
+    expect(
+      isEventVisibleToUser(
+        "user-1",
+        false,
+        createEventFixture({ created_by: "user-1", status: "published" }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("isEventListedForUser", () => {
+  it("lists published lifecycle events for unassigned volunteers", () => {
+    expect(
+      isEventListedForUser(
+        "user-1",
+        false,
+        createEventFixture({ status: "published" }),
+      ),
+    ).toBe(true);
+    expect(
+      isEventListedForUser("user-1", false, createEventFixture({ status: "draft" })),
+    ).toBe(false);
+  });
+
+  it("matches detail access when the user is assigned", () => {
+    expect(
+      isEventListedForUser(
+        "user-1",
+        false,
+        createEventFixture({ status: "draft" }),
+        "Committee Member",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("canViewEventLifecycle", () => {
+  it("allows admin and Chair only", () => {
+    expect(canViewEventLifecycle(true, "event-1", [])).toBe(true);
+    expect(
+      canViewEventLifecycle(false, "event-1", [
+        { active: true, eventId: "event-1", role: "Chair" },
+      ]),
+    ).toBe(true);
+    expect(
+      canViewEventLifecycle(false, "event-1", [
+        { active: true, eventId: "event-1", role: "Vice Chair" },
+      ]),
+    ).toBe(false);
+    expect(
+      canViewEventLifecycle(false, "event-1", [
+        { active: true, eventId: "event-1", role: "Committee Member" },
+      ]),
     ).toBe(false);
   });
 });
@@ -444,6 +524,32 @@ describe("event service operations", () => {
 
     expect(result.events).toHaveLength(1);
     expect(result.events[0]?.created_by).toBe("user-1");
+  });
+
+  it("getEvents: non-admin can browse published events without an assignment", async () => {
+    const { getEvents } = await import("@/features/events/server/event-service");
+    const { getActiveEventRoleAssignments } = await import(
+      "@/features/access-control/server/roles"
+    );
+
+    vi.mocked(getActiveEventRoleAssignments).mockResolvedValueOnce([]);
+    mockTables.listRows.mockResolvedValueOnce({
+      rows: [
+        toEventRow(createEventFixture({ $id: "event-pub", status: "published" })),
+        toEventRow(
+          createEventFixture({
+            $id: "event-draft",
+            created_by: "other-user",
+            status: "draft",
+          }),
+        ),
+      ],
+    });
+
+    const result = await getEvents({ isAdmin: false, userId: "user-1" });
+
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]?.$id).toBe("event-pub");
   });
 
   it("createEvent with duplicate reference throws ConflictError", async () => {

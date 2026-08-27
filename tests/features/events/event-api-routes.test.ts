@@ -393,6 +393,7 @@ describe("event API routes", () => {
       const ongoingEvent = createEventFixture({ status: "ongoing" });
       mockGetCurrentUser.mockResolvedValueOnce(createSessionUser());
       mockGetEventById.mockResolvedValueOnce(ongoingEvent);
+      mockGetUserEventRole.mockResolvedValueOnce("Chair");
       const { PATCH } = await import("@/app/api/events/[eventId]/status/route");
 
       const response = await PATCH(
@@ -404,6 +405,25 @@ describe("event API routes", () => {
       );
 
       expect(response.status).toBe(403);
+      expect(mockUpdateEventStatus).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 for unassigned users attempting status changes", async () => {
+      const ongoingEvent = createEventFixture({ status: "ongoing" });
+      mockGetCurrentUser.mockResolvedValueOnce(createSessionUser());
+      mockGetEventById.mockResolvedValueOnce(ongoingEvent);
+      mockGetUserEventRole.mockResolvedValueOnce(null);
+      const { PATCH } = await import("@/app/api/events/[eventId]/status/route");
+
+      const response = await PATCH(
+        new Request("http://localhost/api/events/event-1/status", {
+          body: JSON.stringify({ status: "closed" }),
+          method: "PATCH",
+        }),
+        { params: Promise.resolve({ eventId: "event-1" }) },
+      );
+
+      expect(response.status).toBe(404);
       expect(mockUpdateEventStatus).not.toHaveBeenCalled();
     });
 

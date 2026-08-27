@@ -15,7 +15,6 @@ import {
   Settings,
   Trophy,
   UserRound,
-  Users,
   UsersRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -147,15 +146,6 @@ export function DashboardCommandPalette({
     ];
 
     if (user.isAdmin) {
-      items.splice(3, 0, {
-        id: "nav-volunteers",
-        group: "Navigation",
-        label: "Volunteers",
-        subtitle: "Browse and search volunteer profiles",
-        icon: Users,
-        href: "/volunteers",
-        searchText: normalizeSearchText(["volunteers", "directory", "people", "profiles", "search"]),
-      });
       items.push(
         {
           id: "action-new-project",
@@ -176,8 +166,7 @@ export function DashboardCommandPalette({
         },
         {
           id: "nav-access",
-          group: "Navigation",
-          label: "Access",
+          group: "Navigation",          label: "Access",
           icon: UsersRound,
           href: "/admin/users",
           searchText: normalizeSearchText(["access", "users", "admin"]),

@@ -13,6 +13,7 @@ import {
 import { userIsEventChair } from "@/features/access-control/lib/rules";
 import type { EventStatus } from "@/features/events/types";
 import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
+import { getLeaderboard } from "@/features/scoring/server/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -73,11 +74,23 @@ export default async function DashboardPage() {
       return true;
     });
 
+  let leaderboardPreview: { userId: string; name: string; points: number }[] = [];
+  try {
+    const leaderboard = await getLeaderboard({});
+    leaderboardPreview = leaderboard.slice(0, 5);
+  } catch {
+    leaderboardPreview = [];
+  }
+
   return (
     <AppShell active="dashboard" user={user}>
       <AppPage className="space-y-0 pb-0">
         <Suspense fallback={null}>
-          <DashboardOverview user={user} opportunityList={opportunityList} />
+          <DashboardOverview
+            user={user}
+            opportunityList={opportunityList}
+            leaderboardPreview={leaderboardPreview}
+          />
         </Suspense>
       </AppPage>
     </AppShell>

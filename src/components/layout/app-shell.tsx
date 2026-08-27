@@ -11,7 +11,6 @@ import {
   LogOut,
   Settings,
   UserRound,
-  Users,
   UsersRound,
   Trophy,
   Menu,
@@ -81,9 +80,6 @@ export function AppShell({
   const mainNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, id: "dashboard" as const, label: "Overview" },
     { href: "/events", icon: CalendarDays, id: "events" as const, label: "Events" },
-    ...(user.isAdmin
-      ? [{ href: "/volunteers", icon: Users, id: "directory" as const, label: "Volunteers" }]
-      : []),
     { href: "/scoring", icon: Trophy, id: "scoring" as const, label: "Leaderboard" },
     { href: "/volunteers/me", icon: UserRound, id: "profile" as const, label: "Profile" },
   ];

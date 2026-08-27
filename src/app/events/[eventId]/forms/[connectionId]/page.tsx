@@ -8,19 +8,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
-import {
-  getEventUserContext,
-  isEventVisible,
-} from "@/features/events/server/event-route-helpers";
 import { getEventById } from "@/features/events/server/event-service";
 import { LavaFormRendererClient } from "@/features/forms/components/lava-form-renderer-client";
 import { isFormVisibleToUser } from "@/features/forms/lib/audience";
 import { isGroupAnswersEnabled } from "@/features/forms/lib/lava-form-presets";
 import { lavaFileProxyPath } from "@/features/forms/lib/lava-paths";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
-import {
-  canManageFormConnectionsForEvent,
-} from "@/features/forms/server/permissions";
+import { canManageFormConnections } from "@/features/forms/server/permissions";
 import { lavaSubmitFormAction } from "@/features/forms/server/lava-form-actions";
 import { createLavaFormStore } from "@/features/forms/server/lava-form-store";
 import { isLavaFormProvider } from "@/features/forms/types";
@@ -47,17 +41,12 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
     redirect("/events");
   }
 
-  const { userEventRole } = await getEventUserContext(eventId, user, event.reference);
-  if (!isEventVisible(user, event, userEventRole)) {
+  const connection = await createAppwriteFormConnectionRepository().get(connectionId);
+  if (!connection || connection.eventId !== eventId || !isLavaFormProvider(connection.provider)) {
     redirect("/events");
   }
 
-  const connection = await createAppwriteFormConnectionRepository().get(connectionId);
-  if (!connection || connection.eventId !== eventId || !isLavaFormProvider(connection.provider)) {
-    redirect(`/events/${eventId}`);
-  }
-
-  const canManage = await canManageFormConnectionsForEvent(user, eventId);
+  const canManage = canManageFormConnections(user, eventId);
   const visible = isFormVisibleToUser({
     canManage,
     connection,
@@ -68,7 +57,7 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
   });
 
   if (!visible) {
-    redirect(`/events/${eventId}`);
+    redirect("/events");
   }
 
   const store = createLavaFormStore({ eventId, user });
@@ -76,7 +65,7 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
     ? await store.getFormById(connection.externalFormId)
     : null;
   if (!form) {
-    redirect(`/events/${eventId}`);
+    redirect("/events");
   }
 
   const availability = getLavaFormAvailability(form);

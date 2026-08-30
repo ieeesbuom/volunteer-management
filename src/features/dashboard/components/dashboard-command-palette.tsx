@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import {
   BellPlus,
   CalendarDays,
+  CalendarPlus,
+  Eye,
   FileBarChart,
   Flag,
   LayoutDashboard,
+  LogOut,
   Megaphone,
-  Plus,
   Search,
   Settings,
   Trophy,
@@ -19,6 +21,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SessionUser } from "@/features/access-control/types";
+import { useViewMode } from "@/features/access-control/components/view-mode-context";
 import type { DashboardOpportunityItem } from "@/features/dashboard/lib/opportunity-types";
 import type { Event } from "@/features/events/types";
 
@@ -105,6 +108,8 @@ export function DashboardCommandPalette({
     };
   }, [open, eventsLoaded]);
 
+  const { isVolunteerPreview, setViewMode } = useViewMode();
+
   const allItems = useMemo(() => {
     const items: CommandItem[] = [
       {
@@ -145,16 +150,16 @@ export function DashboardCommandPalette({
       },
     ];
 
-    if (user.isAdmin) {
+    if (user.isAdmin && !isVolunteerPreview) {
       items.push(
         {
-          id: "action-new-project",
-          group: "Actions",
-          label: "New project",
-          subtitle: "Create a new event",
-          icon: Plus,
+          id: "action-create-event",
+          group: "Administration",
+          label: "Create Event",
+          subtitle: "Register a new branch event",
+          icon: CalendarPlus,
           href: "/events/new",
-          searchText: normalizeSearchText(["new", "project", "create", "event"]),
+          searchText: normalizeSearchText(["new", "project", "create", "event", "administration"]),
         },
         {
           id: "nav-reports",
@@ -166,7 +171,8 @@ export function DashboardCommandPalette({
         },
         {
           id: "nav-access",
-          group: "Navigation",          label: "Access",
+          group: "Navigation",
+          label: "Access",
           icon: UsersRound,
           href: "/admin/users",
           searchText: normalizeSearchText(["access", "users", "admin"]),
@@ -195,7 +201,32 @@ export function DashboardCommandPalette({
           href: "/admin/notifications",
           searchText: normalizeSearchText(["notifications", "admin"]),
         },
+        {
+          id: "action-switch-to-volunteer-view",
+          group: "View Mode",
+          label: "Preview Volunteer View",
+          subtitle: "Switch to standard volunteer view",
+          icon: Eye,
+          onSelect: () => {
+            onOpenChange(false);
+            setViewMode("volunteer");
+          },
+          searchText: normalizeSearchText(["volunteer", "preview", "view", "mode", "switch"]),
+        },
       );
+    } else if (user.isAdmin && isVolunteerPreview) {
+      items.push({
+        id: "action-exit-volunteer-preview",
+        group: "View Mode",
+        label: "Exit Volunteer Preview",
+        subtitle: "Switch back to administrator view",
+        icon: LogOut,
+        onSelect: () => {
+          onOpenChange(false);
+          setViewMode("admin");
+        },
+        searchText: normalizeSearchText(["admin", "administrator", "exit", "preview", "view", "mode", "switch"]),
+      });
     }
 
     for (const { conn, event } of opportunityList) {
@@ -252,7 +283,7 @@ export function DashboardCommandPalette({
     }
 
     return items;
-  }, [events, opportunityList, user.isAdmin]);
+  }, [events, isVolunteerPreview, onOpenChange, opportunityList, setViewMode, user.isAdmin]);
 
   const filteredItems = useMemo(
     () => allItems.filter((item) => itemMatchesQuery(item, query)),

@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { useLayoutEffect } from "react";
-import { Plus } from "lucide-react";
 import { useAppPageNav } from "@/components/layout/app-page-nav-context";
 import type { SessionUser } from "@/features/access-control/types";
 import type { DashboardOpportunityItem } from "@/features/dashboard/lib/opportunity-types";
@@ -28,30 +26,12 @@ export function DashboardOverview({
   opportunityList,
   leaderboardPreview,
 }: DashboardOverviewProps) {
-  const { setNavExtras, setOpportunityList } = useAppPageNav();
+  const { setOpportunityList } = useAppPageNav();
 
   useLayoutEffect(() => {
     setOpportunityList(opportunityList);
     return () => setOpportunityList([]);
   }, [opportunityList, setOpportunityList]);
-
-  useLayoutEffect(() => {
-    if (!user.isAdmin) {
-      setNavExtras(null);
-      return;
-    }
-
-    setNavExtras(
-      <Link
-        href="/events/new"
-        className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[13px] font-semibold text-white transition-all hover:bg-primary-hover"
-      >
-        <Plus className="size-4" aria-hidden />
-        <span>New Project</span>
-      </Link>,
-    );
-    return () => setNavExtras(null);
-  }, [setNavExtras, user.isAdmin]);
 
   return (
     <DashboardDataProvider value={{ user, opportunityList }}>

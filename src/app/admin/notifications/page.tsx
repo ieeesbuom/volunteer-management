@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { listActiveEventRoleAssignments } from "@/features/access-control/server/roles";
 import {
@@ -29,7 +30,7 @@ export default async function AdminNotificationsPage() {
     redirect("/login");
   }
 
-  if (!currentUser.isAdmin) {
+  if (!currentUser.isAdmin || (await isVolunteerPreviewActive(currentUser.isAdmin))) {
     redirect("/dashboard");
   }
 

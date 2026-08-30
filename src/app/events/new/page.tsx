@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
 import { CreateEventForm } from "@/features/events/components/CreateEventForm";
 import { canCreateEvent } from "@/features/events/server/event-route-helpers";
 
@@ -19,12 +20,12 @@ export default async function NewEventPage() {
     redirect("/login");
   }
 
-  if (!canCreateEvent(user)) {
+  if (!canCreateEvent(user) || (await isVolunteerPreviewActive(user.isAdmin))) {
     redirect("/events");
   }
 
   return (
-    <AppShell active="events" user={user}>
+    <AppShell active="create-event" user={user}>
       <AppPage>
         <PageHeader
           title="Create Event"

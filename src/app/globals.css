@@ -3,21 +3,21 @@
 :root {
   --primary: hsl(216, 79%, 36%);
   --primary-hover: hsl(216, 79%, 28%);
-  --primary-soft: hsl(216, 80%, 97%);
-  --primary-mid: hsl(216, 60%, 92%);
+  --primary-soft: hsl(216, 75%, 95.5%);
+  --primary-mid: hsl(216, 50%, 88%);
 
-  --bg-base: hsl(220, 6%, 98.5%);
+  --bg-base: hsl(220, 16%, 96%);
   --surface-raised: hsl(0, 0%, 100%);
   --surface-overlay: hsl(0, 0%, 100%);
 
-  --border-subtle: hsl(220, 5%, 96%);
-  --border-default: hsl(220, 6%, 91%);
-  --border-strong: hsl(220, 8%, 80%);
+  --border-subtle: hsl(220, 13%, 90%);
+  --border-default: hsl(220, 13%, 84%);
+  --border-strong: hsl(220, 13%, 72%);
 
   --text-strong: hsl(220, 26%, 14%);
   --text-body: hsl(220, 14%, 32%);
-  --text-muted: hsl(220, 10%, 52%);
-  --text-placeholder: hsl(220, 8%, 68%);
+  --text-muted: hsl(220, 10%, 50%);
+  --text-placeholder: hsl(220, 8%, 66%);
 
   --success: hsl(142, 52%, 28%);
   --success-soft: hsl(142, 60%, 96%);
@@ -26,7 +26,7 @@
   --danger: hsl(0, 68%, 40%);
   --danger-soft: hsl(0, 80%, 97%);
   --neutral: hsl(220, 10%, 50%);
-  --neutral-soft: hsl(220, 6%, 97%);
+  --neutral-soft: hsl(220, 12%, 93.5%);
 
   --gold: hsl(43, 90%, 48%);
   --silver: hsl(220, 10%, 62%);
@@ -45,6 +45,45 @@
   --transition-fast: 100ms ease;
   --transition-base: 150ms ease;
   --transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark,
+[data-theme="dark"] {
+  --primary: hsl(216, 85%, 60%);
+  --primary-hover: hsl(216, 85%, 68%);
+  --primary-soft: hsl(216, 40%, 18%);
+  --primary-mid: hsl(216, 35%, 26%);
+
+  --bg-base: hsl(222, 28%, 9%);
+  --surface-raised: hsl(222, 22%, 13.5%);
+  --surface-overlay: hsl(222, 22%, 17%);
+
+  --border-subtle: hsl(222, 16%, 19%);
+  --border-default: hsl(222, 16%, 26%);
+  --border-strong: hsl(222, 16%, 35%);
+
+  --text-strong: hsl(220, 20%, 96%);
+  --text-body: hsl(220, 14%, 82%);
+  --text-muted: hsl(220, 12%, 62%);
+  --text-placeholder: hsl(220, 10%, 42%);
+
+  --success: hsl(142, 60%, 45%);
+  --success-soft: hsl(142, 45%, 15%);
+  --warning: hsl(38, 95%, 55%);
+  --warning-soft: hsl(38, 50%, 15%);
+  --danger: hsl(0, 75%, 60%);
+  --danger-soft: hsl(0, 50%, 16%);
+  --neutral: hsl(220, 14%, 60%);
+  --neutral-soft: hsl(222, 18%, 18%);
+
+  --gold: hsl(43, 95%, 55%);
+  --silver: hsl(220, 14%, 72%);
+  --bronze: hsl(20, 75%, 58%);
+
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.35), 0 1px 3px hsl(0 0% 0% / 0.25);
+  --shadow-md: 0 4px 6px hsl(0 0% 0% / 0.4), 0 2px 4px hsl(0 0% 0% / 0.3);
+  --shadow-lg: 0 10px 15px hsl(0 0% 0% / 0.5), 0 4px 6px hsl(0 0% 0% / 0.35);
+  --shadow-overlay: 0 20px 25px hsl(0 0% 0% / 0.6), 0 8px 10px hsl(0 0% 0% / 0.45);
 }
 
 @theme inline {
@@ -111,6 +150,11 @@
 
 html {
   background: var(--bg-base);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -118,6 +162,7 @@ body {
   color: var(--text-body);
   letter-spacing: 0;
   font-family: var(--font-sans);
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 ::selection {
@@ -163,4 +208,3 @@ button * {
 .lfb-root--vms-builder [data-vms-hide="true"] {
   display: none !important;
 }
-

@@ -21,12 +21,12 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[hsl(220,16%,96%)] px-6 py-16 text-[hsl(220,14%,32%)]`}>
-        <main className="mx-auto max-w-lg rounded-[12px] border border-[hsl(220,13%,91%)] bg-white p-8 shadow-[0_1px_2px_hsl(220_26%_14%/0.04)]">
-          <h1 className="text-xl font-semibold text-[hsl(220,26%,14%)]">
+      <body className={`${inter.className} min-h-screen bg-bg-base px-6 py-16 text-text-body`}>
+        <main className="mx-auto max-w-lg rounded-xl border border-border-default bg-surface-raised p-8 shadow-sm">
+          <h1 className="text-xl font-semibold text-text-strong">
             Something went wrong
           </h1>
-          <p className="mt-2 text-sm text-[hsl(220,10%,52%)]">
+          <p className="mt-2 text-sm text-text-muted">
             An unexpected error occurred. Please refresh the page and try again.
           </p>
         </main>

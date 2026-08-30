@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
 import { SystemSettingsPanel } from "@/features/system-settings/components/system-settings-panel";
 import { getInitialSystemSettingsData } from "@/features/system-settings/server/settings";
 
@@ -15,7 +16,7 @@ export default async function AdminSettingsPage() {
     redirect("/login");
   }
 
-  if (!currentUser.isAdmin) {
+  if (!currentUser.isAdmin || (await isVolunteerPreviewActive(currentUser.isAdmin))) {
     redirect("/dashboard");
   }
 

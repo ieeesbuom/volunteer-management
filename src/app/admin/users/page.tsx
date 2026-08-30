@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AccessControlPanel } from "@/features/access-control/components/access-control-panel";
 import { listAdminUsers } from "@/features/access-control/server/admin-users";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function AdminUsersPage() {
     redirect("/login");
   }
 
-  if (!currentUser.isAdmin) {
+  if (!currentUser.isAdmin || (await isVolunteerPreviewActive(currentUser.isAdmin))) {
     redirect("/dashboard");
   }
 

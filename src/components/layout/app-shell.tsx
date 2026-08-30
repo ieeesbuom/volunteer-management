@@ -5,6 +5,8 @@ import { Suspense, useState } from "react";
 import {
   BellPlus,
   CalendarDays,
+  CalendarPlus,
+  Eye,
   FileBarChart,
   Flag,
   LayoutDashboard,
@@ -24,6 +26,10 @@ import {
   AppTopNavSpacer,
 } from "@/components/layout/app-page-nav-context";
 import { AppTopNav } from "@/components/layout/app-top-nav";
+import {
+  ViewModeProvider,
+  useViewMode,
+} from "@/features/access-control/components/view-mode-context";
 
 const ACTIVE_PAGE_TITLES: Record<
   | "dashboard"
@@ -32,6 +38,7 @@ const ACTIVE_PAGE_TITLES: Record<
   | "moderation"
   | "events"
   | "my-events"
+  | "create-event"
   | "users"
   | "reports"
   | "scoring"
@@ -42,6 +49,7 @@ const ACTIVE_PAGE_TITLES: Record<
   dashboard: "Overview",
   events: "Events",
   "my-events": "My Events",
+  "create-event": "Create Event",
   scoring: "Scoring & Leaderboard",
   directory: "Volunteers",
   profile: "Profile",
@@ -52,30 +60,33 @@ const ACTIVE_PAGE_TITLES: Record<
   notifications: "Notifications",
 };
 
-export function AppShell({
+export type ActiveNavId =
+  | "dashboard"
+  | "notifications"
+  | "settings"
+  | "moderation"
+  | "events"
+  | "my-events"
+  | "create-event"
+  | "users"
+  | "reports"
+  | "scoring"
+  | "directory"
+  | "profile";
+
+function AppShellInner({
   active,
   children,
   pageTitle,
   user,
 }: Readonly<{
-  active:
-    | "dashboard"
-    | "notifications"
-    | "settings"
-    | "moderation"
-    | "events"
-    | "my-events"
-    | "users"
-    | "reports"
-    | "scoring"
-    | "directory"
-    | "profile";
+  active: ActiveNavId;
   children: React.ReactNode;
-  /** Matches PageHeader title so SSR and hydration use the same top-nav label. */
   pageTitle?: string;
   user: SessionUser;
 }>) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isVolunteerPreview, toggleViewMode } = useViewMode();
 
   const mainNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, id: "dashboard" as const, label: "Overview" },
@@ -84,8 +95,11 @@ export function AppShell({
     { href: "/volunteers/me", icon: UserRound, id: "profile" as const, label: "Profile" },
   ];
 
-  const adminNavItems = user.isAdmin
+  const showAdminNav = user.isAdmin && !isVolunteerPreview;
+
+  const adminNavItems = showAdminNav
     ? ([
+        { href: "/events/new", icon: CalendarPlus, id: "create-event", label: "Create Event" },
         { href: "/reports", icon: FileBarChart, id: "reports", label: "Reports" },
         { href: "/admin/users", icon: UsersRound, id: "users", label: "Access" },
         { href: "/admin/settings", icon: Settings, id: "settings", label: "Settings" },
@@ -165,9 +179,9 @@ export function AppShell({
                     >
                       <Icon
                         className={cn(
-                    "size-4 shrink-0",
-                    isActive ? "text-white" : "text-text-placeholder group-hover:text-text-strong",
-                  )}
+                          "size-4 shrink-0",
+                          isActive ? "text-white" : "text-text-placeholder group-hover:text-text-strong",
+                        )}
                         aria-hidden="true"
                       />
                       {item.label}
@@ -179,6 +193,34 @@ export function AppShell({
           )}
         </nav>
       </div>
+
+      {user.isAdmin && (
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={toggleViewMode}
+            className={cn(
+              "group flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-[12px] transition-all shadow-xs",
+              isVolunteerPreview
+                ? "border border-warning/30 bg-warning-soft font-semibold text-warning hover:bg-warning-soft/80"
+                : "border border-border-subtle bg-bg-base font-medium text-text-muted hover:border-border-default hover:bg-neutral-soft hover:text-text-strong"
+            )}
+            title={isVolunteerPreview ? "Exit volunteer preview mode" : "Preview application as a standard volunteer"}
+          >
+            {isVolunteerPreview ? (
+              <>
+                <LogOut className="size-3.5 text-warning" aria-hidden="true" />
+                <span>Exit Volunteer Preview</span>
+              </>
+            ) : (
+              <>
+                <Eye className="size-3.5 text-text-placeholder transition-colors group-hover:text-primary" aria-hidden="true" />
+                <span>Preview Volunteer View</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       <div className="flex shrink-0 items-center gap-3 border-t border-border-subtle bg-surface-raised p-4">
         {user.authUser.avatarUrl ? (
@@ -233,7 +275,7 @@ export function AppShell({
         <div className="absolute right-0 top-0 -mr-12 pt-4">
           <button
             type="button"
-            className="flex size-10 items-center justify-center rounded-full bg-black/50 text-white focus:outline-none"
+            className="flex size-10 items-center justify-center rounded-full bg-black/50 text-white focus:outline-none cursor-pointer"
             onClick={() => setMobileMenuOpen(false)}
           >
             <span className="sr-only">Close sidebar</span>
@@ -277,5 +319,26 @@ export function AppShell({
         </div>
       </AppPageNavProvider>
     </div>
+  );
+}
+
+export function AppShell({
+  active,
+  children,
+  pageTitle,
+  user,
+}: Readonly<{
+  active: ActiveNavId;
+  children: React.ReactNode;
+  /** Matches PageHeader title so SSR and hydration use the same top-nav label. */
+  pageTitle?: string;
+  user: SessionUser;
+}>) {
+  return (
+    <ViewModeProvider isAdmin={user.isAdmin}>
+      <AppShellInner active={active} pageTitle={pageTitle} user={user}>
+        {children}
+      </AppShellInner>
+    </ViewModeProvider>
   );
 }

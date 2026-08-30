@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Nunito_Sans } from "next/font/google";
 import "@knurdz/lava-form-builder/styles.css";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,7 +29,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`h-full antialiased ${inter.variable} ${nunitoSans.variable}`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={true}
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

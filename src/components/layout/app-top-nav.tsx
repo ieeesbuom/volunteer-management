@@ -5,7 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import type { SessionUser } from "@/features/access-control/types";
+import { VolunteerPreviewBanner } from "@/features/access-control/components/volunteer-preview-banner";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
   DashboardCommandPalette,
   useDashboardCommandPaletteShortcut,
@@ -17,7 +19,6 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
   const searchParams = useSearchParams();
   const openNotifications = searchParams.get("tab") === "notifications";
   const {
-    displayTitle,
     extras,
     opportunityList,
     setNavHeight,
@@ -57,21 +58,18 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
       observer.disconnect();
       window.removeEventListener("resize", syncHeight);
     };
-  }, [displayTitle, extras, setNavHeight]);
+  }, [extras, setNavHeight]);
 
   return (
     <>
       <div
         ref={navRef}
-        className="fixed top-16 right-0 z-30 border-b border-border-subtle bg-bg-base/95 px-4 pb-4 pt-3 backdrop-blur-sm sm:px-6 lg:top-0 lg:left-60"
+        className="fixed top-16 right-0 z-30 border-b border-border-subtle bg-bg-base/95 backdrop-blur-sm lg:top-0 lg:left-60"
       >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-          <h1 className="shrink-0 text-[17px] font-bold tracking-tight text-text-strong sm:text-[18px]">
-            {displayTitle}
-          </h1>
-
-          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:justify-between">
-            <div className="relative flex w-full items-center sm:max-w-md lg:mx-4 lg:flex-1">
+        <VolunteerPreviewBanner />
+        <div className="px-4 pb-4 pt-3 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex w-full items-center sm:max-w-md lg:max-w-md">
               <Search className="pointer-events-none absolute left-4 size-4 text-text-placeholder" />
               <button
                 type="button"
@@ -93,6 +91,10 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
 
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-3.5">
               {extras}
+
+              <div className="shrink-0">
+                <ThemeToggle />
+              </div>
 
               <div className="shrink-0">
                 <NotificationBell autoOpen={openNotifications} />

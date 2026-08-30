@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Plus, UserRound, Inbox } from "lucide-react";
+import { CalendarDays, UserRound, Inbox } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { AppPage } from "@/components/layout/app-page";
-import { buttonClasses } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EventListingCard } from "@/features/events/components/event-listing-card";
 import {
@@ -75,13 +73,12 @@ function buildMyEventsTags(
 }
 
 export function EventList({
-  canCreate,
   allEvents,
   myEvents,
   showMyEventsTab,
   user,
 }: Readonly<{
-  canCreate: boolean;
+  canCreate?: boolean;
   allEvents: Event[];
   myEvents: UserEvent[];
   showMyEventsTab: boolean;
@@ -110,14 +107,6 @@ export function EventList({
       <PageHeader
         title="Events"
         description="Branch events you can browse and join."
-        actions={
-          canCreate ? (
-            <Link className={buttonClasses({ variant: "primary" })} href="/events/new">
-              <Plus className="size-4" aria-hidden="true" />
-              Create Event
-            </Link>
-          ) : null
-        }
       />
 
       {showMyEventsTab && (
@@ -167,12 +156,6 @@ export function EventList({
                 There are no events available to display right now.
               </p>
             </div>
-            {canCreate && (
-              <Link className={buttonClasses({ variant: "primary", className: "mt-2" })} href="/events/new">
-                <Plus className="size-4" aria-hidden="true" />
-                Create Event
-              </Link>
-            )}
           </CardContent>
         </Card>
       ) : null}

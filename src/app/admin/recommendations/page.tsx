@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
 import { ReportedRecommendationsPanel } from "@/features/recommendations/components/reported-recommendations-panel";
 import { listReportedRecommendations } from "@/features/recommendations/server/recommendations";
 
@@ -25,7 +26,7 @@ export default async function AdminRecommendationsPage() {
     redirect("/login");
   }
 
-  if (!currentUser.isAdmin) {
+  if (!currentUser.isAdmin || (await isVolunteerPreviewActive(currentUser.isAdmin))) {
     redirect("/dashboard");
   }
 

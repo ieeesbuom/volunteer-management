@@ -74,17 +74,20 @@ function buildMyEventsTags(
 
 export function EventList({
   allEvents,
+  isAdmin: isAdminProp,
   myEvents,
   showMyEventsTab,
   user,
 }: Readonly<{
   canCreate?: boolean;
   allEvents: Event[];
+  /** Preview-aware admin flag; falls back to user.isAdmin when omitted. */
+  isAdmin?: boolean;
   myEvents: UserEvent[];
   showMyEventsTab: boolean;
   user?: SessionUser;
 }>) {
-  const isAdmin = user?.isAdmin ?? false;
+  const isAdmin = isAdminProp ?? user?.isAdmin ?? false;
   const userRoles = user?.eventRoles ?? [];
   const router = useRouter();
   const searchParams = useSearchParams();

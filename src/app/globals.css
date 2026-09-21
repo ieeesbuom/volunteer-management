@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --primary: hsl(216, 79%, 36%);
   --primary-hover: hsl(216, 79%, 28%);

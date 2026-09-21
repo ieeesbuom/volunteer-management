@@ -55,7 +55,14 @@ export default async function LoginPage({
           alt="Powered by Knurdz"
           width={1024}
           height={340}
-          className="h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right sm:h-10 sm:max-w-[240px]"
+          className="h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right dark:hidden sm:h-10 sm:max-w-[240px]"
+        />
+        <Image
+          src="/images/powered-by-knurdz.png"
+          alt="Powered by Knurdz"
+          width={1024}
+          height={340}
+          className="hidden h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right dark:block sm:h-10 sm:max-w-[240px]"
         />
       </a>
 
@@ -100,7 +107,7 @@ export default async function LoginPage({
 
             <Link
               href="/api/auth/google"
-              className="mt-8 inline-flex h-[3.25rem] w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-text-strong px-6 text-[15px] font-semibold text-white shadow-md transition-[transform,box-shadow,opacity] duration-200 hover:opacity-95 hover:shadow-lg active:scale-[0.99]"
+              className="mt-8 inline-flex h-[3.25rem] w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-white px-6 text-[15px] font-semibold text-[hsl(220,26%,14%)] shadow-md transition-[transform,box-shadow,background-color] duration-200 hover:bg-neutral-100 hover:shadow-lg active:scale-[0.99]"
               aria-label="Continue with Google"
             >
               <GoogleIcon size={24} />

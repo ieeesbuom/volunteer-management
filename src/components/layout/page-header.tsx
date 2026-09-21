@@ -27,7 +27,7 @@ export function PageHeader({
     return () => setPageNav({ title: null, description: null });
   }, [title, description, setPageNav]);
 
-  if (!actions && !description && !eyebrow && !showTitle) {
+  if (!actions && !eyebrow && !showTitle) {
     return null;
   }
 
@@ -51,16 +51,6 @@ export function PageHeader({
           >
             {title}
           </h1>
-        ) : null}
-        {description ? (
-          <p
-            className={cn(
-              "text-[13px] leading-relaxed text-text-muted",
-              eyebrow || showTitle ? "mt-2" : undefined,
-            )}
-          >
-            {description}
-          </p>
         ) : null}
       </div>
       {actions ? <div className="flex min-w-0 flex-wrap gap-2">{actions}</div> : null}

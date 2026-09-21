@@ -64,9 +64,9 @@ export default async function LoginPage({
           <Image
             src="/images/ieee-sb-uom-logo.png"
             alt={ORGANIZATION_NAME}
-            width={1024}
-            height={223}
-            className="h-10 w-auto max-w-[min(100%,320px)] object-contain object-left sm:h-11"
+            width={1600}
+            height={350}
+            className="h-11 w-auto max-w-[min(100%,340px)] object-contain object-left sm:h-12"
             priority
           />
         </header>

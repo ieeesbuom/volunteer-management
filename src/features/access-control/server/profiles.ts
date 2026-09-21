@@ -7,6 +7,11 @@ import { buildInitialProfilePayload } from "@/features/access-control/lib/profil
 import { normalizeEmail } from "@/features/access-control/lib/rules";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
+import {
+  CATALOG_TAGS,
+  getCachedProfileRows,
+  invalidateCatalog,
+} from "@/server/catalog-cache";
 import { isAppwriteNotFound } from "@/server/errors";
 import { readAvatarUrlFromPrefs } from "@/features/access-control/server/google-avatar";
 import type { AuthUser, Profile } from "@/features/access-control/types";
@@ -79,6 +84,7 @@ export async function bootstrapProfile(user: AppwriteUser) {
       authUser.id,
       buildInitialProfilePayload(authUser, now),
     );
+    invalidateCatalog(CATALOG_TAGS.profiles);
 
     return toProfile(row);
   }
@@ -93,6 +99,7 @@ export async function bootstrapProfile(user: AppwriteUser) {
       name: authUser.name,
     },
   );
+  invalidateCatalog(CATALOG_TAGS.profiles);
 
   return toProfile(row);
 }
@@ -113,6 +120,7 @@ export async function getOrCreateProfile(user: AppwriteUser) {
     authUser.id,
     buildInitialProfilePayload(authUser, new Date().toISOString()),
   );
+  invalidateCatalog(CATALOG_TAGS.profiles);
 
   return toProfile(row);
 }
@@ -137,23 +145,14 @@ export async function markProfileUomVerified({
       uomVerifiedAt: now,
     },
   );
+  invalidateCatalog(CATALOG_TAGS.profiles);
 
   return toProfile(row);
 }
 
 export const listProfiles = cache(async function listProfiles() {
-  const env = getServerEnv();
-  const { Query } = await import("node-appwrite");
-  const { tables } = getAppwriteAdminServices();
-  const result = await tables.listRows(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.profiles,
-    [Query.limit(500), Query.orderDesc("lastLoginAt")],
-    undefined,
-    false,
-  );
-
-  return result.rows.map((row) => toProfile(row as AppRow));
+  const rows = await getCachedProfileRows();
+  return rows.map((row) => toProfile(row as AppRow));
 });
 
 /** Load a small set of profiles by auth user id (profile document id). */

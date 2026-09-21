@@ -32,6 +32,12 @@ import type {
 } from "@/features/events/types";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
+import {
+  CATALOG_TAGS,
+  getCachedAllEventRows,
+  getCachedPublicEventRows,
+  invalidateCatalog,
+} from "@/server/catalog-cache";
 import { voidEventPointLedger } from "@/features/scoring/server/point-ledger";
 import {
   ConflictError,
@@ -125,41 +131,73 @@ function isEventVisibleToQuery({
   return false;
 }
 
-export async function getEvents(options: GetEventsOptions = {}): Promise<GetEventsResult> {
-  const limit = options.limit ?? 50;
-  const offset = options.offset ?? 0;
+async function listCreatorEarlyEventRows(userId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const queries = [Query.orderDesc("created_at"), Query.limit(500)];
-
-  if (options.status) {
-    queries.unshift(Query.equal("status", options.status));
-  }
-
-  if (options.term) {
-    queries.unshift(Query.equal("term", options.term));
-  }
-
   const result = await tables.listRows(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     APPWRITE_TABLES.events,
-    queries,
+    [
+      Query.equal("created_by", userId),
+      Query.equal("status", EARLY_CREATOR_STATUSES),
+      Query.orderDesc("created_at"),
+      Query.limit(100),
+    ],
     undefined,
     false,
   );
 
-  const allEvents = result.rows.map((row) => toEvent(row as AppRow));
+  return result.rows.map((row) => toEvent(row as AppRow));
+}
+
+export async function getEvents(options: GetEventsOptions = {}): Promise<GetEventsResult> {
+  const limit = options.limit ?? 50;
+  const offset = options.offset ?? 0;
+  const isAdmin = Boolean(options.isAdmin);
   const userAssignedEventIds =
     options.assignedEventIds
       ? new Set(options.assignedEventIds)
-      : options.userId && !options.isAdmin
+      : options.userId && !isAdmin
         ? await getUserAssignedEventIds(options.userId)
         : new Set<string>();
+
+  let allEvents: Event[];
+
+  if (isAdmin) {
+    const rows = await getCachedAllEventRows();
+    allEvents = rows.map((row) => toEvent(row as AppRow));
+  } else {
+    const [publicRows, assignedEvents, creatorEvents] = await Promise.all([
+      getCachedPublicEventRows(),
+      listEventsByIds([...userAssignedEventIds]),
+      options.userId ? listCreatorEarlyEventRows(options.userId) : Promise.resolve([]),
+    ]);
+
+    const byId = new Map<string, Event>();
+    for (const event of [
+      ...publicRows.map((row) => toEvent(row as AppRow)),
+      ...assignedEvents,
+      ...creatorEvents,
+    ]) {
+      byId.set(event.$id, event);
+    }
+    allEvents = [...byId.values()].sort((a, b) =>
+      b.created_at.localeCompare(a.created_at),
+    );
+  }
+
+  if (options.status) {
+    allEvents = allEvents.filter((event) => event.status === options.status);
+  }
+
+  if (options.term) {
+    allEvents = allEvents.filter((event) => event.term === options.term);
+  }
 
   const visibleEvents = allEvents.filter((event) =>
     isEventVisibleToQuery({
       event,
-      isAdmin: Boolean(options.isAdmin),
+      isAdmin,
       userAssignedEventIds,
       userId: options.userId,
     }),
@@ -363,6 +401,7 @@ export async function createEvent(
     throw error;
   }
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return event;
 }
 
@@ -485,6 +524,7 @@ export async function updateEvent(
     targetType: "event",
   });
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return event;
 }
 
@@ -528,6 +568,7 @@ export async function updateEventStatus(
     });
   }
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return updated;
 }
 
@@ -573,6 +614,7 @@ export async function submitConclusion(
     targetType: "event",
   });
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return updated;
 }
 
@@ -623,6 +665,7 @@ export async function approveConclusion(
     targetType: "event",
   });
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return updated;
 }
 
@@ -669,6 +712,7 @@ export async function syncEventConclusionSubmitted(
     targetType: "event",
   });
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return updated;
 }
 
@@ -724,6 +768,7 @@ export async function syncEventConclusionReviewed({
     targetType: "event",
   });
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return updated;
 }
 
@@ -765,6 +810,7 @@ export async function rejectConclusion(
     targetType: "event",
   });
 
+  invalidateCatalog(CATALOG_TAGS.events);
   return updated;
 }
 
@@ -836,6 +882,8 @@ export async function deleteEvent(eventId: string, actorUserId: string): Promise
     targetId: eventId,
     targetType: "event",
   });
+
+  invalidateCatalog(CATALOG_TAGS.events);
 }
 
 export async function getEventWithRoleAssignments(

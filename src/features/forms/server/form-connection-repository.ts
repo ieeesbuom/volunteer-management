@@ -6,6 +6,11 @@ import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getServerEnv } from "@/lib/env";
 import { parseSafeJsonObject, serializeSafeJson } from "@/lib/validation/safe-json";
 import { getAppwriteAdminServices } from "@/server/appwrite";
+import {
+  CATALOG_TAGS,
+  getCachedFormConnectionRows,
+  invalidateCatalog,
+} from "@/server/catalog-cache";
 import type {
   CreateFormConnectionInput,
   FormConnection,
@@ -73,26 +78,31 @@ export function createAppwriteFormConnectionRepository(): FormConnectionReposito
           updatedAt: input.updatedAt,
         },
       );
+      invalidateCatalog(CATALOG_TAGS.formConnections);
 
       return toFormConnection(row);
     },
 
     async list(options = {}) {
-      const env = getServerEnv();
-      const { tables } = getAppwriteAdminServices();
-      const queries = [
-        Query.orderDesc("updatedAt"),
-        Query.limit(options.limit ?? 100),
-      ];
+      const limit = options.limit ?? 100;
 
-      if (options.eventId) {
-        queries.unshift(Query.equal("eventId", options.eventId));
+      if (!options.eventId) {
+        const rows = await getCachedFormConnectionRows();
+        return rows
+          .map((row) => toFormConnection(row as AppRow))
+          .slice(0, limit);
       }
 
+      const env = getServerEnv();
+      const { tables } = getAppwriteAdminServices();
       const result = await tables.listRows(
         env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
         APPWRITE_TABLES.formConnections,
-        queries,
+        [
+          Query.equal("eventId", options.eventId),
+          Query.orderDesc("updatedAt"),
+          Query.limit(limit),
+        ],
         undefined,
         false,
       );
@@ -150,6 +160,7 @@ export function createAppwriteFormConnectionRepository(): FormConnectionReposito
         id,
         updateData,
       );
+      invalidateCatalog(CATALOG_TAGS.formConnections);
       return toFormConnection(row);
     },
 
@@ -161,6 +172,7 @@ export function createAppwriteFormConnectionRepository(): FormConnectionReposito
         APPWRITE_TABLES.formConnections,
         id,
       );
+      invalidateCatalog(CATALOG_TAGS.formConnections);
     },
   };
 }

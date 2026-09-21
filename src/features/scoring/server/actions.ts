@@ -18,6 +18,11 @@ import { listEvents } from "@/features/events/server/event-service";
 import { ROLE_BASE_POINTS } from "@/lib/config";
 import { getServerEnv } from "@/lib/env";
 import { isAppwriteNotFound } from "@/server/errors";
+import {
+  CATALOG_TAGS,
+  getCachedScoringInputs,
+  invalidateCatalog,
+} from "@/server/catalog-cache";
 import type { AuditAction, Profile } from "@/features/access-control/types";
 
 import {
@@ -1068,6 +1073,7 @@ export async function toggleTopBoardExclusion(data: {
         setBy: changerId,
       },
     );
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
     return JSON.parse(JSON.stringify(row)) as TermScoringConfig;
   } catch (error) {
     if (!isAppwriteNotFound(error)) {
@@ -1088,6 +1094,7 @@ export async function toggleTopBoardExclusion(data: {
       year: validated.year,
     },
   );
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
   return JSON.parse(JSON.stringify(row)) as TermScoringConfig;
 }
 
@@ -1099,8 +1106,6 @@ export async function getLeaderboard(params: {
   month?: number;
   year?: number;
 }) {
-  const env = getServerEnv();
-  const { tables } = getAppwriteAdminServices();
   await requireAuth();
 
   const validated = z.object({
@@ -1109,39 +1114,16 @@ export async function getLeaderboard(params: {
     year: YearSchema.optional(),
   }).parse(params);
 
-  const [ledgerResult, configResult, profilesResult, exclusionResult, termsResult] = await Promise.all([
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.pointLedger,
-      [Query.limit(1000)]
-    ),
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.termScoringConfig,
-      [Query.limit(1000)]
-    ),
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.profiles,
-      [Query.limit(500)]
-    ),
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.topBoardExclusions,
-      [Query.equal("active", true), Query.limit(1000)]
-    ),
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.ieeeTerms,
-      [Query.limit(100)]
-    ),
+  const [scoringInputs, profiles] = await Promise.all([
+    getCachedScoringInputs(),
+    listProfiles(),
   ]);
 
-  let entries = ledgerResult.rows as unknown as PointLedgerEntry[];
-  const configs = configResult.rows as unknown as TermScoringConfig[];
-  const exclusions = exclusionResult.rows as unknown as SystemTopBoardExclusion[];
-  const terms = termsResult.rows as unknown as IeeeTermRow[];
-  const profileMap = new Map(profilesResult.rows.map((p) => [p.$id, p]));
+  let entries = scoringInputs.ledger;
+  const configs = scoringInputs.configs;
+  const exclusions = scoringInputs.exclusions as SystemTopBoardExclusion[];
+  const terms = scoringInputs.terms as IeeeTermRow[];
+  const profileMap = new Map(profiles.map((p) => [p.$id, p]));
 
   let targetTerm = validated.term || "";
   let targetYear = validated.year || 0;

@@ -23,12 +23,12 @@ export function MyProjectsWidget() {
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-[15px] font-semibold text-text-strong sm:text-[16px]">
-              Available Forms
+              Event actions
             </h2>
             <p className="text-[12px] text-text-muted">
               {isChair
-                ? "Active forms on events you chair"
-                : "Forms open to you based on audience and schedule"}
+                ? "Active items on events you chair"
+                : "Sign-ups, feedback, and other items open to you"}
             </p>
           </div>
         </div>
@@ -48,7 +48,7 @@ export function MyProjectsWidget() {
               <thead>
                 <tr className="border-b border-border-subtle bg-bg-base text-[11px] font-semibold uppercase tracking-wide text-text-muted">
                   <th className="px-4 py-2.5 font-semibold">Event</th>
-                  <th className="px-4 py-2.5 font-semibold">Form</th>
+                  <th className="px-4 py-2.5 font-semibold">Action</th>
                   <th className="px-4 py-2.5 font-semibold">Status</th>
                   <th className="px-4 py-2.5 text-right font-semibold">Open</th>
                 </tr>
@@ -109,11 +109,11 @@ export function MyProjectsWidget() {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border-subtle bg-bg-base/60 px-6 py-8 text-center">
-            <p className="text-[14px] font-semibold text-text-strong">No forms available for you</p>
+            <p className="text-[14px] font-semibold text-text-strong">No event actions for you</p>
             <p className="mx-auto mt-1 max-w-md text-[12px] text-text-muted">
               {isChair
-                ? "Forms for your chaired events appear here when they are active and within schedule."
-                : "Forms appear here when they are open and your role matches the form audience."}
+                ? "Items for your chaired events appear here when they are active and within schedule."
+                : "Items appear here when they are open and your role matches."}
             </p>
             <Link
               href="/events"

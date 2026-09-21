@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense, useRef, useState } from "react";
 import {
   BellPlus,
@@ -126,13 +127,13 @@ function AppShellInner({
           aria-label="University of Moratuwa IEEE Student Branch"
           className="inline-flex min-w-0 items-center transition-opacity hover:opacity-90"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- static brand logo */}
-          <img
+          <Image
             src="/images/ieee-sb-uom-logo.png"
             alt=""
-            width={1024}
-            height={223}
-            className="h-9 w-auto max-w-full object-contain object-left"
+            width={1600}
+            height={350}
+            className="h-10 w-auto max-w-full object-contain object-left"
+            priority
           />
         </Link>
       </div>

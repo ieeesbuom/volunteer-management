@@ -51,41 +51,41 @@
 
 .dark,
 [data-theme="dark"] {
-  --primary: hsl(216, 85%, 60%);
-  --primary-hover: hsl(216, 85%, 68%);
-  --primary-soft: hsl(216, 40%, 18%);
-  --primary-mid: hsl(216, 35%, 26%);
+  --primary: hsl(216, 62%, 58%);
+  --primary-hover: hsl(216, 62%, 66%);
+  --primary-soft: hsl(216, 18%, 16%);
+  --primary-mid: hsl(216, 16%, 22%);
 
-  --bg-base: hsl(222, 28%, 9%);
-  --surface-raised: hsl(222, 22%, 13.5%);
-  --surface-overlay: hsl(222, 22%, 17%);
+  --bg-base: hsl(220, 12%, 10%);
+  --surface-raised: hsl(220, 10%, 13%);
+  --surface-overlay: hsl(220, 10%, 16%);
 
-  --border-subtle: hsl(222, 16%, 19%);
-  --border-default: hsl(222, 16%, 26%);
-  --border-strong: hsl(222, 16%, 35%);
+  --border-subtle: hsl(220, 8%, 18%);
+  --border-default: hsl(220, 8%, 24%);
+  --border-strong: hsl(220, 8%, 32%);
 
-  --text-strong: hsl(220, 20%, 96%);
-  --text-body: hsl(220, 14%, 82%);
-  --text-muted: hsl(220, 12%, 62%);
-  --text-placeholder: hsl(220, 10%, 42%);
+  --text-strong: hsl(220, 14%, 94%);
+  --text-body: hsl(220, 10%, 78%);
+  --text-muted: hsl(220, 8%, 58%);
+  --text-placeholder: hsl(220, 8%, 42%);
 
-  --success: hsl(142, 60%, 45%);
-  --success-soft: hsl(142, 45%, 15%);
-  --warning: hsl(38, 95%, 55%);
-  --warning-soft: hsl(38, 50%, 15%);
-  --danger: hsl(0, 75%, 60%);
-  --danger-soft: hsl(0, 50%, 16%);
-  --neutral: hsl(220, 14%, 60%);
-  --neutral-soft: hsl(222, 18%, 18%);
+  --success: hsl(142, 40%, 48%);
+  --success-soft: hsl(142, 20%, 14%);
+  --warning: hsl(38, 70%, 52%);
+  --warning-soft: hsl(38, 25%, 14%);
+  --danger: hsl(0, 55%, 58%);
+  --danger-soft: hsl(0, 25%, 14%);
+  --neutral: hsl(220, 8%, 58%);
+  --neutral-soft: hsl(220, 8%, 16%);
 
-  --gold: hsl(43, 95%, 55%);
-  --silver: hsl(220, 14%, 72%);
-  --bronze: hsl(20, 75%, 58%);
+  --gold: hsl(43, 75%, 52%);
+  --silver: hsl(220, 8%, 68%);
+  --bronze: hsl(20, 55%, 52%);
 
-  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.35), 0 1px 3px hsl(0 0% 0% / 0.25);
-  --shadow-md: 0 4px 6px hsl(0 0% 0% / 0.4), 0 2px 4px hsl(0 0% 0% / 0.3);
-  --shadow-lg: 0 10px 15px hsl(0 0% 0% / 0.5), 0 4px 6px hsl(0 0% 0% / 0.35);
-  --shadow-overlay: 0 20px 25px hsl(0 0% 0% / 0.6), 0 8px 10px hsl(0 0% 0% / 0.45);
+  --shadow-sm: 0 1px 2px hsl(220 14% 4% / 0.22), 0 1px 3px hsl(220 14% 4% / 0.16);
+  --shadow-md: 0 4px 6px hsl(220 14% 4% / 0.24), 0 2px 4px hsl(220 14% 4% / 0.16);
+  --shadow-lg: 0 10px 15px hsl(220 14% 4% / 0.28), 0 4px 6px hsl(220 14% 4% / 0.18);
+  --shadow-overlay: 0 20px 25px hsl(220 14% 4% / 0.32), 0 8px 10px hsl(220 14% 4% / 0.2);
 }
 
 @theme inline {

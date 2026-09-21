@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import {
   BellPlus,
   CalendarDays,
@@ -27,6 +27,7 @@ import {
 } from "@/components/layout/app-page-nav-context";
 import { AppTopNav } from "@/components/layout/app-top-nav";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
+import { Button } from "@/components/ui/button";
 import {
   ViewModeProvider,
   useViewMode,
@@ -87,7 +88,15 @@ function AppShellInner({
   user: SessionUser;
 }>) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const logoutFormRef = useRef<HTMLFormElement>(null);
   const { isVolunteerPreview, toggleViewMode } = useViewMode();
+
+  const handleConfirmLogout = () => {
+    setLoggingOut(true);
+    logoutFormRef.current?.submit();
+  };
 
   const mainNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, id: "dashboard" as const, label: "Overview" },
@@ -243,21 +252,22 @@ function AppShellInner({
           <p className="truncate text-[13px] font-semibold text-text-strong">{user.authUser.name || "Volunteer"}</p>
           <p className="truncate text-[11px] text-text-muted">{user.authUser.email}</p>
         </div>
-        <form action="/api/auth/logout" method="post">
-          <button
-            type="submit"
-            className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-base hover:text-text-strong"
-            title="Sign out"
-          >
-            <LogOut className="size-4" aria-hidden="true" />
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={() => setShowLogoutConfirm(true)}
+          className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-base hover:text-text-strong"
+          title="Sign out"
+        >
+          <LogOut className="size-4" aria-hidden="true" />
+        </button>
       </div>
     </>
   );
 
   return (
     <div className="flex min-h-screen bg-bg-base text-text-strong antialiased">
+      <form ref={logoutFormRef} action="/api/auth/logout" method="post" className="hidden" />
+
       {/* Mobile sidebar backdrop */}
       {mobileMenuOpen && (
         <div
@@ -322,6 +332,55 @@ function AppShellInner({
           </main>
         </div>
       </AppPageNavProvider>
+
+      {showLogoutConfirm ? (
+        <LogoutConfirmDialog
+          isBusy={loggingOut}
+          onCancel={() => {
+            if (!loggingOut) {
+              setShowLogoutConfirm(false);
+            }
+          }}
+          onConfirm={handleConfirmLogout}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function LogoutConfirmDialog({
+  isBusy,
+  onCancel,
+  onConfirm,
+}: {
+  isBusy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-70 flex items-center justify-center bg-black/25 px-4"
+      role="dialog"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg border border-border-subtle bg-surface-raised p-5 shadow-md"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h3 className="text-[15px] font-semibold text-text-strong">Sign out?</h3>
+        <p className="mt-1.5 text-[13px] leading-5 text-text-muted">
+          End your session on this device.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost">
+            Cancel
+          </Button>
+          <Button disabled={isBusy} onClick={onConfirm} type="button" variant="primary">
+            {isBusy ? "Signing out…" : "Sign out"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

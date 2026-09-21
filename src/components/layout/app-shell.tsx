@@ -26,6 +26,7 @@ import {
   AppTopNavSpacer,
 } from "@/components/layout/app-page-nav-context";
 import { AppTopNav } from "@/components/layout/app-top-nav";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import {
   ViewModeProvider,
   useViewMode,
@@ -136,7 +137,7 @@ function AppShellInner({
               <Link
                 key={item.id}
                 href={item.href}
-                prefetch={false}
+                prefetch={true}
                 className={cn(
                   "group flex h-10 items-center gap-3 rounded-xl px-3.5 text-[13px] font-semibold transition-all cursor-pointer",
                   isActive
@@ -169,7 +170,7 @@ function AppShellInner({
                     <Link
                       key={item.id}
                       href={item.href}
-                      prefetch={false}
+                      prefetch={true}
                       className={cn(
                         "group flex h-10 items-center gap-3 rounded-xl px-3.5 text-[13px] font-semibold transition-all cursor-pointer",
                         isActive
@@ -313,7 +314,10 @@ function AppShellInner({
           </Suspense>
           <AppTopNavSpacer />
 
-          <main className="min-w-0 max-w-full flex-1 overflow-x-hidden px-4 py-4 font-nunito text-text-strong antialiased sm:px-6 lg:px-6">
+          <main className="relative min-w-0 max-w-full flex-1 overflow-x-hidden px-4 py-4 font-nunito text-text-strong antialiased sm:px-6 lg:px-6">
+            <Suspense fallback={null}>
+              <NavigationProgress />
+            </Suspense>
             {children}
           </main>
         </div>

@@ -36,6 +36,7 @@ export default async function EventsPage() {
     <AppShell active="events" user={user}>
       <EventList
         allEvents={allEvents}
+        isAdmin={effectiveIsAdmin}
         myEvents={myEvents}
         showMyEventsTab={showMyEventsTab}
         user={user}

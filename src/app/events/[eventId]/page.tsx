@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
 import {
   getProfilesByUserIds,
   listProfiles,
@@ -43,7 +44,10 @@ export default async function EventDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  if (!user.isAdmin && !canVolunteer(user.profile)) {
+  const inVolunteerPreview = await isVolunteerPreviewActive(user.isAdmin);
+  const effectiveIsAdmin = user.isAdmin && !inVolunteerPreview;
+
+  if (!effectiveIsAdmin && !canVolunteer(user.profile)) {
     redirect("/verify-uom");
   }
 
@@ -106,7 +110,7 @@ export default async function EventDetailPage({ params }: PageProps) {
   const canManageFormConnections =
     permissions.canManageCommittee ||
     permissions.canEdit ||
-    user.isAdmin ||
+    effectiveIsAdmin ||
     userEventRole === "Vice Chair" ||
     userEventRole === "Committee Lead";
 
@@ -121,7 +125,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         initialFormConnections={formConnections}
         initialPermissions={permissions}
         initialVolunteers={volunteerOptions}
-        isAdmin={user.isAdmin}
+        isAdmin={effectiveIsAdmin}
         isVolunteer={canVolunteer(user.profile)}
         userEventRole={userEventRole}
       />

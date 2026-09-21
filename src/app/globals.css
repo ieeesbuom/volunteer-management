@@ -208,3 +208,16 @@ button * {
 .lfb-root--vms-builder [data-vms-hide="true"] {
   display: none !important;
 }
+
+@keyframes nav-progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.nav-progress-indeterminate {
+  animation: nav-progress-slide 1s ease-in-out infinite;
+}

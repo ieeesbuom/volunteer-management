@@ -22,6 +22,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { SessionUser } from "@/features/access-control/types";
 import { useViewMode } from "@/features/access-control/components/view-mode-context";
+import { startNavigationProgress } from "@/components/layout/navigation-progress";
 import type { DashboardOpportunityItem } from "@/features/dashboard/lib/opportunity-types";
 import type { Event } from "@/features/events/types";
 
@@ -313,6 +314,7 @@ export function DashboardCommandPalette({
         return;
       }
       if (item.href) {
+        startNavigationProgress();
         router.push(item.href);
       }
     },

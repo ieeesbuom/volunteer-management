@@ -1,7 +1,6 @@
 import "server-only";
 
 import { cache } from "react";
-import { Query } from "node-appwrite";
 import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { listConclusionReports } from "@/features/reports/server/conclusion-service";
@@ -16,6 +15,7 @@ import { deriveTermFromDate, filterLedgerByMonth, filterLedgerByTerm } from "@/f
 import { listEvents } from "@/features/events/server/event-service";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
+import { getCachedScoringInputs } from "@/server/catalog-cache";
 import { isAppwriteNotFound } from "@/server/errors";
 import type { Profile } from "@/features/access-control/types";
 
@@ -35,7 +35,11 @@ type RecognitionSnapshot = {
   hallOfFame: HallOfFameEntry[];
   volunteerOfTheMonth: VolunteerOfTheMonth | null;
 };
-type RecognitionConfig = Awaited<ReturnType<typeof listRecognitionConfig>>;
+type RecognitionConfig = {
+  termConfig: TermScoringConfig[];
+  terms: IeeeTermRow[];
+  topBoardExclusions: TopBoardExclusionRow[];
+};
 type RecognitionInputs = {
   config: RecognitionConfig;
   ledger: PointLedgerEntry[];
@@ -59,51 +63,18 @@ function parseIeeeTerm(label: string): IeeeTerm {
   };
 }
 
+/** Shared scoring catalog (45s TTL) mapped to recognition field names. */
 const listLedgerEntries = cache(async function listLedgerEntries() {
-  const env = getServerEnv();
-  const { tables } = getAppwriteAdminServices();
-  const result = await tables.listRows(
-    env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    APPWRITE_TABLES.pointLedger,
-    [Query.limit(1000)],
-    undefined,
-    false,
-  );
-
-  return result.rows as unknown as PointLedgerEntry[];
+  const inputs = await getCachedScoringInputs();
+  return inputs.ledger;
 });
 
-const listRecognitionConfig = cache(async function listRecognitionConfig() {
-  const env = getServerEnv();
-  const { tables } = getAppwriteAdminServices();
-  const [termConfig, topBoardExclusions, terms] = await Promise.all([
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.termScoringConfig,
-      [Query.limit(1000)],
-      undefined,
-      false,
-    ),
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.topBoardExclusions,
-      [Query.equal("active", true), Query.limit(1000)],
-      undefined,
-      false,
-    ),
-    tables.listRows(
-      env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      APPWRITE_TABLES.ieeeTerms,
-      [Query.limit(100)],
-      undefined,
-      false,
-    ),
-  ]);
-
+const listRecognitionConfig = cache(async function listRecognitionConfig(): Promise<RecognitionConfig> {
+  const inputs = await getCachedScoringInputs();
   return {
-    termConfig: termConfig.rows as unknown as TermScoringConfig[],
-    terms: terms.rows as unknown as IeeeTermRow[],
-    topBoardExclusions: topBoardExclusions.rows as unknown as TopBoardExclusionRow[],
+    termConfig: inputs.configs,
+    terms: inputs.terms as IeeeTermRow[],
+    topBoardExclusions: inputs.exclusions as TopBoardExclusionRow[],
   };
 });
 

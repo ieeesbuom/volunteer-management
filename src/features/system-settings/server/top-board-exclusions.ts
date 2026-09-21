@@ -7,6 +7,7 @@ import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
+import { CATALOG_TAGS, invalidateCatalog } from "@/server/catalog-cache";
 import { isAppwriteNotFound } from "@/server/errors";
 import { getProfile } from "@/features/access-control/server/profiles";
 import { getIeeeTerm } from "@/features/system-settings/server/settings";
@@ -150,7 +151,9 @@ export async function addTopBoardExclusion({
       transactionId,
     });
 
-    return toTopBoardExclusion(row);
+    const exclusion = toTopBoardExclusion(row);
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
+    return exclusion;
   });
 }
 
@@ -197,6 +200,7 @@ export async function revokeTopBoardExclusion({
       transactionId,
     });
 
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
     return exclusion;
   });
 }

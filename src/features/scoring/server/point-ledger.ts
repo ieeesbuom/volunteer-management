@@ -9,6 +9,7 @@ import {
 import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
+import { CATALOG_TAGS, invalidateCatalog } from "@/server/catalog-cache";
 import { isAppwriteNotFound } from "@/server/errors";
 import { deriveTermFromDate } from "@/features/scoring/lib/helpers";
 import type { PointLedgerEntry } from "@/features/scoring/types";
@@ -155,6 +156,7 @@ export async function upsertPointLedgerEntry({
 
   try {
     await tables.updateRow(databaseId, APPWRITE_TABLES.pointLedger, rowId, payload);
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
     return { changed: true, rowId };
   } catch (error) {
     if (!isAppwriteNotFound(error)) {
@@ -163,6 +165,7 @@ export async function upsertPointLedgerEntry({
   }
 
   await tables.createRow(databaseId, APPWRITE_TABLES.pointLedger, rowId, payload);
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
   return { changed: true, rowId };
 }
 
@@ -197,6 +200,10 @@ export async function removePointLedgerEntry({
     removed = true;
   }
 
+  if (removed) {
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
+  }
+
   return removed;
 }
 
@@ -219,6 +226,8 @@ export async function voidEventPointLedger(eventId: string) {
       await tables.deleteRow(databaseId, APPWRITE_TABLES.pointLedger, row.$id);
     }
   }
+
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
 }
 
 export function summarizePointLedgerIntegrity(rows: PointLedgerEntry[]) {

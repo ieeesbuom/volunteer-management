@@ -6,6 +6,7 @@ import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
+import { CATALOG_TAGS, invalidateCatalog } from "@/server/catalog-cache";
 import { isAppwriteConflict, isAppwriteNotFound } from "@/server/errors";
 import {
   assertNoOverlappingTerms,
@@ -242,6 +243,7 @@ export async function createIeeeTerm({
         transactionId,
       });
 
+      invalidateCatalog(CATALOG_TAGS.scoringInputs);
       return term;
     });
   } catch (error) {
@@ -336,6 +338,7 @@ export async function updateIeeeTerm({
       transactionId,
     });
 
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
     return term;
   });
 }
@@ -445,6 +448,7 @@ export async function activateIeeeTerm({
       transactionId,
     });
 
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
     return term;
   });
 }

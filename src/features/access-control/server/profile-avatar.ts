@@ -16,6 +16,7 @@ import {
 import { APPWRITE_BUCKETS, APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminClient, getAppwriteAdminServices } from "@/server/appwrite";
+import { CATALOG_TAGS, invalidateCatalog } from "@/server/catalog-cache";
 import { isAppwriteNotFound, ValidationError } from "@/server/errors";
 import type { Profile } from "@/features/access-control/types";
 import { getProfile, toProfile } from "@/features/access-control/server/profiles";
@@ -137,6 +138,7 @@ export async function uploadProfileAvatar({
     userId,
     { avatarFileId: fileId },
   );
+  invalidateCatalog(CATALOG_TAGS.profiles);
 
   const profile = toProfile(row as unknown as AppRow);
 
@@ -171,6 +173,7 @@ export async function removeProfileAvatar(userId: string): Promise<{
     userId,
     { avatarFileId: null },
   );
+  invalidateCatalog(CATALOG_TAGS.profiles);
 
   return {
     profile: toProfile(row as unknown as AppRow),

@@ -60,11 +60,13 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   const { userEventRole } = await getEventUserContext(eventId, user, event.reference);
 
-  if (!isEventVisible(user, event, userEventRole)) {
+  if (!isEventVisible(user, event, userEventRole, { isAdmin: effectiveIsAdmin })) {
     redirect("/events");
   }
 
-  const permissions = getPermissionsForUser(user, event, userEventRole);
+  const permissions = getPermissionsForUser(user, event, userEventRole, {
+    isAdmin: effectiveIsAdmin,
+  });
   const canLoadFullVolunteerDirectory =
     permissions.canManageCommittee || permissions.canAssignRoles;
 

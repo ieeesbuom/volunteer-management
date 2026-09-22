@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import {
   getEventUserContext,
   isEventVisible,
@@ -49,7 +50,9 @@ export default async function EventLavaFormEditPage({ params, searchParams }: Pa
     redirect("/login");
   }
 
-  if (!user.isAdmin && !canVolunteer(user.profile)) {
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
+  if (!effectiveIsAdmin && !canVolunteer(user.profile)) {
     redirect("/verify-uom");
   }
 
@@ -60,7 +63,7 @@ export default async function EventLavaFormEditPage({ params, searchParams }: Pa
   }
 
   const { userEventRole } = await getEventUserContext(eventId, user, event.reference);
-  if (!isEventVisible(user, event, userEventRole)) {
+  if (!isEventVisible(user, event, userEventRole, { isAdmin: effectiveIsAdmin })) {
     redirect("/events");
   }
 

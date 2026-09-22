@@ -2,6 +2,7 @@ import "server-only";
 
 import { hasEventRole } from "@/features/access-control/lib/rules";
 import type { SessionUser } from "@/features/access-control/types";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import {
   getPermissionsForUser,
   requireVisibleEvent,
@@ -46,13 +47,13 @@ export async function canManageFormConnectionsForEvent(
     return false;
   }
 
-  const { event, userEventRole } = await requireVisibleEvent(eventId, user);
-  const permissions = getPermissionsForUser(user, event, userEventRole);
+  const { event, isAdmin, userEventRole } = await requireVisibleEvent(eventId, user);
+  const permissions = getPermissionsForUser(user, event, userEventRole, { isAdmin });
 
   return (
     permissions.canManageCommittee ||
     permissions.canEdit ||
-    hasFormManagerRole(user, eventId)
+    hasFormManagerRole(user, eventId, isAdmin)
   );
 }
 
@@ -65,22 +66,22 @@ export async function canListFormConnectionsForEvent(
   }
 
   if (!eventId) {
-    return user.isAdmin;
+    return await resolveEffectiveIsAdmin(user.isAdmin);
   }
 
-  const { userEventRole } = await requireVisibleEvent(eventId, user);
+  const { isAdmin, userEventRole } = await requireVisibleEvent(eventId, user);
 
   // Senuka's event module owns event visibility. Until it exposes a
   // form-asset-specific permission, list access stays limited to event staff.
-  return user.isAdmin || userEventRole != null || hasFormViewerRole(user, eventId);
+  return isAdmin || userEventRole != null || hasFormViewerRole(user, eventId);
 }
 
 function hasActiveVerifiedProfile(user: SessionUser) {
   return user.profile.status === "ACTIVE" && user.profile.uomVerified;
 }
 
-function hasFormManagerRole(user: SessionUser, eventId: string) {
-  return user.isAdmin || hasEventRole(user, eventId, [...FORM_MANAGER_EVENT_ROLES]);
+function hasFormManagerRole(user: SessionUser, eventId: string, isAdmin = user.isAdmin) {
+  return isAdmin || hasEventRole(user, eventId, [...FORM_MANAGER_EVENT_ROLES]);
 }
 
 function hasFormViewerRole(user: SessionUser, eventId: string) {

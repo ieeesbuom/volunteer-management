@@ -360,6 +360,8 @@ function LogoutConfirmDialog({
 }) {
   return (
     <div
+      aria-describedby="logout-confirm-description"
+      aria-labelledby="logout-confirm-title"
       aria-modal="true"
       className="fixed inset-0 z-70 flex items-center justify-center bg-black/25 px-4"
       role="dialog"
@@ -369,8 +371,13 @@ function LogoutConfirmDialog({
         className="w-full max-w-sm rounded-lg border border-border-subtle bg-surface-raised p-5 shadow-md"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 className="text-[15px] font-semibold text-text-strong">Sign out?</h3>
-        <p className="mt-1.5 text-[13px] leading-5 text-text-muted">
+        <h3 className="text-[15px] font-semibold text-text-strong" id="logout-confirm-title">
+          Sign out?
+        </h3>
+        <p
+          className="mt-1.5 text-[13px] leading-5 text-text-muted"
+          id="logout-confirm-description"
+        >
           End your session on this device.
         </p>
         <div className="mt-5 flex justify-end gap-2">

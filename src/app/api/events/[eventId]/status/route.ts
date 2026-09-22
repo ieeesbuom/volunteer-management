@@ -37,11 +37,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const { event } = await requireVisibleEvent(eventId, user!);
+    const { event, isAdmin } = await requireVisibleEvent(eventId, user!);
 
     if (
       !canChangeEventStatus({
         event,
+        isAdmin,
         newStatus: parsed.data.status,
         user: user!,
       })
@@ -51,7 +52,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const updatedEvent = await updateEventStatus(eventId, parsed.data.status, {
       actorUserId: user!.authUser.id,
-      allowAdminBackward: user!.isAdmin,
+      allowAdminBackward: isAdmin,
     });
     const notificationContext = await getEventNotificationContext(eventId, {
       excludeUserIds: [user!.authUser.id],

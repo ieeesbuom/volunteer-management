@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BellPlus,
   CalendarDays,
@@ -65,6 +65,8 @@ export function DashboardCommandPalette({
   opportunityList: DashboardOpportunityItem[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -314,11 +316,22 @@ export function DashboardCommandPalette({
         return;
       }
       if (item.href) {
+        const current = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
+        let next = item.href;
+        try {
+          const url = new URL(item.href, window.location.origin);
+          next = `${url.pathname}${url.search}`;
+        } catch {
+          // Keep item.href as-is for relative paths without a base.
+        }
+        if (next === current) {
+          return;
+        }
         startNavigationProgress();
         router.push(item.href);
       }
     },
-    [close, router],
+    [close, pathname, router, searchParams],
   );
 
   useEffect(() => {

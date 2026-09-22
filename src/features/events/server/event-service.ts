@@ -141,7 +141,7 @@ async function listCreatorEarlyEventRows(userId: string) {
       Query.equal("created_by", userId),
       Query.equal("status", EARLY_CREATOR_STATUSES),
       Query.orderDesc("created_at"),
-      Query.limit(100),
+      Query.limit(500),
     ],
     undefined,
     false,

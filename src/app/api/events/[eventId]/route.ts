@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import { canViewEventRoleAssignments } from "@/features/events/lib/committee-permissions";
 import {
   getEventUserContext,
@@ -31,7 +32,9 @@ export async function GET(_request: Request, context: RouteContext) {
     return jsonError("Authentication required.", 401);
   }
 
-  if (!user.isAdmin && !canVolunteer(user.profile)) {
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
+  if (!effectiveIsAdmin && !canVolunteer(user.profile)) {
     return jsonError("Verified UoM email is required before volunteering.", 403);
   }
 
@@ -46,7 +49,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const { userEventRole } = await getEventUserContext(eventId, user);
 
-    if (!isEventVisible(user, event, userEventRole)) {
+    if (!isEventVisible(user, event, userEventRole, { isAdmin: effectiveIsAdmin })) {
       return jsonError("Event was not found.", 404);
     }
 
@@ -69,7 +72,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return jsonError("Authentication required.", 401);
   }
 
-  if (!user.isAdmin && !canVolunteer(user.profile)) {
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
+  if (!effectiveIsAdmin && !canVolunteer(user.profile)) {
     return jsonError("Verified UoM email is required before volunteering.", 403);
   }
 
@@ -89,12 +94,14 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const { userEventRole } = await getEventUserContext(eventId, user);
 
-    if (!isEventVisible(user, existingEvent, userEventRole)) {
+    if (!isEventVisible(user, existingEvent, userEventRole, { isAdmin: effectiveIsAdmin })) {
       return jsonError("Event was not found.", 404);
     }
 
-    const permissions = getPermissionsForUser(user, existingEvent, userEventRole);
-    const filteredInput = filterUpdateInputForRole(parsed.data, { isAdmin: user.isAdmin });
+    const permissions = getPermissionsForUser(user, existingEvent, userEventRole, {
+      isAdmin: effectiveIsAdmin,
+    });
+    const filteredInput = filterUpdateInputForRole(parsed.data, { isAdmin: effectiveIsAdmin });
     const hasFieldUpdates = Object.keys(filteredInput).length > 0;
 
     if (hasFieldUpdates && !permissions.canEdit) {
@@ -140,7 +147,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return jsonError("Authentication required.", 401);
   }
 
-  if (!user.isAdmin) {
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
+  if (!effectiveIsAdmin) {
     return jsonError("Admin access required.", 403);
   }
 

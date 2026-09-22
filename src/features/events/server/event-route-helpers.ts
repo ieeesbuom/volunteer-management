@@ -2,6 +2,7 @@ import "server-only";
 
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import type { SessionUser } from "@/features/access-control/types";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import {
   getEventPermissions,
   isEventVisibleToUser,
@@ -23,6 +24,10 @@ export const VOLUNTEER_VISIBLE_STATUSES: EventStatus[] = [
   "ongoing",
   "pending_conclusion",
 ];
+
+type AdminOverride = {
+  isAdmin?: boolean;
+};
 
 export function canCreateEvent(user: SessionUser) {
   return user.isAdmin;
@@ -53,10 +58,11 @@ export function isEventVisible(
   user: SessionUser,
   event: Event,
   userEventRole?: EventRole | null,
+  { isAdmin = user.isAdmin }: AdminOverride = {},
 ) {
   return isEventVisibleToUser(
     user.authUser.id,
-    user.isAdmin,
+    isAdmin,
     event,
     userEventRole,
   );
@@ -66,16 +72,22 @@ export function getPermissionsForUser(
   user: SessionUser,
   event: Event,
   userEventRole?: EventRole | null,
+  { isAdmin = user.isAdmin }: AdminOverride = {},
 ) {
   return getEventPermissions(
     user.authUser.id,
-    user.isAdmin,
+    isAdmin,
     event,
     userEventRole,
   );
 }
 
-export async function requireVisibleEvent(eventId: string, user: SessionUser) {
+export async function requireVisibleEvent(
+  eventId: string,
+  user: SessionUser,
+  options: AdminOverride = {},
+) {
+  const isAdmin = options.isAdmin ?? (await resolveEffectiveIsAdmin(user.isAdmin));
   const event = await getEventById(eventId);
 
   if (!event) {
@@ -84,23 +96,27 @@ export async function requireVisibleEvent(eventId: string, user: SessionUser) {
 
   const { userEventRole } = await getEventUserContext(eventId, user, event.reference);
 
-  if (!isEventVisible(user, event, userEventRole)) {
+  if (!isEventVisible(user, event, userEventRole, { isAdmin })) {
     throw new NotFoundError("Event was not found.");
   }
 
-  return { event, userEventRole };
+  return { event, isAdmin, userEventRole };
 }
 
 export function canChangeEventStatus({
   event,
+  isAdmin,
   newStatus,
   user,
 }: {
   event: Event;
+  isAdmin?: boolean;
   newStatus: EventStatus;
   user: SessionUser;
 }) {
-  if (!user.isAdmin) {
+  const effectiveIsAdmin = isAdmin ?? user.isAdmin;
+
+  if (!effectiveIsAdmin) {
     return false;
   }
 

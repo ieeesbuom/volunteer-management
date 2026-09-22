@@ -213,7 +213,7 @@ export async function createIeeeTerm({
   const canonicalLabel = formatTermLabel(startDate);
 
   try {
-    return await runTablesTransaction(tables, async (transactionId) => {
+    const term = await runTablesTransaction(tables, async (transactionId) => {
       const row = await tables.createRow<AppRow>({
         data: {
           active: false,
@@ -232,20 +232,21 @@ export async function createIeeeTerm({
         tableId: APPWRITE_TABLES.ieeeTerms,
         transactionId,
       });
-      const term = toIeeeTerm(row);
+      const created = toIeeeTerm(row);
 
       await writeAuditLog({
         action: "IEEE_TERM_CREATED",
         actorUserId,
         metadata: { endDate, label: canonicalLabel, startDate },
-        targetId: term.$id,
+        targetId: created.$id,
         targetType: "ieee_term",
         transactionId,
       });
 
-      invalidateCatalog(CATALOG_TAGS.scoringInputs);
-      return term;
+      return created;
     });
+    invalidateCatalog(CATALOG_TAGS.scoringInputs);
+    return term;
   } catch (error) {
     if (isAppwriteConflict(error)) {
       throw new Error("An IEEE term with this label or date range already exists.");
@@ -290,7 +291,7 @@ export async function updateIeeeTerm({
   const activeTermSetting =
     nextStatus === "CLOSED" ? await getActiveTermSetting() : null;
 
-  return runTablesTransaction(tables, async (transactionId) => {
+  const term = await runTablesTransaction(tables, async (transactionId) => {
     const row = await tables.updateRow<AppRow>({
       data: {
         active: nextStatus === "ACTIVE",
@@ -307,7 +308,7 @@ export async function updateIeeeTerm({
       tableId: APPWRITE_TABLES.ieeeTerms,
       transactionId,
     });
-    const term = toIeeeTerm(row);
+    const updated = toIeeeTerm(row);
 
     if (nextStatus === "CLOSED" && activeTermSetting?.value === termId) {
       await upsertSystemSetting({
@@ -333,14 +334,16 @@ export async function updateIeeeTerm({
               reason: "ADMIN_CLOSED",
             }
           : { endDate, label: canonicalLabel, startDate, status: nextStatus },
-      targetId: term.$id,
+      targetId: updated.$id,
       targetType: "ieee_term",
       transactionId,
     });
 
-    invalidateCatalog(CATALOG_TAGS.scoringInputs);
-    return term;
+    return updated;
   });
+
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
+  return term;
 }
 
 export async function activateIeeeTerm({
@@ -375,7 +378,7 @@ export async function activateIeeeTerm({
 
   const now = new Date().toISOString();
 
-  return runTablesTransaction(tables, async (transactionId) => {
+  const term = await runTablesTransaction(tables, async (transactionId) => {
     for (const term of terms.filter(
       (term) =>
         term.$id !== termId && (term.active || term.status === "ACTIVE"),
@@ -430,27 +433,29 @@ export async function activateIeeeTerm({
       tableId: APPWRITE_TABLES.ieeeTerms,
       transactionId,
     });
-    const term = toIeeeTerm(row);
+    const activated = toIeeeTerm(row);
 
     await upsertSystemSetting({
       actorUserId,
       key: ACTIVE_TERM_SETTING_KEY,
       transactionId,
-      value: term.$id,
+      value: activated.$id,
     });
 
     await writeAuditLog({
       action: "IEEE_TERM_ACTIVATED",
       actorUserId,
-      metadata: { label: term.label },
-      targetId: term.$id,
+      metadata: { label: activated.label },
+      targetId: activated.$id,
       targetType: "ieee_term",
       transactionId,
     });
 
-    invalidateCatalog(CATALOG_TAGS.scoringInputs);
-    return term;
+    return activated;
   });
+
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
+  return term;
 }
 
 export async function reconcileActiveTermState(

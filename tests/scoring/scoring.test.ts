@@ -1195,6 +1195,24 @@ describe("Scoring Extra Requirements Tests", () => {
       sbRoles: ["Chairperson"],
       eventRoles: [],
     });
+    vi.mocked(listProfiles).mockResolvedValue([
+      {
+        $id: "volunteer-1",
+        authUserId: "volunteer-1",
+        googleEmail: "excluded@uom.lk",
+        name: "Excluded Volunteer",
+        status: "ACTIVE",
+        uomVerified: true,
+      },
+      {
+        $id: "volunteer-2",
+        authUserId: "volunteer-2",
+        googleEmail: "eligible@uom.lk",
+        name: "Eligible Volunteer",
+        status: "ACTIVE",
+        uomVerified: true,
+      },
+    ]);
     mockTables.listRows.mockImplementation((db: string, table: string) => {
       if (table === "point_ledger") {
         return Promise.resolve({

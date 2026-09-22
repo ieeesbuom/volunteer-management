@@ -37,14 +37,66 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function isVitestRuntime() {
+  return process.env.VITEST === "true" || process.env.NODE_ENV === "test";
+}
+
+function isMissingNextCacheStore(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.includes("static generation store missing") ||
+    error.message.includes("incrementalCache missing")
+  );
+}
+
+/**
+ * Wrap an Appwrite catalog loader with Next `unstable_cache`.
+ * Under Vitest (no Next request cache), call the loader directly.
+ */
+function withCatalogCache<T>(
+  loader: () => Promise<T>,
+  keyParts: string[],
+  tag: CatalogTag,
+): () => Promise<T> {
+  const cached = unstable_cache(loader, keyParts, {
+    revalidate: CATALOG_REVALIDATE_SECONDS,
+    tags: [tag],
+  });
+
+  return async () => {
+    if (isVitestRuntime()) {
+      return loader();
+    }
+
+    try {
+      return await cached();
+    } catch (error) {
+      if (isMissingNextCacheStore(error)) {
+        return loader();
+      }
+      throw error;
+    }
+  };
+}
+
 /** Immediately expire tagged catalog entries after writes. */
 export function invalidateCatalog(...tags: CatalogTag[]) {
   for (const tag of tags) {
-    revalidateTag(tag, { expire: 0 });
+    try {
+      revalidateTag(tag, { expire: 0 });
+    } catch (error) {
+      // Unit tests and non-request contexts have no Next cache store.
+      if (!isMissingNextCacheStore(error)) {
+        throw error;
+      }
+    }
   }
 }
 
-const loadAllEventRows = unstable_cache(
+const loadAllEventRows = withCatalogCache(
   async () => {
     const env = getServerEnv();
     const { tables } = getAppwriteAdminServices();
@@ -59,10 +111,10 @@ const loadAllEventRows = unstable_cache(
     return cloneJson(result.rows as unknown as CatalogRow[]);
   },
   ["catalog", "events", "all"],
-  { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAGS.events] },
+  CATALOG_TAGS.events,
 );
 
-const loadPublicEventRows = unstable_cache(
+const loadPublicEventRows = withCatalogCache(
   async () => {
     const env = getServerEnv();
     const { tables } = getAppwriteAdminServices();
@@ -81,10 +133,10 @@ const loadPublicEventRows = unstable_cache(
     return cloneJson(result.rows as unknown as CatalogRow[]);
   },
   ["catalog", "events", "public"],
-  { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAGS.events] },
+  CATALOG_TAGS.events,
 );
 
-const loadProfileRows = unstable_cache(
+const loadProfileRows = withCatalogCache(
   async () => {
     const env = getServerEnv();
     const { tables } = getAppwriteAdminServices();
@@ -99,10 +151,10 @@ const loadProfileRows = unstable_cache(
     return cloneJson(result.rows as unknown as CatalogRow[]);
   },
   ["catalog", "profiles"],
-  { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAGS.profiles] },
+  CATALOG_TAGS.profiles,
 );
 
-const loadFormConnectionRows = unstable_cache(
+const loadFormConnectionRows = withCatalogCache(
   async () => {
     const env = getServerEnv();
     const { tables } = getAppwriteAdminServices();
@@ -117,10 +169,10 @@ const loadFormConnectionRows = unstable_cache(
     return cloneJson(result.rows as unknown as CatalogRow[]);
   },
   ["catalog", "form-connections"],
-  { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAGS.formConnections] },
+  CATALOG_TAGS.formConnections,
 );
 
-const loadScoringInputs = unstable_cache(
+const loadScoringInputs = withCatalogCache(
   async () => {
     const env = getServerEnv();
     const { tables } = getAppwriteAdminServices();
@@ -148,7 +200,7 @@ const loadScoringInputs = unstable_cache(
     } satisfies ScoringCatalogInputs);
   },
   ["catalog", "scoring-inputs"],
-  { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAGS.scoringInputs] },
+  CATALOG_TAGS.scoringInputs,
 );
 
 export async function getCachedAllEventRows() {

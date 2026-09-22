@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import {
   canCreateEvent,
   parseEventStatus,
@@ -37,9 +38,11 @@ export async function GET(request: Request) {
     return jsonError("Invalid event status filter.", 400);
   }
 
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
   try {
     const result = await getEvents({
-      isAdmin: user.isAdmin,
+      isAdmin: effectiveIsAdmin,
       limit,
       offset,
       status,

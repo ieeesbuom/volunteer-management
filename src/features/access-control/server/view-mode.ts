@@ -19,3 +19,8 @@ export async function isVolunteerPreviewActive(isAdmin: boolean): Promise<boolea
   const mode = await getServerViewMode();
   return mode === "volunteer";
 }
+
+/** Admin flag with Volunteer Preview applied (preview → treat as non-admin). */
+export async function resolveEffectiveIsAdmin(isAdmin: boolean): Promise<boolean> {
+  return isAdmin && !(await isVolunteerPreviewActive(isAdmin));
+}

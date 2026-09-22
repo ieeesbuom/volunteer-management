@@ -115,7 +115,7 @@ export async function addTopBoardExclusion({
     }
   }
 
-  return runTablesTransaction(tables, async (transactionId) => {
+  const exclusion = await runTablesTransaction(tables, async (transactionId) => {
     const payload = {
       active: true,
       createdAt: now,
@@ -151,10 +151,11 @@ export async function addTopBoardExclusion({
       transactionId,
     });
 
-    const exclusion = toTopBoardExclusion(row);
-    invalidateCatalog(CATALOG_TAGS.scoringInputs);
-    return exclusion;
+    return toTopBoardExclusion(row);
   });
+
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
+  return exclusion;
 }
 
 export async function revokeTopBoardExclusion({
@@ -177,7 +178,7 @@ export async function revokeTopBoardExclusion({
     return existingExclusion;
   }
 
-  return runTablesTransaction(tables, async (transactionId) => {
+  const exclusion = await runTablesTransaction(tables, async (transactionId) => {
     const row = await tables.updateRow<AppRow>({
       data: {
         active: false,
@@ -189,18 +190,20 @@ export async function revokeTopBoardExclusion({
       tableId: APPWRITE_TABLES.topBoardExclusions,
       transactionId,
     });
-    const exclusion = toTopBoardExclusion(row);
+    const revoked = toTopBoardExclusion(row);
 
     await writeAuditLog({
       action: "TOP_BOARD_EXCLUSION_REMOVED",
       actorUserId,
-      metadata: { exclusionId, reason: exclusion.reason, termId: exclusion.termId },
-      targetId: exclusion.userId,
+      metadata: { exclusionId, reason: revoked.reason, termId: revoked.termId },
+      targetId: revoked.userId,
       targetType: "profile",
       transactionId,
     });
 
-    invalidateCatalog(CATALOG_TAGS.scoringInputs);
-    return exclusion;
+    return revoked;
   });
+
+  invalidateCatalog(CATALOG_TAGS.scoringInputs);
+  return exclusion;
 }

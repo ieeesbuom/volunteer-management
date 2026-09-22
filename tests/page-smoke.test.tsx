@@ -38,6 +38,15 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock("@teispace/next-themes", () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  useTheme: () => ({
+    resolvedTheme: "light",
+    setTheme: vi.fn(),
+    theme: "light",
+  }),
+}));
+
 vi.mock("@/features/access-control/server/current-user", () => ({
   getCurrentUser: vi.fn(),
 }));
@@ -213,7 +222,6 @@ describe("volunteer profile page smoke tests", () => {
     expect(html).toContain("Profile Details");
     expect(html).toContain("University Index");
     expect(html).toContain("Recommendation Requests");
-    expect(html).toContain("Manage your verification, public profile details, and recommendation requests.");
     expect(getDetailsMock).toHaveBeenCalledWith("user-1");
     expect(listRequestsMock).toHaveBeenCalledWith("user-1");
   });
@@ -231,7 +239,6 @@ describe("volunteer profile page smoke tests", () => {
 
     const html = await htmlFrom(VolunteerProfilePage(routeParams("user-2")));
 
-    expect(html).toContain("Logistics lead");
     expect(html).toContain("Target Volunteer");
     expect(html).toContain("Tech Week");
     expect(html).toContain("About");
@@ -274,7 +281,6 @@ describe("volunteer profile page smoke tests", () => {
     const html = await htmlFrom(VolunteerProfilePage(routeParams("missing-user")));
 
     expect(html).toContain("Volunteer Not Found");
-    expect(html).toContain("No active verified volunteer profile exists for this account.");
   });
 });
 

@@ -507,17 +507,24 @@ describe("event service operations", () => {
     );
 
     vi.mocked(getActiveEventRoleAssignments).mockResolvedValueOnce([]);
-    mockTables.listRows.mockResolvedValueOnce({
-      rows: [
-        toEventRow(createEventFixture({ created_by: "user-1", status: "draft" })),
-        toEventRow(
-          createEventFixture({
-            $id: "event-2",
-            created_by: "other-user",
-            status: "draft",
-          }),
-        ),
-      ],
+    mockTables.listRows.mockImplementation(async (_db: string, _table: string, queries: unknown[] = []) => {
+      const queryText = JSON.stringify(queries);
+      if (queryText.includes("created_by")) {
+        return {
+          rows: [
+            toEventRow(createEventFixture({ created_by: "user-1", status: "draft" })),
+            toEventRow(
+              createEventFixture({
+                $id: "event-2",
+                created_by: "other-user",
+                status: "draft",
+              }),
+            ),
+          ],
+        };
+      }
+      // Public catalog query
+      return { rows: [] };
     });
 
     const result = await getEvents({ isAdmin: false, userId: "user-1" });
@@ -533,17 +540,16 @@ describe("event service operations", () => {
     );
 
     vi.mocked(getActiveEventRoleAssignments).mockResolvedValueOnce([]);
-    mockTables.listRows.mockResolvedValueOnce({
-      rows: [
-        toEventRow(createEventFixture({ $id: "event-pub", status: "published" })),
-        toEventRow(
-          createEventFixture({
-            $id: "event-draft",
-            created_by: "other-user",
-            status: "draft",
-          }),
-        ),
-      ],
+    mockTables.listRows.mockImplementation(async (_db: string, _table: string, queries: unknown[] = []) => {
+      const queryText = JSON.stringify(queries);
+      if (queryText.includes("created_by")) {
+        return { rows: [] };
+      }
+      return {
+        rows: [
+          toEventRow(createEventFixture({ $id: "event-pub", status: "published" })),
+        ],
+      };
     });
 
     const result = await getEvents({ isAdmin: false, userId: "user-1" });

@@ -76,29 +76,30 @@ function isInternalNavigationClick(event: MouseEvent): boolean {
 export function NavigationProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [pending, setPending] = useState(false);
+  const routeKey = `${pathname}?${searchParams.toString()}`;
+  const [pendingRouteKey, setPendingRouteKey] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
-    setPending(false);
-    setVisible(false);
-  }, [pathname, searchParams]);
+  const pending = pendingRouteKey !== null && pendingRouteKey === routeKey;
 
   useEffect(() => {
     if (!pending) {
-      setVisible(false);
-      return;
+      const clearTimer = window.setTimeout(() => {
+        setVisible(false);
+        setPendingRouteKey(null);
+      }, 0);
+      return () => window.clearTimeout(clearTimer);
     }
 
-    const timer = window.setTimeout(() => {
+    const showTimer = window.setTimeout(() => {
       setVisible(true);
     }, SHOW_DELAY_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => window.clearTimeout(showTimer);
   }, [pending]);
 
   useEffect(() => {
-    const start = () => setPending(true);
+    const start = () => setPendingRouteKey(routeKey);
     startListeners.add(start);
 
     const onClick = (event: MouseEvent) => {
@@ -112,7 +113,7 @@ export function NavigationProgress() {
       startListeners.delete(start);
       document.removeEventListener("click", onClick, true);
     };
-  }, []);
+  }, [routeKey]);
 
   if (!visible) {
     return null;

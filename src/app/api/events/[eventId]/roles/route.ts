@@ -29,9 +29,9 @@ export async function GET(_request: Request, context: RouteContext) {
   const { eventId } = await context.params;
 
   try {
-    const { userEventRole } = await requireVisibleEvent(eventId, user!);
+    await requireVisibleEvent(eventId, user!);
 
-    if (!canViewEventRoleAssignments(user!, userEventRole)) {
+    if (!canViewEventRoleAssignments()) {
       throw new ForbiddenError("You do not have permission to view event role assignments.");
     }
 

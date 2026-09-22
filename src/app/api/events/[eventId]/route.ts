@@ -53,7 +53,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return jsonError("Event was not found.", 404);
     }
 
-    if (!canViewEventRoleAssignments(user, userEventRole)) {
+    if (!canViewEventRoleAssignments()) {
       const { roleAssignments, ...publicEvent } = event;
       void roleAssignments;
       return NextResponse.json({ event: publicEvent });

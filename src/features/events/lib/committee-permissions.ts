@@ -1,4 +1,4 @@
-import type { EventRole, EventRoleAssignment, SessionUser } from "@/features/access-control/types";
+import type { EventRole, EventRoleAssignment } from "@/features/access-control/types";
 import { isEventVisibleToUser } from "@/features/events/lib/event-permissions";
 import type { Event } from "@/features/events/types";
 
@@ -15,10 +15,7 @@ const CHAIR_REMOVABLE_ROLES: EventRole[] = [
 ];
 
 /** Roster is readable by anyone who can open the event (caller enforces visibility). */
-export function canViewEventRoleAssignments(
-  _user: Pick<SessionUser, "isAdmin">,
-  _userEventRole: EventRole | null,
-) {
+export function canViewEventRoleAssignments() {
   return true;
 }
 

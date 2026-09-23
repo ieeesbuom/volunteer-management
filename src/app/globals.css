@@ -159,6 +159,22 @@ html.dark {
   color-scheme: dark;
 }
 
+.knurdz-mark {
+  color-scheme: only light;
+}
+
+.knurdz-mark-for-dark {
+  display: none;
+}
+
+html.dark .knurdz-mark-for-light {
+  display: none;
+}
+
+html.dark .knurdz-mark-for-dark {
+  display: block;
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-body);

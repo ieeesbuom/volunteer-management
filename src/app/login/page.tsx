@@ -55,14 +55,14 @@ export default async function LoginPage({
           alt="Powered by Knurdz"
           width={1024}
           height={340}
-          className="h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right dark:hidden sm:h-10 sm:max-w-[240px]"
+          className="knurdz-mark knurdz-mark-for-light h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right sm:h-10 sm:max-w-[240px]"
         />
         <Image
           src="/images/powered-by-knurdz.png"
           alt="Powered by Knurdz"
           width={1024}
           height={340}
-          className="hidden h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right dark:block sm:h-10 sm:max-w-[240px]"
+          className="knurdz-mark knurdz-mark-for-dark h-9 w-auto max-w-[min(50vw,240px)] object-contain object-right sm:h-10 sm:max-w-[240px]"
         />
       </a>
 

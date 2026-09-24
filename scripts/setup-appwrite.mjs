@@ -74,6 +74,7 @@ const notificationTypeElements = [
   "event_update",
   "grading_request",
   "report_approval",
+  "recommendation",
   "system",
 ];
 const formProviderElements = ["google_forms", "external_form_builder", "lava", "other"];
@@ -934,6 +935,7 @@ async function main() {
   await migrateRecommendationRequestKeys();
   await migrateLegacyEventCommittees();
   await migrateEventRoleNames();
+  await migrateNotificationTypes();
   await ensureLavaFormFilesBucket();
 }
 
@@ -1112,6 +1114,19 @@ async function migrateEventRoleNames() {
   );
   await waitForColumns("event_role_assignments");
   console.log("updated event role enum to canonical values");
+}
+
+async function migrateNotificationTypes() {
+  await tables.updateEnumColumn(
+    databaseId,
+    "notifications",
+    "type",
+    notificationTypeElements,
+    true,
+    null,
+  );
+  await waitForColumns("notifications");
+  console.log("updated notification type enum to include recommendation");
 }
 
 main().catch((error) => {

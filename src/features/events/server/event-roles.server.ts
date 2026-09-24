@@ -15,12 +15,18 @@ import {
   toEventRoleAssignment,
 } from "@/features/access-control/server/roles";
 import type { EventRole, EventRoleAssignment } from "@/features/access-control/types";
-import { assertCommitteeExistsForRole } from "@/features/events/lib/event-validation";
+import {
+  assertCommitteeExistsForRole,
+  resolveCommitteeByName,
+} from "@/features/events/lib/event-validation";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { ConflictError, ValidationError } from "@/server/errors";
 import { safeEventAuditLog } from "@/features/events/server/event-audit";
-import { listCommitteesForEvent } from "@/features/events/server/committees.server";
+import {
+  addCommitteeMember,
+  listCommitteesForEvent,
+} from "@/features/events/server/committees.server";
 import { validateAssignableEventUser } from "@/features/events/server/event-user-validation";
 import { getEventById, listEventsByIds } from "@/features/events/server/event-service";
 import type { AssignEventRoleInput } from "@/features/events/types";
@@ -103,6 +109,45 @@ async function validateRoleCommitteeInput(
   });
 }
 
+export async function ensureCommitteeMembershipForRole({
+  actorUserId,
+  committeeName,
+  eventId,
+  role,
+  userId,
+}: {
+  actorUserId: string;
+  committeeName?: string;
+  eventId: string;
+  role: EventRole;
+  userId: string;
+}) {
+  if (!requiresCommitteeName(role)) {
+    return;
+  }
+
+  const committees = await listCommitteesForEvent(eventId);
+  const committee = resolveCommitteeByName(committees, committeeName);
+
+  if (!committee) {
+    return;
+  }
+
+  try {
+    await addCommitteeMember({
+      actorUserId,
+      committeeId: committee.$id,
+      userId,
+    });
+  } catch (error) {
+    if (error instanceof ConflictError) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
 export async function assignEventRole(
   input: AssignEventRoleInput,
   assignedByUserId: string,
@@ -150,6 +195,14 @@ export async function assignEventRole(
     metadata: { role: input.role, user_id: input.user_id },
     targetId: input.event_id,
     targetType: "event",
+  });
+
+  await ensureCommitteeMembershipForRole({
+    actorUserId: assignedByUserId,
+    committeeName: input.committee_name,
+    eventId: input.event_id,
+    role: input.role,
+    userId: input.user_id,
   });
 
   return assignment;
@@ -231,6 +284,14 @@ export async function replaceEventRole({
     },
     targetId: eventId,
     targetType: "event",
+  });
+
+  await ensureCommitteeMembershipForRole({
+    actorUserId,
+    committeeName,
+    eventId,
+    role: newRole,
+    userId,
   });
 
   return newAssignment;

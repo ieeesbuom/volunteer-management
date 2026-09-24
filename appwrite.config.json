@@ -1660,6 +1660,7 @@
                         "event_update",
                         "grading_request",
                         "report_approval",
+                        "recommendation",
                         "system"
                     ]
                 },

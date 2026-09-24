@@ -1,6 +1,6 @@
 import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, Eye, MailCheck, UserRound } from "lucide-react";
+import { CheckCircle2, Eye, MailCheck, MessageSquareQuote, UserRound } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
@@ -20,8 +20,12 @@ import { ProfileAvatarEditor } from "@/features/access-control/components/profil
 import { VerificationPanel } from "@/features/access-control/components/verification-panel";
 import { getVolunteerProfileDetails } from "@/features/volunteers/server/profiles";
 import { ProfileDetailsForm } from "@/features/volunteers/components/profile-details-form";
+import { RecommendationList } from "@/features/recommendations/components/recommendation-list";
 import { RecommendationRequestsPanel } from "@/features/recommendations/components/recommendation-requests-panel";
-import { listRecommendationRequestsForVolunteer } from "@/features/recommendations/server/recommendations";
+import {
+  listRecommendationRequestsForVolunteer,
+  listVisibleRecommendationsForVolunteer,
+} from "@/features/recommendations/server/recommendations";
 import { NotificationPreferencesForm } from "@/features/notifications/components/notification-preferences-form";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +44,9 @@ export default async function MyVolunteerProfilePage() {
   const recommendationRequests = canManageVolunteerProfile
     ? await listRecommendationRequestsForVolunteer(user.authUser.id)
     : { incoming: [], outgoing: [] };
+  const writtenRecommendations = canManageVolunteerProfile
+    ? await listVisibleRecommendationsForVolunteer(user.authUser.id)
+    : [];
 
   return (
     <AppShell active="profile" user={user}>
@@ -134,9 +141,33 @@ export default async function MyVolunteerProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recommendation Requests</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquareQuote className="size-4 text-primary" aria-hidden="true" />
+              My recommendations
+            </CardTitle>
             <CardDescription>
-              Track pending requests and write recommendations for other verified volunteers.
+              Written endorsements from fellow verified volunteers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {canManageVolunteerProfile ? (
+              <RecommendationList
+                canReport
+                initialRecommendations={writtenRecommendations}
+              />
+            ) : (
+              <p className="text-sm text-text-body">
+                Verify your UoM email before requesting or writing recommendations.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending requests</CardTitle>
+            <CardDescription>
+              Answer asks and track recommendations you are waiting on.
             </CardDescription>
           </CardHeader>
           <CardContent>

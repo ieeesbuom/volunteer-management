@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/features/access-control/server/current-user";
 import { jsonRouteError } from "@/server/errors";
 import { assignEventRole, parseEventRole } from "@/features/access-control/server/roles";
+import { ensureCommitteeMembershipForRole } from "@/features/events/server/event-roles.server";
 import { notifyRoleAssignmentWorkflow } from "@/features/notifications/server/workflow-notifications";
 
 const roleSchema = z.object({
@@ -22,12 +23,20 @@ export async function POST(request: Request) {
   try {
     const admin = await requireAdmin();
     const body = roleSchema.parse(await request.json());
+    const role = parseEventRole(body.role);
     const assignment = await assignEventRole({
       actorUserId: admin.authUser.id,
       committeeName: body.committeeName,
       eventId: body.eventId,
       eventTitle: body.eventTitle,
-      role: parseEventRole(body.role),
+      role,
+      userId: body.userId,
+    });
+    await ensureCommitteeMembershipForRole({
+      actorUserId: admin.authUser.id,
+      committeeName: body.committeeName,
+      eventId: body.eventId,
+      role,
       userId: body.userId,
     });
     const notification = await notifyRoleAssignmentWorkflow({

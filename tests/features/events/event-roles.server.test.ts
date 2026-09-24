@@ -34,9 +34,11 @@ vi.mock("@/features/events/server/event-audit", () => ({
   safeEventAuditLog: vi.fn(),
 }));
 
+const addCommitteeMember = vi.fn();
 const listCommitteesForEvent = vi.fn().mockResolvedValue([{ $id: "committee-1", name: "Program" }]);
 
 vi.mock("@/features/events/server/committees.server", () => ({
+  addCommitteeMember: (...args: unknown[]) => addCommitteeMember(...args),
   hasCommitteesForEvent: vi.fn().mockResolvedValue(true),
   listCommitteesForEvent: (...args: unknown[]) => listCommitteesForEvent(...args),
 }));
@@ -140,6 +142,68 @@ describe("event-roles.server", () => {
           "admin-user",
         ),
       ).rejects.toBeInstanceOf(ValidationError);
+    });
+
+    it("adds Committee Lead and Committee Member to the named committee", async () => {
+      const { getProfile } = await import("@/features/access-control/server/profiles");
+      const { assignEventRole } = await import("@/features/events/server/event-roles.server");
+
+      mockUsers.get.mockResolvedValue({ status: true });
+      vi.mocked(getProfile).mockResolvedValue({
+        $id: "profile-1",
+        authUserId: "user-1",
+        googleEmail: "user@example.com",
+        status: "ACTIVE",
+        uomVerified: true,
+      });
+      assignAccessControlEventRole.mockResolvedValue(
+        createAssignment({ $id: "assignment-lead", role: "Committee Lead", committeeName: "Program" }),
+      );
+      addCommitteeMember.mockResolvedValue({ $id: "member-1" });
+
+      await assignEventRole(
+        {
+          committee_name: "Program",
+          event_id: "event-1",
+          role: "Committee Lead",
+          user_id: "user-1",
+        },
+        "admin-user",
+      );
+
+      expect(addCommitteeMember).toHaveBeenCalledWith({
+        actorUserId: "admin-user",
+        committeeId: "committee-1",
+        userId: "user-1",
+      });
+    });
+
+    it("does not add Chair to a committee", async () => {
+      const { getProfile } = await import("@/features/access-control/server/profiles");
+      const { assignEventRole } = await import("@/features/events/server/event-roles.server");
+
+      mockUsers.get.mockResolvedValueOnce({ status: true });
+      vi.mocked(getProfile).mockResolvedValueOnce({
+        $id: "profile-1",
+        authUserId: "user-1",
+        googleEmail: "user@example.com",
+        status: "ACTIVE",
+        uomVerified: true,
+      });
+      assignAccessControlEventRole.mockResolvedValueOnce(
+        createAssignment({ $id: "assignment-chair", role: "Chair" }),
+      );
+
+      await assignEventRole(
+        {
+          event_id: "event-1",
+          role: "Chair",
+          user_id: "user-1",
+        },
+        "admin-user",
+      );
+
+      expect(addCommitteeMember).not.toHaveBeenCalled();
     });
   });
 

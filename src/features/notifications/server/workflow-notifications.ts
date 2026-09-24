@@ -11,6 +11,7 @@ export const REQUIRED_NOTIFICATION_WORKFLOWS = [
   "event_update",
   "grading_request",
   "report_approval",
+  "recommendation",
 ] as const;
 
 type WorkflowNotificationService = {
@@ -39,6 +40,15 @@ type WorkflowNotificationService = {
     linkHref?: string;
     recipientUserId: string;
     status?: "approved" | "needs_changes";
+  }): Promise<CreateNotificationResult>;
+  createRecommendationNotification(input: {
+    action: "requested" | "accepted" | "rejected";
+    actorName?: string;
+    actorUserId?: string;
+    idempotencyKey?: string;
+    linkHref?: string;
+    recipientUserId: string;
+    requestId?: string;
   }): Promise<CreateNotificationResult>;
   createRoleAssignmentNotification(input: {
     actorUserId?: string;
@@ -93,6 +103,37 @@ export async function notifyRoleAssignmentWorkflow({
     recipientUserId: assignment.userId,
     role: assignment.role,
     scope: "eventTitle" in assignment ? assignment.eventTitle : "IEEE SB UoM",
+  });
+}
+
+export async function notifyRecommendationWorkflow({
+  action,
+  actorName,
+  actorUserId,
+  recipientUserId,
+  requestId,
+  service = createAppwriteNotificationService(),
+}: {
+  action: "requested" | "accepted" | "rejected";
+  actorName?: string;
+  actorUserId?: string;
+  recipientUserId: string;
+  requestId?: string;
+  service?: WorkflowNotificationService;
+}) {
+  return service.createRecommendationNotification({
+    action,
+    actorName,
+    actorUserId,
+    idempotencyKey: createNotificationIdempotencyKey([
+      "recommendation",
+      action,
+      requestId,
+      recipientUserId,
+    ]),
+    linkHref: "/volunteers/me",
+    recipientUserId,
+    requestId,
   });
 }
 

@@ -12,12 +12,16 @@ trusted serverless runner.
 - `refreshRecognitionSnapshotJob` computes recognition data from the point
   ledger and stores the current Volunteer of the Month / Hall of Fame snapshot
   in Appwrite for fast report rendering.
+- `cleanupLeftoverGeneralCommitteesJob` finds leftover `General` committees on
+  older events and can delete them after a dry-run report. Events with an active
+  role assignment still named `General` are skipped.
 
 Production entrypoints:
 
 - `POST /api/jobs/notifications/digest`
 - `POST /api/jobs/events/reminders`
 - `POST /api/jobs/reports/recognition-snapshot`
+- `POST /api/jobs/events/cleanup-general-committees`
 
 Both require `INTERNAL_JOB_TOKEN` in `x-internal-job-token` or as a bearer
 token.

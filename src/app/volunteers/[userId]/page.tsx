@@ -128,7 +128,7 @@ function VolunteerProfileContent({
             </CardTitle>
             <CardDescription>Public profile highlights and useful volunteer links.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-text-secondary">
+          <CardContent className="space-y-4 text-sm text-text-body">
             <p>{profile.details?.bio ?? "No volunteer bio has been added yet."}</p>
             <InfoRow label="Skills" value={profile.details?.skills ?? "Not provided"} />
             <InfoRow label="LinkedIn" value={profile.details?.linkedinUrl ?? "Not provided"} />
@@ -142,14 +142,14 @@ function VolunteerProfileContent({
               Events this volunteer has contributed to through assigned roles.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-text-secondary">
+          <CardContent className="space-y-2 text-sm text-text-body">
             {profile.eventRoles.length > 0 ? (
               profile.eventRoles.map((role) => (
                 <div
-                  className="rounded-md border border-border p-3"
+                  className="rounded-md border border-border-subtle p-3"
                   key={`${role.eventId}-${role.role}-${role.committeeName ?? ""}`}
                 >
-                  <p className="font-medium text-text-primary">{role.eventTitle}</p>
+                  <p className="font-medium text-text-strong">{role.eventTitle}</p>
                   <p>{[role.role, role.committeeName].filter(Boolean).join(" · ")}</p>
                 </div>
               ))
@@ -270,7 +270,7 @@ function VolunteerProfileContent({
           </CardHeader>
 
           <CardContent>
-            <p className="text-sm text-text-secondary">
+            <p className="text-sm text-text-body">
               Recommendations are visible only to the profile owner and admins.
             </p>
           </CardContent>
@@ -283,7 +283,7 @@ function VolunteerProfileContent({
 function PublicVolunteerLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppPageNavProvider defaultTitle="Volunteer Profile">
-      <main className="min-h-screen bg-background text-text-primary">
+      <main className="min-h-screen bg-background text-text-strong">
         <div className="mx-auto w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
           {children}
         </div>
@@ -294,9 +294,9 @@ function PublicVolunteerLayout({ children }: { children: React.ReactNode }) {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1 border-b border-border pb-2 last:border-0 last:pb-0">
-      <span className="font-medium text-text-secondary">{label}</span>
-      <span className="wrap-break-word text-text-primary">{value}</span>
+    <div className="flex flex-col gap-1 border-b border-border-subtle pb-2 last:border-0 last:pb-0">
+      <span className="font-medium text-text-body">{label}</span>
+      <span className="wrap-break-word text-text-strong">{value}</span>
     </div>
   );
 }

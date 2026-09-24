@@ -19,6 +19,12 @@ import { AppPage } from "@/components/layout/app-page";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import {
+  alertDangerClasses,
+  fieldSelectClasses,
+  modalOverlayClasses,
+  modalPanelClasses,
+} from "@/components/ui/field";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -50,6 +56,7 @@ import {
 import type { Committee, CommitteeMember, Event, EventPermissions, EventRole, EventStatus } from "@/features/events/types";
 import type { FormConnection } from "@/features/forms/types";
 import { EVENT_STATUSES } from "@/features/events/types";
+import { cn } from "@/lib/utils";
 
 const LIFECYCLE_LABELS: Record<EventStatus, string> = {
   draft: "Draft",
@@ -256,14 +263,14 @@ export function EventDetail({
             ) : null}
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-text-secondary">Start date</dt>
-                <dd className="font-medium text-text-primary">
+                <dt className="text-text-body">Start date</dt>
+                <dd className="font-medium text-text-strong">
                   {formatEventDate(event.start_date)}
                 </dd>
               </div>
               <div>
-                <dt className="text-text-secondary">End date</dt>
-                <dd className="font-medium text-text-primary">
+                <dt className="text-text-body">End date</dt>
+                <dd className="font-medium text-text-strong">
                   {event.end_date ? formatEventDate(event.end_date) : "Not set"}
                 </dd>
               </div>
@@ -288,7 +295,7 @@ export function EventDetail({
       </Card>
 
       {error ? (
-        <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <p className={alertDangerClasses}>
           {error}
         </p>
       ) : null}
@@ -305,7 +312,7 @@ export function EventDetail({
             <label className="block flex-1 text-[13px] font-semibold text-text-body mb-1.5">
               New status
               <select
-                className="mt-1 h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] font-normal"
+                className={cn(fieldSelectClasses, "mt-1 font-normal")}
                 onChange={(changeEvent) =>
                   setSelectedStatus(changeEvent.target.value as EventStatus)
                 }
@@ -337,7 +344,7 @@ export function EventDetail({
           <CardTitle>Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm leading-6 text-text-secondary">
+          <p className="text-sm leading-6 text-text-body">
             {event.description?.trim() ? event.description : "No description provided."}
           </p>
         </CardContent>
@@ -454,7 +461,7 @@ export function EventDetail({
         </Card>
       ) : null}
 
-      {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
+      {message ? <p className="text-sm text-text-body">{message}</p> : null}
 
       {showAssignModal ? (() => {
         const generalCommittee = committees.find((committee) => isGeneralCommittee(committee.name));
@@ -553,10 +560,10 @@ function ConfirmationDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4 transition-all"
+      className={modalOverlayClasses}
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-[12px] border border-border-subtle bg-surface shadow-lg">
+      <div className={modalPanelClasses}>
         <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
@@ -564,11 +571,11 @@ function ConfirmationDialog({
             </span>
             <div>
               <h3 className="text-[16px] font-semibold text-text-strong">{title}</h3>
-              <p className="mt-1 text-[14px] leading-6 text-text-secondary">{description}</p>
+              <p className="mt-1 text-[14px] leading-6 text-text-body">{description}</p>
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4 bg-surface-subtle rounded-b-[12px]">
+        <div className="flex justify-end gap-2 border-t border-border-subtle bg-bg-base/50 px-5 py-4">
           <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost">
             Cancel
           </Button>

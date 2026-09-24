@@ -20,6 +20,14 @@ import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  alertDangerClasses,
+  alertSuccessClasses,
+  fieldInputClasses,
+  fieldSelectClasses,
+  modalOverlayClasses,
+  modalPanelClasses,
+} from "@/components/ui/field";
 import { HallOfFameTable } from "@/features/reports/components/hall-of-fame-table";
 import { LeaderboardStandingsTable } from "@/features/scoring/components/leaderboard-standings-table";
 import { ExtraScoreAuditTable } from "@/features/scoring/components/extra-score-audit-table";
@@ -128,7 +136,7 @@ export function VolunteerSelect({
   return (
     <div className="relative space-y-1" ref={containerRef}>
       <div
-        className={`w-full px-3 py-2 border border-border rounded-md text-sm bg-surface flex justify-between items-center select-none ${
+        className={`w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised flex justify-between items-center select-none ${
           loading || error ? "cursor-not-allowed opacity-75" : "cursor-pointer"
         }`}
         onClick={() => {
@@ -137,10 +145,10 @@ export function VolunteerSelect({
           }
         }}
       >
-        <span className={selectedVolunteer ? "text-text-primary" : "text-text-secondary"}>
+        <span className={selectedVolunteer ? "text-text-strong" : "text-text-body"}>
           {loading ? "Loading volunteers..." : selectedVolunteer ? selectedVolunteer.name : placeholder}
         </span>
-        <span className="text-xs text-text-secondary">▼</span>
+        <span className="text-xs text-text-body">▼</span>
       </div>
       {error ? (
         <p className="text-xs text-red-500">
@@ -149,18 +157,18 @@ export function VolunteerSelect({
       ) : null}
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full rounded-md bg-surface border border-border shadow-lg max-h-60 overflow-y-auto flex flex-col p-1 gap-1">
+        <div className="absolute z-50 mt-1 w-full rounded-md bg-surface-raised border border-border-subtle shadow-lg max-h-60 overflow-y-auto flex flex-col p-1 gap-1">
           <input
             type="text"
             placeholder="Search name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-2 py-1.5 text-sm border border-border rounded bg-surface-muted"
+            className="px-2 py-1.5 text-sm border border-border-subtle rounded bg-neutral-soft"
             onClick={(e) => e.stopPropagation()}
             autoFocus
           />
           {loading ? (
-            <div className="px-2 py-1.5 text-sm text-text-secondary font-medium">Loading...</div>
+            <div className="px-2 py-1.5 text-sm text-text-body font-medium">Loading...</div>
           ) : filteredVolunteers.length > 0 ? (
             filteredVolunteers.map((v) => (
               <div
@@ -173,7 +181,7 @@ export function VolunteerSelect({
                 className={`px-2 py-1.5 text-sm rounded cursor-pointer transition-colors ${
                   v.id === value
                     ? "bg-primary-soft text-primary font-semibold"
-                    : "hover:bg-surface-muted text-text-primary"
+                    : "hover:bg-bg-base text-text-strong"
                 }`}
               >
                 <span className="block font-medium">{v.name}</span>
@@ -183,7 +191,7 @@ export function VolunteerSelect({
               </div>
             ))
           ) : (
-            <div className="px-2 py-1.5 text-sm text-text-secondary">No volunteers found</div>
+            <div className="px-2 py-1.5 text-sm text-text-body">No volunteers found</div>
           )}
         </div>
       )}
@@ -751,15 +759,15 @@ export function ScoringDashboard({
 
       {/* Messages */}
       {error && (
-        <div className="flex items-center gap-2 p-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-          <AlertCircle className="size-4" />
+        <div className={cn(alertDangerClasses, "flex items-center gap-2 px-4 py-3")}>
+          <AlertCircle className="size-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center gap-2 p-4 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
-          <AlertCircle className="size-4" />
+        <div className={cn(alertSuccessClasses, "flex items-center gap-2 px-4 py-3")}>
+          <AlertCircle className="size-4 shrink-0" />
           <span>{success}</span>
         </div>
       )}
@@ -781,7 +789,7 @@ export function ScoringDashboard({
                   <select
                     value={filterTerm}
                     onChange={(e) => setFilterTerm(e.target.value)}
-                    className="px-3 py-1.5 border border-border-default rounded-md text-[13px] w-36 bg-surface cursor-pointer outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+                    className={cn(fieldSelectClasses, "h-9 w-36 text-[13px]")}
                   >
                     {visibleTerms.map((term) => (
                       <option key={term} value={term}>
@@ -794,12 +802,12 @@ export function ScoringDashboard({
                     placeholder="Year"
                     value={filterYear}
                     onChange={(e) => setFilterYear(e.target.value)}
-                    className="px-3 py-1.5 border border-border-default rounded-md text-[13px] w-28 bg-surface outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+                    className={cn(fieldInputClasses, "h-9 w-28 text-[13px]")}
                   />
                   <select
                     value={filterMonth}
                     onChange={(e) => setFilterMonth(e.target.value)}
-                    className="px-3 py-1.5 border border-border-default rounded-md text-[13px] bg-surface cursor-pointer outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+                    className={cn(fieldSelectClasses, "h-9 w-auto text-[13px]")}
                   >
                     <option value="">Full Year</option>
                     <option value="1">January</option>
@@ -885,14 +893,14 @@ export function ScoringDashboard({
               <CardContent className="space-y-3 text-sm">
                 {volunteerOfTheMonth ? (
                   <div className="space-y-3">
-                    <p className="text-xl font-semibold text-text-primary">
+                    <p className="text-xl font-semibold text-text-strong">
                       {volunteerOfTheMonth.name}
                     </p>
-                    <p className="text-text-secondary">{volunteerOfTheMonth.highlight}</p>
+                    <p className="text-text-body">{volunteerOfTheMonth.highlight}</p>
                     <Badge tone="success">{volunteerOfTheMonth.pointsEarned} points earned</Badge>
                   </div>
                 ) : (
-                  <p className="text-text-secondary">
+                  <p className="text-text-body">
                     No eligible points have been awarded for the current month.
                   </p>
                 )}
@@ -920,7 +928,7 @@ export function ScoringDashboard({
                     }))}
                   />
                 ) : (
-                  <p className="text-sm text-text-secondary">
+                  <p className="text-sm text-text-body">
                     No eligible points have been awarded for the current IEEE term.
                   </p>
                 )}
@@ -945,7 +953,7 @@ export function ScoringDashboard({
               
               {derivedRole === "Admin" && (
                 <div className="w-64 space-y-1">
-                  <label className="block text-xs font-semibold uppercase text-text-secondary">
+                  <label className="block text-xs font-semibold uppercase text-text-body">
                     Inspect Volunteer
                   </label>
                   <VolunteerSelect
@@ -959,7 +967,7 @@ export function ScoringDashboard({
               )}
 
               <div className="text-right">
-                <p className="text-xs uppercase text-text-secondary font-medium">Total Points</p>
+                <p className="text-xs uppercase text-text-body font-medium">Total Points</p>
                 <p className="text-3xl font-extrabold text-primary">
                   {ledger.reduce((acc, r) => acc + r.points, 0)}
                 </p>
@@ -970,7 +978,7 @@ export function ScoringDashboard({
             {ledger.length > 0 ? (
               <div className="min-w-0 w-full overflow-x-auto">
                 <table className="min-w-full divide-y divide-border text-left text-sm">
-                  <thead className="text-text-secondary">
+                  <thead className="text-text-body">
                     <tr>
                       <th className="py-2 pr-4 font-semibold">Event / Task</th>
                       <th className="px-4 py-2 font-semibold">Source</th>
@@ -982,7 +990,7 @@ export function ScoringDashboard({
                     {ledger.map((entry) => (
                       <tr key={entry.$id}>
                         <td className="py-3 pr-4">
-                          <p className="font-semibold text-text-primary">
+                          <p className="font-semibold text-text-strong">
                             {entry.eventTitle ?? eventLabel(entry.eventId)}
                           </p>
                           <p className="text-xs text-text-muted">IEEE term {entry.term}</p>
@@ -1000,10 +1008,10 @@ export function ScoringDashboard({
                             {entry.source}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-text-secondary">
+                        <td className="px-4 py-3 text-text-body">
                           {new Date(entry.conclusionApprovalDate).toLocaleDateString()}
                         </td>
-                        <td className="px-4 py-3 text-right font-bold text-text-primary">
+                        <td className="px-4 py-3 text-right font-bold text-text-strong">
                           +{entry.points}
                         </td>
                       </tr>
@@ -1012,7 +1020,7 @@ export function ScoringDashboard({
                 </table>
               </div>
             ) : (
-              <p className="text-center py-6 text-text-secondary">
+              <p className="text-center py-6 text-text-body">
                 {derivedRole === "Admin"
                   ? "This volunteer has not received any points yet."
                   : "You have not received any points yet. Attend approved events to receive role points and approved extra scores."}
@@ -1076,7 +1084,7 @@ export function ScoringDashboard({
                           setReqEventId(e.target.value);
                           setReqTargetUserId("");
                         }}
-                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                        className={fieldSelectClasses}
                       >
                         {allEvents.map((event) => (
                           <option key={event.eventId} value={event.eventId}>
@@ -1092,7 +1100,7 @@ export function ScoringDashboard({
                           setReqEventId(e.target.value);
                           setReqTargetUserId("");
                         }}
-                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                        className={fieldSelectClasses}
                       >
                         {chairEventAssignments.map((event) => (
                           <option key={event.eventId} value={event.eventId}>
@@ -1106,10 +1114,10 @@ export function ScoringDashboard({
                         required
                         disabled
                         value={chairEventAssignments[0].eventTitle}
-                        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-75"
+                        className={cn(fieldSelectClasses, "disabled:cursor-not-allowed disabled:opacity-75")}
                       />
                     ) : (
-                      <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm text-text-secondary">
+                      <div className="rounded-md border border-border-subtle bg-neutral-soft px-3 py-2 text-sm text-text-body">
                         You can only submit extra scores for events where you are Chair.
                       </div>
                     )}
@@ -1142,7 +1150,7 @@ export function ScoringDashboard({
                       required
                       value={reqGradeValue}
                       onChange={(e) => setReqGradeValue(Number(e.target.value))}
-                      className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm"
+                      className={fieldInputClasses}
                     />
                   </div>
                   <Button
@@ -1189,7 +1197,7 @@ export function ScoringDashboard({
                     setReqEventId(next);
                     setReqTargetUserId("");
                   }}
-                  className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm"
+                  className={fieldInputClasses}
                 >
                   <option value="">
                     {effectiveIsAdmin ? "All actionable events" : "All my chair events"}
@@ -1313,7 +1321,7 @@ export function ScoringDashboard({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                  <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                     Select Score Review
                   </label>
                   <select
@@ -1326,7 +1334,7 @@ export function ScoringDashboard({
                         setOverGradeValue(rev.gradeValue);
                       }
                     }}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                    className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised"
                   >
                     <option value="">-- Choose Score to Override --</option>
                     {detailedReviews.map((rev) => (
@@ -1337,7 +1345,7 @@ export function ScoringDashboard({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                  <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                     New Extra Score (0-10)
                   </label>
                   <input
@@ -1347,11 +1355,11 @@ export function ScoringDashboard({
                     required
                     value={overGradeValue}
                     onChange={(e) => setOverGradeValue(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                    className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                  <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                     Reason for Override
                   </label>
                   <input
@@ -1359,7 +1367,7 @@ export function ScoringDashboard({
                     value={overReason}
                     onChange={(e) => setOverReason(e.target.value)}
                     placeholder="Reason for this correction"
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                    className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised"
                   />
                 </div>
                 <Button type="submit" className="w-full">
@@ -1401,7 +1409,7 @@ export function ScoringDashboard({
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                  <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                     Select Volunteer
                   </label>
                   <VolunteerSelect
@@ -1414,13 +1422,13 @@ export function ScoringDashboard({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                    <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                       Term
                     </label>
                     <select
                       value={exTerm}
                       onChange={(e) => setExTerm(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface cursor-pointer"
+                      className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised cursor-pointer"
                     >
                       {visibleTerms.map((term) => (
                         <option key={term} value={term}>
@@ -1430,7 +1438,7 @@ export function ScoringDashboard({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                    <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                       Year
                     </label>
                     <input
@@ -1438,32 +1446,32 @@ export function ScoringDashboard({
                       required
                       value={exYear}
                       onChange={(e) => setExYear(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                      className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                  <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                     Top Board Status
                   </label>
                   <select
                     value={exExcluded ? "exclude" : "include"}
                     onChange={(e) => setExExcluded(e.target.value === "exclude")}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                    className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised"
                   >
                     <option value="exclude">Exclude from Top Board</option>
                     <option value="include">Include on Top Board</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-text-secondary mb-1">
+                  <label className="block text-xs font-semibold uppercase text-text-body mb-1">
                     Reason
                   </label>
                   <input
                     type="text"
                     value={exReason}
                     onChange={(e) => setExReason(e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-surface"
+                    className="w-full px-3 py-2 border border-border-subtle rounded-md text-sm bg-surface-raised"
                   />
                 </div>
                 <Button type="submit" className="w-full">
@@ -1530,22 +1538,22 @@ function ConfirmationDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className={modalOverlayClasses}
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-        <div className="border-b border-border px-5 py-4">
+      <div className={modalPanelClasses}>
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+              <h3 className="text-base font-semibold text-text-strong">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-text-body">{description}</p>
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4">
           <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost" className="cursor-pointer">
             Cancel
           </Button>

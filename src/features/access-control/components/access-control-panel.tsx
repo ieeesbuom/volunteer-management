@@ -544,7 +544,7 @@ function BranchRoleTable({
                         "inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-[12px] font-semibold tabular-nums transition-colors",
                         item === safePage
                           ? "bg-text-strong text-surface-raised"
-                          : "text-text-muted hover:bg-surface-muted hover:text-text-strong",
+                          : "text-text-muted hover:bg-bg-base hover:text-text-strong",
                       )}
                       onClick={() => setPage(item)}
                       type="button"
@@ -632,7 +632,7 @@ function PaginationIconButton({
   return (
     <button
       aria-label={ariaLabel}
-      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-muted hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-base hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
       disabled={disabled}
       onClick={onClick}
       type="button"

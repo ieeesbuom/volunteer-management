@@ -57,16 +57,16 @@ export function RecommendationList({
         recommendations.map((recommendation) => (
           <div
             key={recommendation.$id}
-            className="rounded-md border border-border-subtle bg-surface pl-4 pr-4 pt-4 pb-3"
+            className="rounded-md border border-border-subtle bg-surface-raised pl-4 pr-4 pt-4 pb-3"
             style={{ borderLeft: "3px solid var(--primary)" }}
           >
-            <p className="text-sm leading-relaxed text-text-primary italic">
+            <p className="text-sm leading-relaxed text-text-strong italic">
               &ldquo;{recommendation.text}&rdquo;
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-medium text-text-muted uppercase tracking-wide">
                 From{" "}
-                <span className="normal-case font-normal tracking-normal text-text-secondary">
+                <span className="normal-case font-normal tracking-normal text-text-body">
                   {recommendation.respondent ? (
                     <AppLink
                       href={`/volunteers/${recommendation.respondentId}`}
@@ -102,7 +102,7 @@ export function RecommendationList({
           No recommendations have been written for this volunteer yet.
         </p>
       )}
-      {message ? <p className="mt-2 text-sm text-text-secondary">{message}</p> : null}
+      {message ? <p className="mt-2 text-sm text-text-body">{message}</p> : null}
     </div>
   );
 }

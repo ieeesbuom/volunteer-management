@@ -117,7 +117,7 @@ export function LavaFormBuilderClient({
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+      <section className="rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
@@ -130,7 +130,7 @@ export function LavaFormBuilderClient({
               {getFormPurposeDescription(purpose)}
             </p>
           </div>
-          <label className="flex max-w-md items-start gap-3 rounded-lg border border-border bg-bg-base/60 p-3 text-sm text-text-secondary">
+          <label className="flex max-w-md items-start gap-3 rounded-lg border border-border-subtle bg-bg-base/60 p-3 text-sm text-text-body">
             <input
               checked={groupEnabled}
               className="mt-1 size-4 accent-(--primary)"

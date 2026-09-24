@@ -40,7 +40,7 @@ export function MyEvents({
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <CalendarDays className="size-8 text-text-muted" aria-hidden="true" />
-            <p className="text-sm text-text-secondary">
+            <p className="text-sm text-text-body">
               You are not assigned to any events at this time.
             </p>
           </CardContent>

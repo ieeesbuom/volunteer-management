@@ -19,11 +19,11 @@ import {
   conclusionReportAttachmentPath,
 } from "@/features/reports/lib/conclusion-attachment";
 import type { ConclusionReport, ReportEvent } from "@/features/reports/types";
+import { alertDangerClasses, alertSuccessClasses, fieldInputClasses, fieldTextareaClasses } from "@/components/ui/field";
+import { cn } from "@/lib/utils";
 
-const inputClasses =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
-
-const textareaClasses = `${inputClasses} min-h-[120px] resize-y`;
+const inputClasses = fieldInputClasses;
+const textareaClasses = cn(fieldTextareaClasses, "min-h-[120px] resize-y");
 
 type ConclusionReportFormProps = {
   events: ReportEvent[];
@@ -51,7 +51,7 @@ export function ConclusionReportForm({
 
   if (events.length === 0 && !report) {
     return (
-      <p className="text-sm text-text-secondary">
+      <p className="text-sm text-text-body">
         No ongoing or pending events are available for conclusion reporting.
       </p>
     );
@@ -140,13 +140,13 @@ export function ConclusionReportForm({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="flex size-10 items-center justify-center rounded-md border border-border bg-surface-subtle text-primary">
+        <span className="flex size-10 items-center justify-center rounded-xl border border-border-subtle bg-bg-base text-primary">
           <ClipboardList className="size-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-sm font-medium text-text-secondary">Conclusion report</p>
+          <p className="text-sm font-medium text-text-body">Conclusion report</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <p className="text-base font-semibold text-text-primary">
+            <p className="text-base font-semibold text-text-strong">
               {selectedEvent?.eventTitle ?? "Select an event"}
             </p>
             {report ? <Badge tone={reportStatusTone(report.status)}>{report.status}</Badge> : null}
@@ -156,7 +156,7 @@ export function ConclusionReportForm({
 
       {!initialReport ? (
         <label className="block space-y-1 text-sm">
-          <span className="font-medium text-text-secondary">Event</span>
+          <span className="font-medium text-text-body">Event</span>
           <select
             className={inputClasses}
             disabled={Boolean(report)}
@@ -173,7 +173,7 @@ export function ConclusionReportForm({
       ) : null}
 
       <label className="block space-y-1 text-sm">
-        <span className="font-medium text-text-secondary">More information</span>
+        <span className="font-medium text-text-body">More information</span>
         <textarea
           className={textareaClasses}
           disabled={!contentEditable}
@@ -183,10 +183,10 @@ export function ConclusionReportForm({
         />
       </label>
 
-      <div className="space-y-2 rounded-md border border-border bg-surface-subtle p-4">
+      <div className="space-y-2 rounded-xl border border-border-subtle bg-bg-base/40 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-text-secondary">Report PDF</p>
+            <p className="text-sm font-medium text-text-body">Report PDF</p>
             <p className="mt-1 text-xs text-text-muted">Upload the event report as a PDF file only.</p>
           </div>
           {uploadedFileName ? (
@@ -237,9 +237,7 @@ export function ConclusionReportForm({
       {message ? (
         <p
           className={
-            status === "error"
-              ? "rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
-              : "rounded-md border border-success/25 bg-success-soft px-3 py-2 text-sm text-success"
+            status === "error" ? alertDangerClasses : alertSuccessClasses
           }
         >
           {message}

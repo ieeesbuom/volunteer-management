@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { Search, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  alertDangerClasses,
+  modalOverlayClasses,
+  modalPanelClasses,
+} from "@/components/ui/field";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import { AssignEventRoleInputSchema, type EventRole } from "@/features/events/types";
 import { cn, formatUserFacingError } from "@/lib/utils";
@@ -112,18 +117,18 @@ export function AssignRoleModal({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className={modalOverlayClasses}
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-        <div className="border-b border-border px-5 py-4">
+      <div className={modalPanelClasses}>
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-primary-soft text-primary">
               <UserPlus className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="text-base font-semibold text-text-primary">Assign Committee Role</h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary">
+              <h3 className="text-base font-semibold text-text-strong">Assign Committee Role</h3>
+              <p className="mt-1 text-sm leading-6 text-text-body">
                 Add a volunteer to this event committee.
               </p>
             </div>
@@ -132,7 +137,7 @@ export function AssignRoleModal({
 
         <form className="space-y-4 px-5 py-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-text-secondary" htmlFor="volunteer_search">
+            <label className="block text-[12px] font-semibold text-text-body" htmlFor="volunteer_search">
               Volunteer
               <span className="relative mt-1 block">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-muted" aria-hidden="true" />
@@ -145,12 +150,12 @@ export function AssignRoleModal({
                 />
               </span>
             </label>
-            <div className="max-h-52 overflow-y-auto rounded-md border border-border bg-surface">
+            <div className="max-h-52 overflow-y-auto rounded-xl border border-border-subtle bg-surface-raised">
               {filteredVolunteers.length > 0 ? (
                 filteredVolunteers.map((volunteer) => (
                   <button
                     className={cn(
-                      "flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-surface-muted",
+                      "flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-bg-base",
                       userId === volunteer.userId && "bg-primary-soft text-primary",
                     )}
                     key={volunteer.userId}
@@ -167,7 +172,7 @@ export function AssignRoleModal({
                   </button>
                 ))
               ) : (
-                <p className="px-3 py-4 text-sm text-text-secondary">
+                <p className="px-3 py-4 text-sm text-text-body">
                   No active volunteers match this search.
                 </p>
               )}
@@ -179,7 +184,7 @@ export function AssignRoleModal({
             ) : null}
           </div>
 
-          <label className="block text-sm font-medium text-text-secondary" htmlFor="role">
+          <label className="block text-[12px] font-semibold text-text-body" htmlFor="role">
             Role
             <select
               className={cn(eventInputClasses, "mt-1")}
@@ -195,7 +200,7 @@ export function AssignRoleModal({
             </select>
           </label>
 
-          <label className="block text-sm font-medium text-text-secondary" htmlFor="committee_name">
+          <label className="block text-[12px] font-semibold text-text-body" htmlFor="committee_name">
             Committee
             {committeeRequired ? (
               <select
@@ -224,12 +229,12 @@ export function AssignRoleModal({
           </label>
 
           {error ? (
-            <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
+            <p className={alertDangerClasses}>
               {error}
             </p>
           ) : null}
 
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <div className="flex justify-end gap-2 border-t border-border-subtle pt-4">
             <Button disabled={submitting} onClick={onClose} type="button" variant="ghost">
               Cancel
             </Button>

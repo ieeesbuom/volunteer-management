@@ -1,13 +1,11 @@
+import { fieldInputClasses, fieldTextareaClasses } from "@/components/ui/field";
 import type { ConclusionStatus, EventStatus } from "@/features/events/types";
 import { getOperationalStatusTransitions } from "@/features/events/lib/event-status-transitions";
 
 type BadgeTone = "neutral" | "primary" | "success" | "warning" | "danger";
 
-export const eventInputClasses =
-  "h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all placeholder:text-text-placeholder focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]";
-
-export const eventTextareaClasses =
-  "min-h-28 w-full rounded-md border border-border-default bg-surface px-3 py-2 text-[14px] text-text-primary outline-none transition-all placeholder:text-text-placeholder focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]";
+export const eventInputClasses = fieldInputClasses;
+export const eventTextareaClasses = fieldTextareaClasses;
 
 export function formatEventStatus(status: EventStatus) {
   return status

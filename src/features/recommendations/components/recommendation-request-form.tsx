@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fieldTextareaClasses } from "@/components/ui/field";
+import { cn } from "@/lib/utils";
 
 export function RecommendationRequestForm({
   respondentId,
@@ -55,14 +57,14 @@ export function RecommendationRequestForm({
           Ask for a recommendation
           <ChevronDown className="size-3.5" aria-hidden="true" />
         </Button>
-        {status ? <p className="text-xs text-text-secondary">{status}</p> : null}
+        {status ? <p className="text-xs text-text-body">{status}</p> : null}
       </div>
     );
   }
 
   return (
     <form
-      className="w-full max-w-sm space-y-2 rounded-md border border-border-subtle bg-surface p-3 shadow-sm"
+      className="w-full max-w-sm space-y-2 rounded-xl border border-border-subtle bg-surface-raised p-3 shadow-sm"
       onSubmit={requestRecommendation}
     >
       <div className="flex items-center justify-between">
@@ -72,7 +74,7 @@ export function RecommendationRequestForm({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
+          className="text-text-muted hover:text-text-body transition-colors cursor-pointer"
           aria-label="Close form"
         >
           <ChevronUp className="size-4" aria-hidden="true" />
@@ -83,7 +85,7 @@ export function RecommendationRequestForm({
           Optional context for what you want them to write about.
         </span>
         <textarea
-          className="min-h-20 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary"
+          className={cn(fieldTextareaClasses, "min-h-20")}
           maxLength={500}
           onChange={(event) => setMessage(event.target.value)}
           placeholder="e.g. Please mention our work on the Tech Summit…"
@@ -95,7 +97,7 @@ export function RecommendationRequestForm({
           <Send className="size-3.5" aria-hidden="true" />
           {saving ? "Sending…" : "Send request"}
         </Button>
-        {status ? <p className="text-xs text-text-secondary">{status}</p> : null}
+        {status ? <p className="text-xs text-text-body">{status}</p> : null}
       </div>
     </form>
   );

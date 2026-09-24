@@ -50,10 +50,10 @@ export default async function VerifyUomPage() {
                   <CheckCircle2 className="size-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="font-semibold text-text-primary">
+                  <p className="font-semibold text-text-strong">
                     University email verified
                   </p>
-                  <p className="mt-1 text-sm text-text-secondary">
+                  <p className="mt-1 text-sm text-text-body">
                     {user.profile.uomEmail}
                   </p>
                 </div>

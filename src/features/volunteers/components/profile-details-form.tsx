@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Save } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
+import { alertDangerClasses, fieldInputClasses, fieldSelectClasses, fieldTextareaClasses } from "@/components/ui/field";
+import { cn } from "@/lib/utils";
 import type { VolunteerProfileDetails } from "@/features/volunteers/types";
 import { volunteerProfileDetailsSchema } from "@/features/volunteers/lib/profile-details";
 
@@ -182,7 +184,7 @@ export function ProfileDetailsForm({
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="University Index" error={fieldErrors.universityIndex}>
           <input
-            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+            className={fieldInputClasses}
             maxLength={40}
             onChange={(event) => setUniversityIndex(event.target.value)}
             required
@@ -191,7 +193,7 @@ export function ProfileDetailsForm({
         </Field>
         <Field label="Batch / Year" error={fieldErrors.batchYear}>
           <select
-            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
+            className={fieldSelectClasses}
             onChange={(event) => setBatchYear(event.target.value)}
             required
             value={batchYear}
@@ -206,7 +208,7 @@ export function ProfileDetailsForm({
         </Field>
         <Field label="Faculty" error={fieldErrors.faculty}>
           <select
-            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
+            className={fieldSelectClasses}
             onChange={(event) => handleFacultyChange(event.target.value)}
             required
             value={faculty}
@@ -221,7 +223,7 @@ export function ProfileDetailsForm({
         </Field>
         <Field label="Department" error={fieldErrors.department}>
           <select
-            className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)] cursor-pointer"
+            className={fieldSelectClasses}
             onChange={(event) => setDepartment(event.target.value)}
             required
             value={department}
@@ -240,7 +242,7 @@ export function ProfileDetailsForm({
       </div>
       <Field label="Headline" error={fieldErrors.headline}>
         <input
-          className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+          className={fieldInputClasses}
           maxLength={160}
           onChange={(event) => setHeadline(event.target.value)}
           value={headline}
@@ -248,7 +250,7 @@ export function ProfileDetailsForm({
       </Field>
       <Field label="LinkedIn URL" error={fieldErrors.linkedinUrl}>
         <input
-          className="min-h-[38px] w-full rounded-md border border-border-default bg-surface px-3 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+          className={fieldInputClasses}
           maxLength={240}
           onChange={(event) => setLinkedinUrl(event.target.value)}
           placeholder="https://www.linkedin.com/in/..."
@@ -257,7 +259,7 @@ export function ProfileDetailsForm({
       </Field>
       <Field label="Skills" error={fieldErrors.skills}>
         <textarea
-          className="min-h-24 w-full resize-y rounded-md border border-border-default bg-surface px-3 py-2 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+          className={cn(fieldTextareaClasses, "min-h-24")}
           maxLength={500}
           onChange={(event) => setSkills(event.target.value)}
           value={skills}
@@ -265,7 +267,7 @@ export function ProfileDetailsForm({
       </Field>
       <Field label="Bio" error={fieldErrors.bio}>
         <textarea
-          className="min-h-36 w-full resize-y rounded-md border border-border-default bg-surface px-3 py-2 text-[14px] text-text-primary outline-none transition-all focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/_0.12)]"
+          className={cn(fieldTextareaClasses, "min-h-36")}
           maxLength={1200}
           onChange={(event) => setBio(event.target.value)}
           value={bio}
@@ -292,7 +294,7 @@ export function ProfileDetailsForm({
               setStatus("");
               setFieldErrors({});
             }}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-border-subtle bg-surface-raised px-3 text-sm font-medium text-text-body transition-colors hover:bg-bg-base hover:text-text-strong cursor-pointer"
           >
             Cancel
           </button>
@@ -302,7 +304,7 @@ export function ProfileDetailsForm({
             className={`text-sm ${
               status === "Saved."
                 ? "text-success font-medium"
-                : "rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-danger"
+                : alertDangerClasses
             }`}
           >
             {status}
@@ -345,7 +347,7 @@ function ReadOnlyField({
       <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
         {label}
       </span>
-      <div className="text-[14px] text-text-primary whitespace-pre-wrap font-medium">{value}</div>
+      <div className="text-[14px] text-text-strong whitespace-pre-wrap font-medium">{value}</div>
     </div>
   );
 }

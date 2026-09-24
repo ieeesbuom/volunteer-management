@@ -124,7 +124,7 @@ export default async function MyVolunteerProfilePage() {
             ) : (
               <div className="space-y-3">
                 <Badge tone="warning">UoM verification required</Badge>
-                <p className="text-sm text-text-secondary">
+                <p className="text-sm text-text-body">
                   Verify your UoM email before creating volunteer profile details.
                 </p>
               </div>
@@ -143,7 +143,7 @@ export default async function MyVolunteerProfilePage() {
             {canManageVolunteerProfile ? (
               <RecommendationRequestsPanel initialRequests={recommendationRequests} />
             ) : (
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm text-text-body">
                 Verify your UoM email before requesting or writing recommendations.
               </p>
             )}

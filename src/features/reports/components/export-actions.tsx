@@ -55,7 +55,7 @@ export function ExportActions({ disabled, disabledReason, userId }: ExportAction
               ? "text-xs text-danger"
               : status === "success"
                 ? "text-xs text-success"
-                : "text-xs text-text-secondary"
+                : "text-xs text-text-body"
           }
         >
           {message}

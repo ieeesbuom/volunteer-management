@@ -18,10 +18,6 @@ import {
   assertIeeeTerm,
   assertMergedEventDateRange,
 } from "@/features/events/lib/event-validation";
-import {
-  GENERAL_COMMITTEE_DESCRIPTION,
-  GENERAL_COMMITTEE_NAME,
-} from "@/features/events/lib/general-committee";
 import { safeEventAuditLog } from "@/features/events/server/event-audit";
 import {
   createCommittee,
@@ -356,7 +352,6 @@ export async function createEvent(
 
   try {
     const defaultCommittees = [
-      { name: GENERAL_COMMITTEE_NAME, description: GENERAL_COMMITTEE_DESCRIPTION },
       { name: "Finance Committee", description: "Responsible for budgeting, tracking expenses, and sponsor funding." },
       { name: "Delegates Committee", description: "Responsible for participant registrations and delegate relations." },
       { name: "Logistics Committee", description: "Responsible for venue, refreshments, equipment, and on-day setup." },

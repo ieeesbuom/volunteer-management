@@ -35,7 +35,7 @@ Approval writes audit action `EVENT_CONCLUSION_APPROVED` with scoring-ready meta
 
 ## Committee bootstrap
 
-Every new event automatically receives a `General` committee so Committee Lead/Member assignments work immediately.
+Every new event automatically receives the default working committees (Finance, Delegates, Logistics, Publicity, Design, Programme, and Editorial). Committee Lead and Committee Member assignments pick one of those teams. Chair and Vice Chair are event roles only and are not added to a committee.
 
 ## Visibility
 

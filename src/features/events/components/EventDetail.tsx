@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { AppLink } from "@/components/layout/app-link";
 import { useRouter } from "next/navigation";
 import {
@@ -31,10 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  CommitteeManagement,
-  type CommitteeManagementHandle,
-} from "@/features/events/components/CommitteeManagement";
+import { CommitteeManagement } from "@/features/events/components/CommitteeManagement";
 import {
   EventMembersEmptyState,
   EventRoleAssignmentsTable,
@@ -44,10 +41,6 @@ import { AssignRoleModal } from "@/features/events/components/AssignRoleModal";
 import { EventFormConnections } from "@/features/forms/components/event-form-connections";
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
 import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
-import {
-  isGeneralCommittee,
-  sortCommitteesGeneralFirst,
-} from "@/features/events/lib/general-committee";
 import {
   formatConclusionStatus,
   formatEventDate,
@@ -117,7 +110,6 @@ export function EventDetail({
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const committeeRef = useRef<CommitteeManagementHandle>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<EventStatus | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<EventStatus | "">("");
@@ -370,7 +362,6 @@ export function EventDetail({
       ) : null}
 
       <CommitteeManagement
-        ref={committeeRef}
         canManage={permissions.canManageCommittee}
         eventId={event.$id}
         initialCommittees={initialCommittees}
@@ -466,38 +457,22 @@ export function EventDetail({
 
       {message ? <p className="text-sm text-text-body">{message}</p> : null}
 
-      {showAssignModal ? (() => {
-        const generalCommittee = committees.find((committee) => isGeneralCommittee(committee.name));
-        const generalMemberUserIds = new Set(
-          generalCommittee?.members.map((member) => member.user_id) ?? [],
-        );
-        const volunteerOptions = [...initialVolunteers].sort((left, right) => {
-          const leftOnGeneral = generalMemberUserIds.has(left.userId);
-          const rightOnGeneral = generalMemberUserIds.has(right.userId);
-
-          if (leftOnGeneral !== rightOnGeneral) {
-            return leftOnGeneral ? -1 : 1;
-          }
-
-          return (left.name || left.googleEmail).localeCompare(right.name || right.googleEmail);
-        });
-
-        return (
-          <AssignRoleModal
-            committeeNames={sortCommitteesGeneralFirst(committees).map(
-              (committee) => committee.name,
-            )}
-            currentUserIsAdmin={isAdmin}
-            eventId={event.$id}
-            onClose={() => setShowAssignModal(false)}
-            onSuccess={() => {
-              void refreshAssignments();
-              void committeeRef.current?.refresh();
-            }}
-            volunteerOptions={volunteerOptions}
-          />
-        );
-      })() : null}
+      {showAssignModal ? (
+        <AssignRoleModal
+          committeeNames={[...committees]
+            .sort((left, right) => left.name.localeCompare(right.name))
+            .map((committee) => committee.name)}
+          currentUserIsAdmin={isAdmin}
+          eventId={event.$id}
+          onClose={() => setShowAssignModal(false)}
+          onSuccess={() => {
+            void refreshAssignments();
+          }}
+          volunteerOptions={[...initialVolunteers].sort((left, right) =>
+            (left.name || left.googleEmail).localeCompare(right.name || right.googleEmail),
+          )}
+        />
+      ) : null}
 
       {showDeleteConfirm ? (
         <ConfirmationDialog

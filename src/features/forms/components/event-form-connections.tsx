@@ -29,6 +29,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
+import { withoutLeftoverGeneralCommittees } from "@/features/events/lib/leftover-general-committee";
 import {
   formatAudienceBadge,
   getFormAudienceMetadata,
@@ -105,6 +106,10 @@ export function EventFormConnections({
 
   const committeesMap = useMemo(
     () => new Map(committees.map((c) => [c.$id, c.name])),
+    [committees],
+  );
+  const selectableCommittees = useMemo(
+    () => withoutLeftoverGeneralCommittees(committees),
     [committees],
   );
 
@@ -541,7 +546,7 @@ export function EventFormConnections({
                               <option value="chairs_only">Chairs & Admins Only</option>
                             </select>
                           </label>
-                          {editAudience === "event_team_only" && committees.length > 0 ? (
+                          {editAudience === "event_team_only" && selectableCommittees.length > 0 ? (
                             <label className="block text-xs font-semibold text-text-body">
                               Specific Committee
                               <select
@@ -550,7 +555,7 @@ export function EventFormConnections({
                                 onChange={(e) => setEditTargetCommitteeId(e.target.value)}
                               >
                                 <option value="">All Event Team</option>
-                                {committees.map((c) => (
+                                {selectableCommittees.map((c) => (
                                   <option key={c.$id} value={c.$id}>
                                     {c.name}
                                   </option>
@@ -968,7 +973,7 @@ export function EventFormConnections({
                     <option value="chairs_only">Chairs & Admins Only</option>
                   </select>
                 </label>
-                {addAudience === "event_team_only" && committees.length > 0 ? (
+                {addAudience === "event_team_only" && selectableCommittees.length > 0 ? (
                   <label className="block text-sm font-semibold text-text-body">
                     Specific Committee <span className="font-normal text-text-muted">(optional)</span>
                     <select
@@ -977,7 +982,7 @@ export function EventFormConnections({
                       onChange={(e) => setAddTargetCommitteeId(e.target.value)}
                     >
                       <option value="">All Event Team Members</option>
-                      {committees.map((c) => (
+                      {selectableCommittees.map((c) => (
                         <option key={c.$id} value={c.$id}>
                           {c.name}
                         </option>

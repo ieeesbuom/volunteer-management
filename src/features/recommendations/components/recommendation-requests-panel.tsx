@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AppLink } from "@/components/layout/app-link";
-import { Check, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTableHead, DataTableShell } from "@/components/ui/data-table";
 import type {
@@ -30,6 +30,19 @@ export function RecommendationRequestsPanel({
   const [message, setMessage] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [requests, setRequests] = useState(initialRequests);
+
+  const pendingIncoming = useMemo(
+    () => requests.incoming.filter((request) => request.status === "PENDING"),
+    [requests.incoming],
+  );
+  const pendingOutgoing = useMemo(
+    () => requests.outgoing.filter((request) => request.status === "PENDING"),
+    [requests.outgoing],
+  );
+  const pastOutgoing = useMemo(
+    () => requests.outgoing.filter((request) => request.status !== "PENDING"),
+    [requests.outgoing],
+  );
 
   async function respondToRequest({
     requestId,
@@ -59,15 +72,7 @@ export function RecommendationRequestsPanel({
 
       setRequests((current) => ({
         ...current,
-        incoming: current.incoming.map((request) =>
-          request.$id === requestId
-            ? {
-                ...request,
-                respondedAt: result.request.respondedAt,
-                status: result.request.status,
-              }
-            : request,
-        ),
+        incoming: current.incoming.filter((request) => request.$id !== requestId),
       }));
       setDrafts((current) => ({ ...current, [requestId]: "" }));
       setMessage(response === "ACCEPTED" ? "Recommendation submitted." : "Request rejected.");
@@ -78,13 +83,16 @@ export function RecommendationRequestsPanel({
     }
   }
 
+  const hasAnyVisible =
+    pendingIncoming.length > 0 || pendingOutgoing.length > 0 || pastOutgoing.length > 0;
+
   return (
     <div className="min-w-0 space-y-6">
-      <section className="space-y-3">
-        <h3 className="text-[13px] font-semibold text-text-strong">Incoming requests</h3>
-        {requests.incoming.length > 0 ? (
+      {pendingIncoming.length > 0 ? (
+        <section className="space-y-3">
+          <h3 className="text-[13px] font-semibold text-text-strong">Incoming requests</h3>
           <div className="space-y-3">
-            {requests.incoming.map((request) => (
+            {pendingIncoming.map((request) => (
               <div
                 className="rounded-2xl border border-border-subtle bg-surface-raised p-4"
                 key={request.$id}
@@ -107,109 +115,130 @@ export function RecommendationRequestsPanel({
                       {request.message || "No message provided."}
                     </p>
                   </div>
-                  <span className="text-[12px] font-medium text-text-muted">
-                    {statusLabel[request.status]}
-                  </span>
+                  <span className="text-[12px] font-medium text-text-muted">Pending</span>
                 </div>
-                {request.status === "PENDING" ? (
-                  <div className="mt-4 space-y-3">
-                    <textarea
-                      className="min-h-24 w-full resize-y rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-[13px] text-text-strong outline-none transition-colors placeholder:text-text-placeholder focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/0.12)]"
-                      maxLength={2000}
-                      onChange={(event) =>
-                        setDrafts((current) => ({
-                          ...current,
-                          [request.$id]: event.target.value,
-                        }))
+                <div className="mt-4 space-y-3">
+                  <textarea
+                    className="min-h-24 w-full resize-y rounded-xl border border-border-subtle bg-bg-base px-3 py-2 text-[13px] text-text-strong outline-none transition-colors placeholder:text-text-placeholder focus:border-primary focus:shadow-[0_0_0_3px_hsl(216_79%_36%/0.12)]"
+                    maxLength={2000}
+                    onChange={(event) =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [request.$id]: event.target.value,
+                      }))
+                    }
+                    placeholder="Write the recommendation before accepting."
+                    value={drafts[request.$id] ?? ""}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      disabled={pendingAction === `${request.$id}:ACCEPTED`}
+                      onClick={() =>
+                        respondToRequest({
+                          requestId: request.$id,
+                          response: "ACCEPTED",
+                        })
                       }
-                      placeholder="Write the recommendation before accepting."
-                      value={drafts[request.$id] ?? ""}
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        disabled={pendingAction === `${request.$id}:ACCEPTED`}
-                        onClick={() =>
-                          respondToRequest({
-                            requestId: request.$id,
-                            response: "ACCEPTED",
-                          })
-                        }
-                        type="button"
-                      >
-                        <Check className="size-4" aria-hidden="true" />
-                        Accept and write
-                      </Button>
-                      <Button
-                        disabled={pendingAction === `${request.$id}:REJECTED`}
-                        onClick={() =>
-                          respondToRequest({
-                            requestId: request.$id,
-                            response: "REJECTED",
-                          })
-                        }
-                        type="button"
-                        variant="ghost"
-                      >
-                        <X className="size-4" aria-hidden="true" />
-                        Reject
-                      </Button>
-                    </div>
+                      type="button"
+                    >
+                      <Check className="size-4" aria-hidden="true" />
+                      Accept and write
+                    </Button>
+                    <Button
+                      disabled={pendingAction === `${request.$id}:REJECTED`}
+                      onClick={() =>
+                        respondToRequest({
+                          requestId: request.$id,
+                          response: "REJECTED",
+                        })
+                      }
+                      type="button"
+                      variant="ghost"
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                      Reject
+                    </Button>
                   </div>
-                ) : null}
+                </div>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-[13px] text-text-muted">No incoming recommendation requests.</p>
-        )}
-      </section>
+        </section>
+      ) : null}
 
-      <section className="space-y-3">
-        <h3 className="text-[13px] font-semibold text-text-strong">Outgoing requests</h3>
-        {requests.outgoing.length > 0 ? (
-          <DataTableShell minWidth={420}>
-            <colgroup>
-              <col />
-              <col className="w-[120px]" />
-            </colgroup>
-            <DataTableHead
-              columns={[
-                { label: "Volunteer" },
-                { label: "Status", align: "right" },
-              ]}
+      {pendingOutgoing.length > 0 ? (
+        <section className="space-y-3">
+          <h3 className="text-[13px] font-semibold text-text-strong">Outgoing requests</h3>
+          <OutgoingRequestsTable requests={pendingOutgoing} />
+        </section>
+      ) : null}
+
+      {pastOutgoing.length > 0 ? (
+        <details className="group rounded-xl border border-border-subtle bg-bg-base/40">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[13px] font-semibold text-text-strong [&::-webkit-details-marker]:hidden">
+            Past requests
+            <ChevronDown
+              className="size-4 text-text-muted transition-transform group-open:rotate-180"
+              aria-hidden="true"
             />
-            <tbody>
-              {requests.outgoing.map((request) => (
-                <tr
-                  key={request.$id}
-                  className="border-b border-border-subtle last:border-b-0 hover:bg-bg-base/50"
-                >
-                  <td className="px-4 py-3.5 text-[13px] font-medium text-text-strong">
-                    {request.respondent ? (
-                      <AppLink
-                        href={`/volunteers/${request.respondentId}`}
-                        className="cursor-pointer transition-colors hover:text-primary"
-                      >
-                        {displayName(request.respondent)}
-                      </AppLink>
-                    ) : (
-                      "Unknown volunteer"
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-right text-[13px] text-text-muted">
-                    {statusLabel[request.status]}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </DataTableShell>
-        ) : (
-          <p className="text-[13px] text-text-muted">No outgoing recommendation requests.</p>
-        )}
-      </section>
+          </summary>
+          <div className="border-t border-border-subtle px-4 pb-4 pt-3">
+            <OutgoingRequestsTable requests={pastOutgoing} />
+          </div>
+        </details>
+      ) : null}
+
+      {!hasAnyVisible ? (
+        <p className="text-[13px] text-text-muted">No pending recommendation requests.</p>
+      ) : null}
 
       {message ? <p className="text-[13px] text-text-muted">{message}</p> : null}
     </div>
+  );
+}
+
+function OutgoingRequestsTable({
+  requests,
+}: {
+  requests: RecommendationRequestWithProfiles[];
+}) {
+  return (
+    <DataTableShell minWidth={420}>
+      <colgroup>
+        <col />
+        <col className="w-[120px]" />
+      </colgroup>
+      <DataTableHead
+        columns={[
+          { label: "Volunteer" },
+          { label: "Status", align: "right" },
+        ]}
+      />
+      <tbody>
+        {requests.map((request) => (
+          <tr
+            key={request.$id}
+            className="border-b border-border-subtle last:border-b-0 hover:bg-bg-base/50"
+          >
+            <td className="px-4 py-3.5 text-[13px] font-medium text-text-strong">
+              {request.respondent ? (
+                <AppLink
+                  href={`/volunteers/${request.respondentId}`}
+                  className="cursor-pointer transition-colors hover:text-primary"
+                >
+                  {displayName(request.respondent)}
+                </AppLink>
+              ) : (
+                "Unknown volunteer"
+              )}
+            </td>
+            <td className="px-4 py-3.5 text-right text-[13px] text-text-muted">
+              {statusLabel[request.status]}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </DataTableShell>
   );
 }
 

@@ -21,8 +21,8 @@ import {
   recommendationRequestKey,
   recommendationRowId,
 } from "@/features/recommendations/lib/ids";
-import type { Profile } from "@/features/access-control/types";
-import type { SessionUser } from "@/features/access-control/types";
+import type { Profile, SessionUser } from "@/features/access-control/types";
+import { notifyRecommendationWorkflow } from "@/features/notifications/server/workflow-notifications";
 import type {
   Recommendation,
   RecommendationProfileIdentity,
@@ -41,6 +41,24 @@ async function safeRecommendationAuditLog(input: Parameters<typeof writeAuditLog
     await writeAuditLog(input);
   } catch (error) {
     console.error("Recommendation audit log failed", error);
+  }
+}
+
+function recommendationActorName(user: SessionUser) {
+  return user.profile.name?.trim() || user.authUser.name.trim() || "A volunteer";
+}
+
+async function safeNotifyRecommendation(input: {
+  action: "requested" | "accepted" | "rejected";
+  actorName: string;
+  actorUserId: string;
+  recipientUserId: string;
+  requestId: string;
+}) {
+  try {
+    await notifyRecommendationWorkflow(input);
+  } catch (error) {
+    console.error("Recommendation notification failed", error);
   }
 }
 
@@ -246,6 +264,14 @@ export async function requestRecommendation({
     targetType: "recommendation_request",
   });
 
+  await safeNotifyRecommendation({
+    action: "requested",
+    actorName: recommendationActorName(user),
+    actorUserId: user.authUser.id,
+    recipientUserId: respondentId,
+    requestId: row.$id,
+  });
+
   return toRecommendationRequest(row as AppRow);
 }
 
@@ -316,6 +342,14 @@ export async function respondToRecommendationRequest({
       metadata: { repairedAcceptedRequest: true, response },
       targetId: requestId,
       targetType: "recommendation_request",
+    });
+
+    await safeNotifyRecommendation({
+      action: "accepted",
+      actorName: recommendationActorName(user),
+      actorUserId: user.authUser.id,
+      recipientUserId: recommendationRequest.requesterId,
+      requestId,
     });
 
     return {
@@ -407,6 +441,14 @@ export async function respondToRecommendationRequest({
     metadata: { response },
     targetId: requestId,
     targetType: "recommendation_request",
+  });
+
+  await safeNotifyRecommendation({
+    action: response === "ACCEPTED" ? "accepted" : "rejected",
+    actorName: recommendationActorName(user),
+    actorUserId: user.authUser.id,
+    recipientUserId: recommendationRequest.requesterId,
+    requestId,
   });
 
   return {

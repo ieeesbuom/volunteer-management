@@ -17,6 +17,7 @@ import {
   modalPanelClasses,
 } from "@/components/ui/field";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
+import { withoutLeftoverGeneralCommittees } from "@/features/events/lib/leftover-general-committee";
 import type { Committee, CommitteeMember } from "@/features/events/types";
 import { cn, formatUserFacingError } from "@/lib/utils";
 import { volunteerInitials } from "@/components/leaderboard/leaderboard-table-ui";
@@ -91,7 +92,10 @@ export function CommitteeManagement({
   }, [eventId, onCommitteesChange]);
 
   const displayCommittees = useMemo(
-    () => [...committees].sort((left, right) => left.name.localeCompare(right.name)),
+    () =>
+      withoutLeftoverGeneralCommittees(committees).sort((left, right) =>
+        left.name.localeCompare(right.name),
+      ),
     [committees],
   );
 

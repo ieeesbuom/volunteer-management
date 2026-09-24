@@ -175,6 +175,54 @@ export function createNotificationService({
 
     createNotification,
 
+    createRecommendationNotification(input: {
+      action: "requested" | "accepted" | "rejected";
+      actorName?: string;
+      actorUserId?: string;
+      idempotencyKey?: string;
+      linkHref?: string;
+      recipientUserId: string;
+      requestId?: string;
+    }) {
+      const actorName = input.actorName?.trim() || "A volunteer";
+      const copy = {
+        accepted: {
+          message: `${actorName} accepted your recommendation request.`,
+          title: "Recommendation accepted",
+        },
+        rejected: {
+          message: `${actorName} declined your recommendation request.`,
+          title: "Recommendation declined",
+        },
+        requested: {
+          message: `${actorName} asked you to write a recommendation.`,
+          title: "Recommendation request",
+        },
+      }[input.action];
+
+      return createNotification({
+        actorUserId: input.actorUserId,
+        entityId: input.requestId,
+        entityType: "recommendation",
+        idempotencyKey:
+          input.idempotencyKey ??
+          createNotificationIdempotencyKey([
+            "recommendation",
+            input.action,
+            input.requestId,
+            input.recipientUserId,
+          ]),
+        linkHref: input.linkHref ?? "/volunteers/me",
+        message: copy.message,
+        metadata: {
+          action: input.action,
+        },
+        recipientUserId: input.recipientUserId,
+        title: copy.title,
+        type: "recommendation",
+      });
+    },
+
     createReportApprovalNotification(input: {
       actorUserId?: string;
       eventId: string;

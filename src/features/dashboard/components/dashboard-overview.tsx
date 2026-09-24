@@ -7,6 +7,10 @@ import type { DashboardOpportunityItem } from "@/features/dashboard/lib/opportun
 import { DashboardDataProvider } from "@/features/dashboard/components/dashboard-data-context";
 import { WelcomeGreetingWidget } from "@/features/dashboard/components/widgets/welcome-greeting-widget";
 import { VerifyUomBanner } from "@/features/dashboard/components/widgets/verify-uom-banner";
+import {
+  PendingRecommendationRequestsWidget,
+  type PendingRecommendationRequestPreview,
+} from "@/features/dashboard/components/widgets/pending-recommendation-requests-widget";
 import { MyProjectsWidget } from "@/features/dashboard/components/widgets/my-projects-widget";
 import { MyResponsibilitiesWidget } from "@/features/dashboard/components/widgets/my-responsibilities-widget";
 import { VolunteerSearchWidget } from "@/features/dashboard/components/widgets/volunteer-search-widget";
@@ -19,12 +23,14 @@ interface DashboardOverviewProps {
   user: SessionUser;
   opportunityList: DashboardOpportunityItem[];
   leaderboardPreview: LeaderboardPreviewEntry[];
+  pendingRecommendationRequests: PendingRecommendationRequestPreview[];
 }
 
 export function DashboardOverview({
   user,
   opportunityList,
   leaderboardPreview,
+  pendingRecommendationRequests,
 }: DashboardOverviewProps) {
   const { setOpportunityList } = useAppPageNav();
 
@@ -38,6 +44,7 @@ export function DashboardOverview({
       <div className="space-y-4 pb-6 text-text-strong antialiased">
         <WelcomeGreetingWidget />
         <VerifyUomBanner />
+        <PendingRecommendationRequestsWidget requests={pendingRecommendationRequests} />
         <MyProjectsWidget />
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="flex min-h-60 max-h-[28rem] lg:col-span-6 lg:h-[28rem]">

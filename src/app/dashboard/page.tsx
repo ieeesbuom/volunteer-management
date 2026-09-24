@@ -11,7 +11,8 @@ import {
   shouldExcludeAssignedEventOpportunity,
   getFormAudienceMetadata,
 } from "@/features/forms/lib/audience";
-import { userIsEventChair } from "@/features/access-control/lib/rules";
+import { canVolunteer, userIsEventChair } from "@/features/access-control/lib/rules";
+import { listRecommendationRequestsForVolunteer } from "@/features/recommendations/server/recommendations";
 import type { EventStatus } from "@/features/events/types";
 import { DashboardOverview } from "@/features/dashboard/components/dashboard-overview";
 import { getLeaderboard } from "@/features/scoring/server/actions";
@@ -88,6 +89,19 @@ export default async function DashboardPage() {
     leaderboardPreview = [];
   }
 
+  const pendingRecommendationRequests = canVolunteer(viewUser.profile)
+    ? (await listRecommendationRequestsForVolunteer(user.authUser.id)).incoming
+        .filter((request) => request.status === "PENDING")
+        .map((request) => ({
+          $id: request.$id,
+          requesterName:
+            request.requester?.name?.trim() ||
+            request.requester?.uomEmail ||
+            request.requester?.googleEmail ||
+            "A volunteer",
+        }))
+    : [];
+
   return (
     <AppShell active="dashboard" user={user}>
       <AppPage className="space-y-0 pb-0">
@@ -96,6 +110,7 @@ export default async function DashboardPage() {
             user={user}
             opportunityList={opportunityList}
             leaderboardPreview={leaderboardPreview}
+            pendingRecommendationRequests={pendingRecommendationRequests}
           />
         </Suspense>
       </AppPage>

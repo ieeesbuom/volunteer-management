@@ -6,6 +6,7 @@ export const NOTIFICATION_TYPES = [
   "event_update",
   "grading_request",
   "report_approval",
+  "recommendation",
   "system",
 ] as const;
 

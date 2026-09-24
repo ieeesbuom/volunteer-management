@@ -78,6 +78,9 @@ export function RecommendationList({
                     "Unknown volunteer"
                   )}
                 </span>
+                <span className="ml-2 font-normal normal-case tracking-normal text-text-muted">
+                  {formatRecommendationDate(recommendation.createdAt)}
+                </span>
               </p>
               {canReport ? (
                 reportedIds.includes(recommendation.$id) ? (
@@ -105,6 +108,14 @@ export function RecommendationList({
       {message ? <p className="mt-2 text-sm text-text-body">{message}</p> : null}
     </div>
   );
+}
+
+function formatRecommendationDate(value: string) {
+  return new Date(value).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function displayRespondent(recommendation: RecommendationWithRespondent) {

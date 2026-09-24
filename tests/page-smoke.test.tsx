@@ -217,12 +217,14 @@ describe("volunteer profile page smoke tests", () => {
     getCurrentUserMock.mockResolvedValue(makeSessionUser());
     getDetailsMock.mockResolvedValue(profileDetails({ userId: "user-1" }));
     listRequestsMock.mockResolvedValue({ incoming: [], outgoing: [] });
+    listVisibleMock.mockResolvedValue([]);
 
     const html = await htmlFrom(MyVolunteerProfilePage());
 
     expect(html).toContain("Profile Details");
     expect(html).toContain("University Index");
-    expect(html).toContain("Recommendation Requests");
+    expect(html).toContain("Pending requests");
+    expect(html).toContain("My recommendations");
     expect(getDetailsMock).toHaveBeenCalledWith("user-1");
     expect(listRequestsMock).toHaveBeenCalledWith("user-1");
   });

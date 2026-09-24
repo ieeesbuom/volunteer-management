@@ -7,6 +7,7 @@ import {
   notifyEventUpdateWorkflow,
   notifyGradingRequestWorkflow,
   notifyReportApprovalWorkflow,
+  notifyRecommendationWorkflow,
   notifyRoleAssignmentWorkflow,
   notifyVerificationWorkflow,
 } from "../src/features/notifications/server/workflow-notifications";
@@ -19,6 +20,7 @@ describe("notification workflow triggers", () => {
       "event_update",
       "grading_request",
       "report_approval",
+      "recommendation",
     ]);
   });
 
@@ -115,12 +117,49 @@ describe("notification workflow triggers", () => {
       }),
     );
   });
+
+  it("creates recommendation request and response notifications", async () => {
+    const service = createWorkflowService();
+
+    await notifyRecommendationWorkflow({
+      action: "requested",
+      actorName: "Ada",
+      recipientUserId: "user-b",
+      requestId: "req-1",
+      service,
+    });
+    await notifyRecommendationWorkflow({
+      action: "accepted",
+      actorName: "Ada",
+      recipientUserId: "user-a",
+      requestId: "req-1",
+      service,
+    });
+
+    expect(service.createRecommendationNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "requested",
+        recipientUserId: "user-b",
+        requestId: "req-1",
+      }),
+    );
+    expect(service.createRecommendationNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "accepted",
+        recipientUserId: "user-a",
+        requestId: "req-1",
+      }),
+    );
+  });
 });
 
 type WorkflowTestInput = { recipientUserId: string };
 
 function createWorkflowService(overrides: Record<string, unknown> = {}) {
   return {
+    createRecommendationNotification: vi.fn(async (input: WorkflowTestInput) =>
+      fakeNotificationResult(input.recipientUserId),
+    ),
     createEventUpdateNotification: vi.fn(async (input: WorkflowTestInput) =>
       fakeNotificationResult(input.recipientUserId),
     ),

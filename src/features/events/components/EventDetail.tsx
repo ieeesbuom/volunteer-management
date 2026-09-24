@@ -41,6 +41,7 @@ import { AssignRoleModal } from "@/features/events/components/AssignRoleModal";
 import { EventFormConnections } from "@/features/forms/components/event-form-connections";
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
 import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
+import { withoutLeftoverGeneralCommittees } from "@/features/events/lib/leftover-general-committee";
 import {
   formatConclusionStatus,
   formatEventDate,
@@ -459,7 +460,7 @@ export function EventDetail({
 
       {showAssignModal ? (
         <AssignRoleModal
-          committeeNames={[...committees]
+          committeeNames={withoutLeftoverGeneralCommittees(committees)
             .sort((left, right) => left.name.localeCompare(right.name))
             .map((committee) => committee.name)}
           currentUserIsAdmin={isAdmin}

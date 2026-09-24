@@ -13,6 +13,7 @@ import {
   type ActionResult,
 } from "@knurdz/lava-form-builder";
 import { useRouter } from "next/navigation";
+import { useProgressRouter } from "@/components/layout/navigation-progress";
 import { LavaFormSurface } from "@/features/forms/components/lava-form-surface";
 import {
   getFormPurposeDescription,
@@ -60,6 +61,7 @@ export function LavaFormBuilderClient({
   to?: string | null;
 }) {
   const router = useRouter();
+  const progressRouter = useProgressRouter();
   const [pending, startTransition] = useTransition();
   const [groupEnabled, setGroupEnabled] = useState(groupAnswersEnabled);
   const [toggleError, setToggleError] = useState("");
@@ -84,7 +86,7 @@ export function LavaFormBuilderClient({
       return;
     }
 
-    router.push(url);
+    progressRouter.push(url);
   }
 
   async function bulkSaveFields(formId: string, fields: FieldDefinition[]) {

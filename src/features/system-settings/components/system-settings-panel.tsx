@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { eventInputClasses, eventTextareaClasses } from "@/features/events/lib/event-ui";
 import { ReportsMetricCard } from "@/features/reports/components/reports-metric-card";
+import { withNavigationProgress } from "@/components/layout/navigation-progress";
 import { cn, formatUserFacingError } from "@/lib/utils";
 import {
   formatDisplayDate,
@@ -326,28 +327,30 @@ export function SystemSettingsPanel({
     setNotice("idle", "Loading audit logs...");
 
     try {
-      const response = await fetch(
-        `/api/admin/settings/audit-logs${params.size ? `?${params}` : ""}`,
-      );
-      const payload = await response.json();
+      await withNavigationProgress(async () => {
+        const response = await fetch(
+          `/api/admin/settings/audit-logs${params.size ? `?${params}` : ""}`,
+        );
+        const payload = await response.json();
 
-      if (!response.ok) {
-        setNotice("error", payload.error ?? "Could not load audit logs.");
-        return;
-      }
+        if (!response.ok) {
+          setNotice("error", payload.error ?? "Could not load audit logs.");
+          return;
+        }
 
-      const page = payload as AuditLogPage;
+        const page = payload as AuditLogPage;
 
-      setAuditLogs((current) =>
-        append ? [...current, ...page.auditLogs] : page.auditLogs,
-      );
-      setAuditLoaded(true);
-      setAuditNextCursor(page.nextCursor ?? "");
-      setAuditTotal(page.total);
-      setNotice(
-        "success",
-        append ? "More audit records loaded." : "Audit logs loaded.",
-      );
+        setAuditLogs((current) =>
+          append ? [...current, ...page.auditLogs] : page.auditLogs,
+        );
+        setAuditLoaded(true);
+        setAuditNextCursor(page.nextCursor ?? "");
+        setAuditTotal(page.total);
+        setNotice(
+          "success",
+          append ? "More audit records loaded." : "Audit logs loaded.",
+        );
+      });
     } finally {
       setPendingAction(null);
     }

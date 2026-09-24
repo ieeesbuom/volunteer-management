@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
@@ -100,7 +100,7 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
                 <NotificationBell autoOpen={openNotifications} />
               </div>
 
-              <Link
+              <AppLink
                 href="/volunteers/me"
                 className="flex size-11 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-text-strong text-xs font-bold text-white transition-opacity hover:opacity-90"
                 title="View Profile"
@@ -116,7 +116,7 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
                 ) : (
                   firstName.charAt(0).toUpperCase()
                 )}
-              </Link>
+              </AppLink>
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppPage } from "@/components/layout/app-page";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import { listEventsByIds } from "@/features/events/server/event-service";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
 import {
@@ -34,14 +35,19 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const viewUser = {
+    ...user,
+    isAdmin: await resolveEffectiveIsAdmin(user.isAdmin),
+  };
+
   const formRepo = createAppwriteFormConnectionRepository();
   const allConnections = await formRepo.list({ limit: 100 });
   const availableForms = allConnections.filter((connection) =>
-    isFormEligibleForDashboard(connection, user),
+    isFormEligibleForDashboard(connection, viewUser),
   );
 
   const assignedEventIds = new Set(user.eventRoles.map((role) => role.eventId));
-  const visibleForms = userIsEventChair(user)
+  const visibleForms = userIsEventChair(viewUser)
     ? availableForms
     : availableForms.filter(
         (connection) => !shouldExcludeAssignedEventOpportunity(connection, assignedEventIds),
@@ -63,7 +69,7 @@ export default async function DashboardPage() {
 
       // Chairs keep forms on events they lead; volunteers skip public reg they already joined.
       if (
-        !userIsEventChair(user) &&
+        !userIsEventChair(viewUser) &&
         event.reference &&
         assignedEventIds.has(event.reference) &&
         getFormAudienceMetadata(conn).audience === "public"

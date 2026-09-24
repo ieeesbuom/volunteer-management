@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, CheckCircle2, MailCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -36,10 +36,10 @@ export default async function VerifyUomPage() {
               : "Confirm a university email address before volunteer access is enabled."
           }
           actions={
-            <Link className={buttonClasses()} href="/volunteers/me">
+            <AppLink className={buttonClasses()} href="/volunteers/me">
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to Profile
-            </Link>
+            </AppLink>
           }
         />
         {user.profile.uomVerified ? (

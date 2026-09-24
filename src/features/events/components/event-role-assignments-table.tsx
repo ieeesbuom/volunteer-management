@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { Trash2, UserRound } from "lucide-react";
 import type { EventRoleAssignment } from "@/features/access-control/types";
 import { DataTableHead, DataTableShell } from "@/components/ui/data-table";
@@ -76,12 +76,12 @@ export function EventRoleAssignmentsTable({
                     {volunteerInitials(displayName)}
                   </span>
                   <div className="min-w-0">
-                    <Link
+                    <AppLink
                       href={`/volunteers/${assignment.userId}`}
                       className="block truncate text-[13px] font-semibold text-text-strong transition-colors hover:text-primary cursor-pointer"
                     >
                       {displayName}
-                    </Link>
+                    </AppLink>
                     <p className="truncate text-[12px] text-text-muted">{email}</p>
                   </div>
                 </div>

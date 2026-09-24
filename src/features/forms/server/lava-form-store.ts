@@ -11,6 +11,7 @@ import type {
 } from "@knurdz/lava-form-builder";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import type { SessionUser } from "@/features/access-control/types";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import { isFormVisibleToUser } from "@/features/forms/lib/audience";
 import {
   collectFileIdsFromAnswers,
@@ -186,7 +187,7 @@ export function createLavaFormStore(deps: LavaFormStoreDeps): LavaFormStore {
     const visible = isFormVisibleToUser({
       connection,
       currentUserId: user.authUser.id,
-      isAdmin: user.isAdmin,
+      isAdmin: await resolveEffectiveIsAdmin(user.isAdmin),
       isVolunteer: canVolunteer(user.profile),
       userRoleAssignments: user.eventRoles,
     });

@@ -1,92 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 const SHOW_DELAY_MS = 150;
 
 type ProgressListeners = Set<() => void>;
 
-const startListeners: ProgressListeners = new Set();
+const startHeldListeners: ProgressListeners = new Set();
+const finishListeners: ProgressListeners = new Set();
 
-/** Start the delayed navigation loader (e.g. from router.push in the command palette). */
-export function startNavigationProgress() {
-  for (const listener of startListeners) {
+/** Start a loader that stays up until finishNavigationProgress. */
+export function startHeldNavigationProgress() {
+  for (const listener of startHeldListeners) {
     listener();
   }
 }
 
-function isInternalNavigationClick(event: MouseEvent): boolean {
-  if (event.defaultPrevented) {
-    return false;
-  }
-  if (event.button !== 0) {
-    return false;
-  }
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return false;
-  }
+/** @deprecated Prefer AppLink or useProgressRouter so pending is real. */
+export function startNavigationProgress() {
+  startHeldNavigationProgress();
+}
 
-  const target = event.target;
-  if (!(target instanceof Element)) {
-    return false;
+/** Dismiss in-page work that started the loader. */
+export function finishNavigationProgress() {
+  for (const listener of finishListeners) {
+    listener();
   }
+}
 
-  const anchor = target.closest("a");
-  if (!(anchor instanceof HTMLAnchorElement)) {
-    return false;
-  }
-  if (anchor.target && anchor.target !== "_self") {
-    return false;
-  }
-  if (anchor.hasAttribute("download")) {
-    return false;
-  }
-
-  const href = anchor.getAttribute("href");
-  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
-    return false;
-  }
-
-  let url: URL;
+export async function withNavigationProgress<T>(work: () => Promise<T>): Promise<T> {
+  startHeldNavigationProgress();
   try {
-    url = new URL(anchor.href, window.location.href);
-  } catch {
-    return false;
+    return await work();
+  } finally {
+    finishNavigationProgress();
+  }
+}
+
+/** In-page router.push/replace that keeps the overlay until the transition settles. */
+export function useProgressRouter() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const heldCountRef = useRef(0);
+
+  useEffect(() => {
+    if (isPending || heldCountRef.current === 0) {
+      return;
+    }
+    const outstanding = heldCountRef.current;
+    heldCountRef.current = 0;
+    for (let index = 0; index < outstanding; index += 1) {
+      finishNavigationProgress();
+    }
+  }, [isPending]);
+
+  useEffect(() => {
+    return () => {
+      if (heldCountRef.current === 0) {
+        return;
+      }
+      const outstanding = heldCountRef.current;
+      heldCountRef.current = 0;
+      for (let index = 0; index < outstanding; index += 1) {
+        finishNavigationProgress();
+      }
+    };
+  }, []);
+
+  function holdAndNavigate(navigate: () => void) {
+    startHeldNavigationProgress();
+    heldCountRef.current += 1;
+    startTransition(navigate);
   }
 
-  if (url.origin !== window.location.origin) {
-    return false;
-  }
-
-  const next = `${url.pathname}${url.search}`;
-  const current = `${window.location.pathname}${window.location.search}`;
-  if (next === current && !url.hash) {
-    return false;
-  }
-  // Same path+search with only a hash change is not a route navigation.
-  if (next === current) {
-    return false;
-  }
-
-  return true;
+  return {
+    isPending,
+    push(href: string) {
+      holdAndNavigate(() => {
+        router.push(href);
+      });
+    },
+    replace(href: string) {
+      holdAndNavigate(() => {
+        router.replace(href);
+      });
+    },
+    refresh() {
+      router.refresh();
+    },
+  };
 }
 
 export function NavigationProgress() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const routeKey = `${pathname}?${searchParams.toString()}`;
-  const [pendingRouteKey, setPendingRouteKey] = useState<string | null>(null);
+  const [heldPendingCount, setHeldPendingCount] = useState(0);
   const [visible, setVisible] = useState(false);
 
-  const pending = pendingRouteKey !== null && pendingRouteKey === routeKey;
+  const pending = heldPendingCount > 0;
 
   useEffect(() => {
     if (!pending) {
       const clearTimer = window.setTimeout(() => {
         setVisible(false);
-        setPendingRouteKey(null);
       }, 0);
       return () => window.clearTimeout(clearTimer);
     }
@@ -99,21 +115,16 @@ export function NavigationProgress() {
   }, [pending]);
 
   useEffect(() => {
-    const start = () => setPendingRouteKey(routeKey);
-    startListeners.add(start);
+    const startHeld = () => setHeldPendingCount((count) => count + 1);
+    const finish = () => setHeldPendingCount((count) => Math.max(0, count - 1));
+    startHeldListeners.add(startHeld);
+    finishListeners.add(finish);
 
-    const onClick = (event: MouseEvent) => {
-      if (isInternalNavigationClick(event)) {
-        start();
-      }
-    };
-
-    document.addEventListener("click", onClick, true);
     return () => {
-      startListeners.delete(start);
-      document.removeEventListener("click", onClick, true);
+      startHeldListeners.delete(startHeld);
+      finishListeners.delete(finish);
     };
-  }, [routeKey]);
+  }, []);
 
   if (!visible) {
     return null;

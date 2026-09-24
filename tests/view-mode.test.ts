@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { parseViewModeCookie } from "@/features/access-control/lib/view-mode";
-import { isVolunteerPreviewActive } from "@/features/access-control/server/view-mode";
+import {
+  isVolunteerPreviewActive,
+  resolveEffectiveIsAdmin,
+} from "@/features/access-control/server/view-mode";
 
 describe("view-mode helper tests", () => {
   it("parses cookies correctly", () => {
@@ -13,5 +16,10 @@ describe("view-mode helper tests", () => {
 
   it("isVolunteerPreviewActive returns false for non-admins", async () => {
     expect(await isVolunteerPreviewActive(false)).toBe(false);
+  });
+
+  it("resolveEffectiveIsAdmin keeps admin when preview is not active", async () => {
+    expect(await resolveEffectiveIsAdmin(true)).toBe(true);
+    expect(await resolveEffectiveIsAdmin(false)).toBe(false);
   });
 });

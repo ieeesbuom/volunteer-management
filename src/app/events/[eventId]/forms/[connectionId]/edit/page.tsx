@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -121,10 +121,10 @@ export default async function EventLavaFormEditPage({ params, searchParams }: Pa
           description={`Build questions and review responses for ${event.title}.`}
           title={form.title}
           actions={
-            <Link className={buttonClasses()} href={`/events/${eventId}`}>
+            <AppLink className={buttonClasses()} href={`/events/${eventId}`}>
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to event
-            </Link>
+            </AppLink>
           }
         />
         <LavaFormBuilderClient

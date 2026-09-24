@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import {
   ArrowRight,
   CalendarDays,
@@ -143,10 +143,10 @@ export default async function ReportsOverviewPage() {
                   Showing {summaryPreview.length} of {data.summaries.length} events.
                 </p>
               ) : null}
-              <Link className={buttonClasses({ variant: "secondary" })} href="/reports/conclusions">
+              <AppLink className={buttonClasses({ variant: "secondary" })} href="/reports/conclusions">
                 Manage conclusion reports
                 <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
+              </AppLink>
             </CardContent>
           </Card>
         ) : null}
@@ -199,10 +199,10 @@ export default async function ReportsOverviewPage() {
                 No eligible points have been awarded for the current IEEE term.
               </p>
             )}
-            <Link className={buttonClasses({ variant: "secondary" })} href="/reports/recognition">
+            <AppLink className={buttonClasses({ variant: "secondary" })} href="/reports/recognition">
               View recognition
               <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
+            </AppLink>
           </CardContent>
         </Card>
       </section>
@@ -267,7 +267,7 @@ function QuickLinkCard({
   title: string;
 }) {
   return (
-    <Link className="group block cursor-pointer" href={href}>
+    <AppLink className="group block cursor-pointer" href={href}>
       <Card className="h-full transition-[transform,box-shadow,border-color] duration-200 group-hover:-translate-y-px group-hover:border-border-default group-hover:shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -288,6 +288,6 @@ function QuickLinkCard({
           </span>
         </CardContent>
       </Card>
-    </Link>
+    </AppLink>
   );
 }

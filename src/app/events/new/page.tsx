@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -31,10 +31,10 @@ export default async function NewEventPage() {
           title="Create Event"
           description="Register a new branch event in draft status."
           actions={
-            <Link className={buttonClasses()} href="/events">
+            <AppLink className={buttonClasses()} href="/events">
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to Events
-            </Link>
+            </AppLink>
           }
         />
         <Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { usePathname } from "next/navigation";
 import {
   Award,
@@ -62,7 +62,7 @@ export function ReportsNav({ canAccessConclusions, isAdmin }: ReportsNavProps) {
             : pathname.startsWith(item.href);
 
         return (
-          <Link
+          <AppLink
             className={cn(
               "relative flex h-10 shrink-0 items-center gap-2 whitespace-nowrap px-4 text-[14px] font-medium transition-colors cursor-pointer",
               isActive
@@ -74,7 +74,7 @@ export function ReportsNav({ canAccessConclusions, isAdmin }: ReportsNavProps) {
           >
             <Icon className="size-4" aria-hidden="true" />
             {item.label}
-          </Link>
+          </AppLink>
         );
       })}
     </nav>

@@ -8,6 +8,7 @@ import type {
   SubmitFormState,
 } from "@knurdz/lava-form-builder";
 import { requireAuth, requireUomVerifiedVolunteer } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { isFormVisibleToUser } from "@/features/forms/lib/audience";
 import { lavaEditPath, lavaFillPath } from "@/features/forms/lib/lava-paths";
@@ -513,7 +514,7 @@ export async function lavaSubmitFormAction(
     const visible = isFormVisibleToUser({
       connection,
       currentUserId: user.authUser.id,
-      isAdmin: user.isAdmin,
+      isAdmin: await resolveEffectiveIsAdmin(user.isAdmin),
       isVolunteer: canVolunteer(user.profile),
       userRoleAssignments: user.eventRoles,
     });

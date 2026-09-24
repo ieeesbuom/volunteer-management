@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { ArrowRight, ClipboardList, ExternalLink } from "lucide-react";
 import { userIsEventChair } from "@/features/access-control/lib/rules";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
@@ -33,12 +33,12 @@ export function MyProjectsWidget() {
           </div>
         </div>
 
-        <Link
+        <AppLink
           href="/events"
           className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-bg-base px-3 py-1.5 text-[12px] font-semibold text-text-body transition-colors hover:bg-neutral-soft"
         >
           All events
-        </Link>
+        </AppLink>
       </div>
 
       <div className="mt-1 min-h-0 flex-1 overflow-auto">
@@ -82,12 +82,12 @@ export function MyProjectsWidget() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {conn.provider === "lava" ? (
-                        <Link
+                        <AppLink
                           href={`/events/${conn.eventId}/forms/${conn.id}`}
                           className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
                         >
                           Open
-                        </Link>
+                        </AppLink>
                       ) : conn.formUrl ? (
                         <a
                           href={conn.formUrl}
@@ -115,12 +115,12 @@ export function MyProjectsWidget() {
                 ? "Items for your chaired events appear here when they are active and within schedule."
                 : "Items appear here when they are open and your role matches."}
             </p>
-            <Link
+            <AppLink
               href="/events"
               className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:underline"
             >
               Browse events <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
+            </AppLink>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTableHead, DataTableShell } from "@/components/ui/data-table";
@@ -93,12 +93,12 @@ export function RecommendationRequestsPanel({
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-text-strong">
                       {request.requester ? (
-                        <Link
+                        <AppLink
                           href={`/volunteers/${request.requesterId}`}
                           className="cursor-pointer transition-colors hover:text-primary"
                         >
                           {displayName(request.requester)}
-                        </Link>
+                        </AppLink>
                       ) : (
                         "Unknown volunteer"
                       )}
@@ -186,12 +186,12 @@ export function RecommendationRequestsPanel({
                 >
                   <td className="px-4 py-3.5 text-[13px] font-medium text-text-strong">
                     {request.respondent ? (
-                      <Link
+                      <AppLink
                         href={`/volunteers/${request.respondentId}`}
                         className="cursor-pointer transition-colors hover:text-primary"
                       >
                         {displayName(request.respondent)}
-                      </Link>
+                      </AppLink>
                     ) : (
                       "Unknown volunteer"
                     )}

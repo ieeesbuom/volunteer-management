@@ -23,6 +23,7 @@ vi.mock("next/link", () => ({
       </a>
     );
   },
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 vi.mock("next/navigation", () => ({

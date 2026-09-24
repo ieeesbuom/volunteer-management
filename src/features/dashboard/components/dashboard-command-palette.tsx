@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   BellPlus,
   CalendarDays,
@@ -22,7 +22,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { SessionUser } from "@/features/access-control/types";
 import { useViewMode } from "@/features/access-control/components/view-mode-context";
-import { startNavigationProgress } from "@/components/layout/navigation-progress";
+import { useProgressRouter } from "@/components/layout/navigation-progress";
 import type { DashboardOpportunityItem } from "@/features/dashboard/lib/opportunity-types";
 import type { Event } from "@/features/events/types";
 
@@ -64,7 +64,7 @@ export function DashboardCommandPalette({
   user: SessionUser;
   opportunityList: DashboardOpportunityItem[];
 }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -327,7 +327,6 @@ export function DashboardCommandPalette({
         if (next === current) {
           return;
         }
-        startNavigationProgress();
         router.push(item.href);
       }
     },

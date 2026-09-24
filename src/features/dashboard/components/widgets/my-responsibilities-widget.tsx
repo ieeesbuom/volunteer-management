@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { ArrowRight, Briefcase } from "lucide-react";
 import { getEventRoleDisplayName, userIsEventChair } from "@/features/access-control/lib/rules";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
@@ -20,12 +20,12 @@ export function MyResponsibilitiesWidget() {
           <Briefcase className="size-4 shrink-0 text-primary" aria-hidden />
           <h2 className="truncate text-[15px] font-semibold text-text-strong">My Responsibilities</h2>
         </div>
-        <Link
+        <AppLink
           href="/events"
           className="shrink-0 text-[12px] font-semibold text-primary hover:underline"
         >
           Events
-        </Link>
+        </AppLink>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -35,18 +35,18 @@ export function MyResponsibilitiesWidget() {
             <p className="mt-1 text-[12px] text-text-muted">
               Roles you are assigned to will appear here.
             </p>
-            <Link
+            <AppLink
               href="/events"
               className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
             >
               Browse events <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
+            </AppLink>
           </div>
         ) : (
           <ul className="space-y-2">
             {roles.map((assignment) => (
               <li key={assignment.$id}>
-                <Link
+                <AppLink
                   href={`/events/${assignment.eventId}`}
                   className="flex items-start justify-between gap-3 rounded-lg border border-border-subtle bg-bg-base/50 px-3 py-2.5 transition-colors hover:border-primary-mid hover:bg-primary-soft/40"
                 >
@@ -64,7 +64,7 @@ export function MyResponsibilitiesWidget() {
                   <Badge tone="neutral" className="shrink-0 text-[10px]">
                     Active
                   </Badge>
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>

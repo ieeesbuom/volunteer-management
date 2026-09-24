@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CalendarDays, UserRound, Inbox } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -16,7 +17,7 @@ import {
 } from "@/features/events/lib/event-ui";
 import type { Event } from "@/features/events/types";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type { EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import { getEventRoleDisplayName } from "@/features/access-control/lib/rules";
 
@@ -89,20 +90,24 @@ export function EventList({
 }>) {
   const isAdmin = isAdminProp ?? user?.isAdmin ?? false;
   const userRoles = user?.eventRoles ?? [];
-  const router = useRouter();
   const searchParams = useSearchParams();
-
-  const tabParam = searchParams.get("tab");
-  const activeTab = tabParam === "my" && showMyEventsTab ? "my" : "all";
+  const [activeTab, setActiveTab] = useState<"all" | "my">(() =>
+    searchParams.get("tab") === "my" && showMyEventsTab ? "my" : "all",
+  );
 
   const handleTabChange = (tab: "all" | "my") => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (tab === "all") {
-      params.delete("tab");
-    } else {
-      params.set("tab", "my");
+    if (tab === activeTab) {
+      return;
     }
-    router.replace(`/events?${params.toString()}`);
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    if (tab === "all") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", "my");
+    }
+    const next = `${url.pathname}${url.search}`;
+    window.history.replaceState(window.history.state, "", next);
   };
 
   return (

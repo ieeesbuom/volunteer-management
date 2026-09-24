@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { getLavaFormAvailability } from "@/features/forms/lib/lava-availability";
 import { ArrowLeft } from "lucide-react";
@@ -8,13 +8,14 @@ import { PageHeader } from "@/components/layout/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import { getEventById } from "@/features/events/server/event-service";
 import { LavaFormRendererClient } from "@/features/forms/components/lava-form-renderer-client";
 import { isFormVisibleToUser } from "@/features/forms/lib/audience";
 import { isGroupAnswersEnabled } from "@/features/forms/lib/lava-form-presets";
 import { lavaFileProxyPath } from "@/features/forms/lib/lava-paths";
 import { createAppwriteFormConnectionRepository } from "@/features/forms/server/form-connection-repository";
-import { canManageFormConnections } from "@/features/forms/server/permissions";
+import { canManageFormConnectionsForEvent } from "@/features/forms/server/permissions";
 import { lavaSubmitFormAction } from "@/features/forms/server/lava-form-actions";
 import { createLavaFormStore } from "@/features/forms/server/lava-form-store";
 import { isLavaFormProvider } from "@/features/forms/types";
@@ -31,7 +32,9 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  if (!user.isAdmin && !canVolunteer(user.profile)) {
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
+  if (!effectiveIsAdmin && !canVolunteer(user.profile)) {
     redirect("/verify-uom");
   }
 
@@ -46,12 +49,12 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
     redirect("/events");
   }
 
-  const canManage = canManageFormConnections(user, eventId);
+  const canManage = await canManageFormConnectionsForEvent(user, eventId);
   const visible = isFormVisibleToUser({
     canManage,
     connection,
     currentUserId: user.authUser.id,
-    isAdmin: user.isAdmin,
+    isAdmin: effectiveIsAdmin,
     isVolunteer: canVolunteer(user.profile),
     userRoleAssignments: user.eventRoles,
   });
@@ -81,10 +84,10 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
           }
           title={form.title}
           actions={
-            <Link className={buttonClasses()} href={`/events/${eventId}`}>
+            <AppLink className={buttonClasses()} href={`/events/${eventId}`}>
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to event
-            </Link>
+            </AppLink>
           }
         />
         <LavaFormRendererClient

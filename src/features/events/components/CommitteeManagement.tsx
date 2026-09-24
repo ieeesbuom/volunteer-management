@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -12,6 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
+import {
+  isGeneralCommittee,
+  sortCommitteesGeneralFirst,
+} from "@/features/events/lib/general-committee";
 import type { Committee, CommitteeMember } from "@/features/events/types";
 import { cn, formatUserFacingError } from "@/lib/utils";
 import { volunteerInitials } from "@/components/leaderboard/leaderboard-table-ui";
@@ -31,12 +35,14 @@ export function CommitteeManagement({
   canManage,
   eventId,
   initialCommittees,
+  refreshNonce = 0,
   volunteerOptions,
   onCommitteesChange,
 }: Readonly<{
   canManage: boolean;
   eventId: string;
   initialCommittees: CommitteeWithMembers[];
+  refreshNonce?: number;
   volunteerOptions: CommitteeVolunteerOption[];
   onCommitteesChange?: (committees: CommitteeWithMembers[]) => void;
 }>) {
@@ -84,6 +90,19 @@ export function CommitteeManagement({
     setCommittees(nextCommittees);
     onCommitteesChange?.(nextCommittees);
   }, [eventId, onCommitteesChange]);
+
+  useEffect(() => {
+    if (refreshNonce === 0) {
+      return;
+    }
+
+    void refreshCommittees();
+  }, [refreshCommittees, refreshNonce]);
+
+  const displayCommittees = useMemo(
+    () => sortCommitteesGeneralFirst(committees),
+    [committees],
+  );
 
   const startEditingMembers = useCallback((committee: CommitteeWithMembers) => {
     setEditingCommitteeId(committee.$id);
@@ -190,6 +209,14 @@ export function CommitteeManagement({
   }
 
   async function handleDeleteCommittee(committeeId: string) {
+    const committee = committees.find((item) => item.$id === committeeId);
+
+    if (committee && isGeneralCommittee(committee.name)) {
+      setError("The General committee cannot be deleted.");
+      setCommitteeToDelete(null);
+      return;
+    }
+
     setPendingAction(committeeId);
     setError("");
 
@@ -279,11 +306,11 @@ export function CommitteeManagement({
           </form>
         ) : null}
 
-        {committees.length === 0 ? (
+        {displayCommittees.length === 0 ? (
           <p className="text-sm text-text-secondary">No committees have been created for this event.</p>
         ) : (
           <div className="space-y-4">
-            {committees.map((committee) => (
+            {displayCommittees.map((committee) => (
               <div className="rounded-md border border-border-subtle p-4" key={committee.$id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -292,7 +319,7 @@ export function CommitteeManagement({
                       <p className="mt-1 text-sm text-text-secondary">{committee.description}</p>
                     ) : null}
                   </div>
-                  {canManage ? (
+                  {canManage && !isGeneralCommittee(committee.name) ? (
                     <Button
                       disabled={pendingAction === committee.$id}
                       onClick={() => setCommitteeToDelete(committee)}

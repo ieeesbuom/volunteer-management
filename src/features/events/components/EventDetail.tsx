@@ -36,6 +36,10 @@ import { EventFormConnections } from "@/features/forms/components/event-form-con
 import { canRemoveCommitteeRole } from "@/features/events/lib/committee-permissions";
 import { canViewEventLifecycle } from "@/features/events/lib/event-permissions";
 import {
+  isGeneralCommittee,
+  sortCommitteesGeneralFirst,
+} from "@/features/events/lib/general-committee";
+import {
   formatConclusionStatus,
   formatEventDate,
   formatEventStatus,
@@ -103,6 +107,7 @@ export function EventDetail({
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [committeeRefreshNonce, setCommitteeRefreshNonce] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<EventStatus | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<EventStatus | "">("");
@@ -161,13 +166,13 @@ export function EventDetail({
         return;
       }
 
+      setShowDeleteConfirm(false);
       router.push("/events");
       router.refresh();
     } catch {
       setError("Could not delete event.");
     } finally {
       setPendingAction(null);
-      setShowDeleteConfirm(false);
     }
   }
 
@@ -282,6 +287,12 @@ export function EventDetail({
         </CardContent>
       </Card>
 
+      {error ? (
+        <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+
       {canChangeStatus ? (
         <Card>
           <CardHeader>
@@ -352,6 +363,7 @@ export function EventDetail({
         canManage={permissions.canManageCommittee}
         eventId={event.$id}
         initialCommittees={initialCommittees}
+        refreshNonce={committeeRefreshNonce}
         volunteerOptions={initialVolunteers}
         onCommitteesChange={setCommittees}
       />
@@ -443,24 +455,36 @@ export function EventDetail({
       ) : null}
 
       {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
-      {error ? (
-        <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
 
       {showAssignModal ? (() => {
-        const generalCommittee = committees.find((c) => c.name === "General");
-        const generalMemberUserIds = new Set(generalCommittee?.members.map((m) => m.user_id) ?? []);
-        const generalVolunteers = initialVolunteers.filter((v) => generalMemberUserIds.has(v.userId));
+        const generalCommittee = committees.find((committee) => isGeneralCommittee(committee.name));
+        const generalMemberUserIds = new Set(
+          generalCommittee?.members.map((member) => member.user_id) ?? [],
+        );
+        const volunteerOptions = [...initialVolunteers].sort((left, right) => {
+          const leftOnGeneral = generalMemberUserIds.has(left.userId);
+          const rightOnGeneral = generalMemberUserIds.has(right.userId);
+
+          if (leftOnGeneral !== rightOnGeneral) {
+            return leftOnGeneral ? -1 : 1;
+          }
+
+          return (left.name || left.googleEmail).localeCompare(right.name || right.googleEmail);
+        });
+
         return (
           <AssignRoleModal
-            committeeNames={committees.map((committee) => committee.name)}
+            committeeNames={sortCommitteesGeneralFirst(committees).map(
+              (committee) => committee.name,
+            )}
             currentUserIsAdmin={isAdmin}
             eventId={event.$id}
             onClose={() => setShowAssignModal(false)}
-            onSuccess={refreshAssignments}
-            volunteerOptions={generalVolunteers}
+            onSuccess={() => {
+              void refreshAssignments();
+              setCommitteeRefreshNonce((nonce) => nonce + 1);
+            }}
+            volunteerOptions={volunteerOptions}
           />
         );
       })() : null}

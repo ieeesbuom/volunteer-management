@@ -16,11 +16,20 @@ import {
 } from "@/features/access-control/server/roles";
 import type { EventRole, EventRoleAssignment } from "@/features/access-control/types";
 import { assertCommitteeExistsForRole } from "@/features/events/lib/event-validation";
+import {
+  GENERAL_COMMITTEE_DESCRIPTION,
+  GENERAL_COMMITTEE_NAME,
+  isGeneralCommittee,
+} from "@/features/events/lib/general-committee";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { ConflictError, ValidationError } from "@/server/errors";
 import { safeEventAuditLog } from "@/features/events/server/event-audit";
-import { listCommitteesForEvent } from "@/features/events/server/committees.server";
+import {
+  addCommitteeMember,
+  createCommittee,
+  listCommitteesForEvent,
+} from "@/features/events/server/committees.server";
 import { validateAssignableEventUser } from "@/features/events/server/event-user-validation";
 import { getEventById, listEventsByIds } from "@/features/events/server/event-service";
 import type { AssignEventRoleInput } from "@/features/events/types";
@@ -124,7 +133,7 @@ export async function assignEventRole(
       throw new ValidationError("User is already assigned to this role and committee for this event.");
     }
 
-    return replaceEventRole({
+    const assignment = await replaceEventRole({
       actorUserId: assignedByUserId,
       committeeName: input.committee_name,
       eventId: input.event_id,
@@ -133,6 +142,13 @@ export async function assignEventRole(
       oldAssignmentId: existing.$id,
       userId: input.user_id,
     });
+    await ensureLeadershipOnGeneral({
+      actorUserId: assignedByUserId,
+      eventId: input.event_id,
+      role: input.role,
+      userId: input.user_id,
+    });
+    return assignment;
   }
 
   const assignment = await assignAccessControlEventRole({
@@ -152,7 +168,56 @@ export async function assignEventRole(
     targetType: "event",
   });
 
+  await ensureLeadershipOnGeneral({
+    actorUserId: assignedByUserId,
+    eventId: input.event_id,
+    role: input.role,
+    userId: input.user_id,
+  });
+
   return assignment;
+}
+
+async function ensureLeadershipOnGeneral({
+  actorUserId,
+  eventId,
+  role,
+  userId,
+}: {
+  actorUserId: string;
+  eventId: string;
+  role: EventRole;
+  userId: string;
+}) {
+  if (role !== "Chair" && role !== "Vice Chair") {
+    return;
+  }
+
+  const committees = await listCommitteesForEvent(eventId);
+  const general =
+    committees.find((committee) => isGeneralCommittee(committee.name)) ??
+    (await createCommittee(
+      {
+        description: GENERAL_COMMITTEE_DESCRIPTION,
+        event_id: eventId,
+        name: GENERAL_COMMITTEE_NAME,
+      },
+      actorUserId,
+    ));
+
+  try {
+    await addCommitteeMember({
+      actorUserId,
+      committeeId: general.$id,
+      userId,
+    });
+  } catch (error) {
+    if (error instanceof ConflictError) {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function replaceEventRole({

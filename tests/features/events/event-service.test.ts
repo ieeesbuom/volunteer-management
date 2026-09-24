@@ -271,17 +271,29 @@ describe("canViewEventLifecycle", () => {
 });
 
 describe("getEventPermissions", () => {
-  it("grants full permissions to admins", () => {
-    const permissions = getEventPermissions(
+  it("grants full permissions to admins except delete after planning", () => {
+    const draftPermissions = getEventPermissions(
+      "admin-user",
+      true,
+      createEventFixture({ status: "draft" }),
+    );
+    const planningPermissions = getEventPermissions(
+      "admin-user",
+      true,
+      createEventFixture({ status: "planning" }),
+    );
+    const ongoingPermissions = getEventPermissions(
       "admin-user",
       true,
       createEventFixture({ status: "ongoing" }),
     );
 
-    expect(permissions).toEqual({
+    expect(draftPermissions.canDelete).toBe(true);
+    expect(planningPermissions.canDelete).toBe(true);
+    expect(ongoingPermissions).toEqual({
       canApproveConclusion: true,
       canAssignRoles: true,
-      canDelete: true,
+      canDelete: false,
       canEdit: true,
       canManageCommittee: true,
       canPublish: true,
@@ -589,6 +601,18 @@ describe("event service operations", () => {
     );
 
     await expect(deleteEvent("event-1", "admin-user")).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("deleteEvent on a planning event is allowed", async () => {
+    const { deleteEvent } = await import("@/features/events/server/event-service");
+
+    mockTables.getRow.mockResolvedValueOnce(
+      toEventRow(createEventFixture({ status: "planning" })),
+    );
+    mockTables.listRows.mockResolvedValueOnce({ rows: [] });
+    mockTables.deleteRow.mockResolvedValueOnce(undefined);
+
+    await expect(deleteEvent("event-1", "admin-user")).resolves.toBeUndefined();
   });
 });
 

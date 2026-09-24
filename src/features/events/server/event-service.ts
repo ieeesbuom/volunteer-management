@@ -8,13 +8,20 @@ import { getActiveEventRoleAssignments } from "@/features/access-control/server/
 import {
   assertOperationalStatusTransition,
 } from "@/features/events/lib/event-status-transitions";
-import { LISTABLE_PUBLIC_STATUSES } from "@/features/events/lib/event-permissions";
+import {
+  DELETABLE_STATUSES,
+  LISTABLE_PUBLIC_STATUSES,
+} from "@/features/events/lib/event-permissions";
 import {
   assertEventDateRange,
   assertEventYear,
   assertIeeeTerm,
   assertMergedEventDateRange,
 } from "@/features/events/lib/event-validation";
+import {
+  GENERAL_COMMITTEE_DESCRIPTION,
+  GENERAL_COMMITTEE_NAME,
+} from "@/features/events/lib/general-committee";
 import { safeEventAuditLog } from "@/features/events/server/event-audit";
 import {
   createCommittee,
@@ -349,7 +356,7 @@ export async function createEvent(
 
   try {
     const defaultCommittees = [
-      { name: "General", description: "Default committee for event leadership (Chairs, Vice Chairs, and Leads)." },
+      { name: GENERAL_COMMITTEE_NAME, description: GENERAL_COMMITTEE_DESCRIPTION },
       { name: "Finance Committee", description: "Responsible for budgeting, tracking expenses, and sponsor funding." },
       { name: "Delegates Committee", description: "Responsible for participant registrations and delegate relations." },
       { name: "Logistics Committee", description: "Responsible for venue, refreshments, equipment, and on-day setup." },
@@ -821,8 +828,8 @@ export async function deleteEvent(eventId: string, actorUserId: string): Promise
     throw new NotFoundError("Event was not found.");
   }
 
-  if (event.status !== "draft") {
-    throw new ForbiddenError("Only draft events can be deleted.");
+  if (!DELETABLE_STATUSES.includes(event.status)) {
+    throw new ForbiddenError("Only draft or planning events can be deleted.");
   }
 
   const env = getServerEnv();

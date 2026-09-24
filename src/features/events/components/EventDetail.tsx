@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AppLink } from "@/components/layout/app-link";
 import { useRouter } from "next/navigation";
 import {
@@ -31,7 +31,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CommitteeManagement } from "@/features/events/components/CommitteeManagement";
+import {
+  CommitteeManagement,
+  type CommitteeManagementHandle,
+} from "@/features/events/components/CommitteeManagement";
 import {
   EventMembersEmptyState,
   EventRoleAssignmentsTable,
@@ -114,7 +117,7 @@ export function EventDetail({
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [committeeRefreshNonce, setCommitteeRefreshNonce] = useState(0);
+  const committeeRef = useRef<CommitteeManagementHandle>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<EventStatus | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<EventStatus | "">("");
@@ -367,10 +370,10 @@ export function EventDetail({
       ) : null}
 
       <CommitteeManagement
+        ref={committeeRef}
         canManage={permissions.canManageCommittee}
         eventId={event.$id}
         initialCommittees={initialCommittees}
-        refreshNonce={committeeRefreshNonce}
         volunteerOptions={initialVolunteers}
         onCommitteesChange={setCommittees}
       />
@@ -489,7 +492,7 @@ export function EventDetail({
             onClose={() => setShowAssignModal(false)}
             onSuccess={() => {
               void refreshAssignments();
-              setCommitteeRefreshNonce((nonce) => nonce + 1);
+              void committeeRef.current?.refresh();
             }}
             volunteerOptions={volunteerOptions}
           />

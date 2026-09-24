@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { BellPlus, Send, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { alertDangerClasses, alertSuccessClasses, fieldInputClasses, fieldTextareaClasses } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import { NOTIFICATION_TYPES } from "@/features/notifications/types";
 import {
@@ -17,8 +18,7 @@ const initialState: AdminNotificationFormState = {
   status: "idle",
 };
 
-const inputClasses =
-  "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
+const inputClasses = fieldInputClasses;
 
 export type NotificationEventOption = {
   eventId: string;
@@ -55,7 +55,7 @@ export function AdminNotificationForm({
 
   return (
     <div className="space-y-5">
-      <div className="inline-flex w-full flex-col rounded-md border border-border bg-surface p-1 sm:w-fit sm:flex-row">
+      <div className="inline-flex w-full flex-col rounded-md border border-border-subtle bg-surface-raised p-1 sm:w-fit sm:flex-row">
         <ModeButton active={mode === "single"} onClick={() => setMode("single")}>
           One user
         </ModeButton>
@@ -73,7 +73,7 @@ export function AdminNotificationForm({
       {mode === "single" ? (
         <form action={formAction} className="space-y-5">
           <section className="grid gap-4 lg:grid-cols-2">
-            <label className="block text-sm font-medium text-text-secondary">
+            <label className="block text-sm font-medium text-text-body">
               Recipient
               <select
                 className={`${inputClasses} mt-1`}
@@ -121,7 +121,7 @@ export function AdminNotificationForm({
             />
           ) : (
             <section className="grid gap-4 lg:grid-cols-2">
-              <label className="block text-sm font-medium text-text-secondary">
+              <label className="block text-sm font-medium text-text-body">
                 Event
                 <select
                   className={`${inputClasses} mt-1`}
@@ -146,7 +146,7 @@ export function AdminNotificationForm({
 
           <MessageFields />
 
-          <p className="rounded-md border border-border bg-surface-subtle px-3 py-2 text-sm text-text-secondary">
+          <p className="rounded-md border border-border-subtle bg-surface-subtle px-3 py-2 text-sm text-text-body">
             Bulk sends create notifications for each recipient. Email delivery follows
             saved recipient preferences.
           </p>
@@ -177,7 +177,7 @@ export function AdminNotificationForm({
 
 function NotificationTypeSelect() {
   return (
-    <label className="block text-sm font-medium text-text-secondary">
+    <label className="block text-sm font-medium text-text-body">
       Type
       <select className={`${inputClasses} mt-1`} name="type" defaultValue="system">
         {NOTIFICATION_TYPES.map((type) => (
@@ -193,7 +193,7 @@ function NotificationTypeSelect() {
 function MessageFields() {
   return (
     <>
-      <label className="block text-sm font-medium text-text-secondary">
+      <label className="block text-sm font-medium text-text-body">
         Title
         <input
           className={`${inputClasses} mt-1`}
@@ -204,10 +204,10 @@ function MessageFields() {
         />
       </label>
 
-      <label className="block text-sm font-medium text-text-secondary">
+      <label className="block text-sm font-medium text-text-body">
         Message
         <textarea
-          className="mt-1 min-h-28 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary"
+          className={cn(fieldTextareaClasses, "mt-1")}
           maxLength={1000}
           name="message"
           placeholder="Write the message that should appear in-app and in email."
@@ -215,7 +215,7 @@ function MessageFields() {
         />
       </label>
 
-      <label className="block text-sm font-medium text-text-secondary">
+      <label className="block text-sm font-medium text-text-body">
         Link
         <input
           className={`${inputClasses} mt-1`}
@@ -236,9 +236,7 @@ function ActionNotice({ state }: { state: AdminNotificationFormState }) {
   return (
     <p
       className={
-        state.status === "error"
-          ? "rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
-          : "rounded-md border border-success/25 bg-success-soft px-3 py-2 text-sm text-success"
+        state.status === "error" ? alertDangerClasses : alertSuccessClasses
       }
     >
       {state.message}
@@ -256,11 +254,11 @@ function BulkSummary({
   value: number;
 }) {
   return (
-    <div className="rounded-md border border-border bg-surface-subtle p-4">
+    <div className="rounded-md border border-border-subtle bg-surface-subtle p-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-text-primary">{label}</p>
-          <p className="mt-1 text-sm leading-5 text-text-secondary">{description}</p>
+          <p className="text-sm font-semibold text-text-strong">{label}</p>
+          <p className="mt-1 text-sm leading-5 text-text-body">{description}</p>
         </div>
         <span className="text-2xl font-semibold text-primary">{value}</span>
       </div>
@@ -282,8 +280,8 @@ function ModeButton({
       className={cn(
         "h-9 rounded-md px-3 text-sm font-medium transition-colors",
         active
-          ? "bg-surface-muted text-primary"
-          : "text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+          ? "bg-neutral-soft text-primary"
+          : "text-text-body hover:bg-bg-base hover:text-text-strong",
       )}
       onClick={onClick}
       type="button"

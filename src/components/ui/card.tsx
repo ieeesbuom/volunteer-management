@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 type CardVariant = "default" | "highlight";
 
 const cardVariantClasses: Record<CardVariant, string> = {
-  default: "bg-surface-raised text-text-primary border-border-subtle",
+  default: "bg-surface-raised text-text-strong border-border-subtle",
   highlight:
-    "bg-[linear-gradient(to_bottom_right,var(--color-surface),var(--color-primary-soft))] border-border-subtle border-l-[4px] border-l-primary",
+    "bg-[linear-gradient(to_bottom_right,var(--color-surface-raised),var(--color-primary-soft))] border-border-subtle border-l-[4px] border-l-primary",
 };
 
 export function Card({
@@ -22,10 +22,10 @@ export function Card({
   return (
     <section
       className={cn(
-        "rounded-2xl border",
+        "rounded-2xl border shadow-sm",
         cardVariantClasses[variant],
         navigable &&
-          "cursor-pointer transition-colors hover:border-border-subtle hover:shadow-sm hover:bg-bg-base/50",
+          "cursor-pointer transition-[transform,box-shadow,border-color,background-color] duration-200 hover:-translate-y-px hover:shadow-md hover:border-border-default",
         className,
       )}
     >
@@ -62,7 +62,7 @@ export function CardTitle({
   className?: string;
 }>) {
   return (
-    <h2 className={cn("text-[15px] font-semibold text-text-primary", className)}>
+    <h2 className={cn("text-[15px] font-semibold text-text-strong", className)}>
       {children}
     </h2>
   );
@@ -76,7 +76,7 @@ export function CardDescription({
   className?: string;
 }>) {
   return (
-    <p className={cn("mt-1 text-sm leading-6 text-text-secondary", className)}>
+    <p className={cn("mt-1 text-sm leading-6 text-text-muted", className)}>
       {children}
     </p>
   );

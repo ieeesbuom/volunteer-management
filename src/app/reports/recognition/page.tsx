@@ -51,14 +51,14 @@ export default async function RecognitionPage() {
           <CardContent className="space-y-3 text-sm">
             {data.volunteerOfTheMonth ? (
               <>
-                <p className="text-xl font-semibold text-text-primary">
+                <p className="text-xl font-semibold text-text-strong">
                   {data.volunteerOfTheMonth.name}
                 </p>
-                <p className="text-text-secondary">{data.volunteerOfTheMonth.highlight}</p>
+                <p className="text-text-body">{data.volunteerOfTheMonth.highlight}</p>
                 <Badge tone="success">{data.volunteerOfTheMonth.pointsEarned} points earned</Badge>
               </>
             ) : (
-              <p className="text-text-secondary">
+              <p className="text-text-body">
                 No eligible points have been awarded for the current month.
               </p>
             )}
@@ -85,7 +85,7 @@ export default async function RecognitionPage() {
                 }))}
               />
             ) : (
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm text-text-body">
                 No eligible points have been awarded for the current IEEE term.
               </p>
             )}

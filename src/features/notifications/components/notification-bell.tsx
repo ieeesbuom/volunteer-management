@@ -246,7 +246,7 @@ export function NotificationBell({
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label="Notifications"
-        className="relative flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-neutral-soft hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+        className="relative flex size-9 items-center justify-center rounded-full text-text-body transition-colors hover:bg-neutral-soft hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
         onClick={toggleOpen}
         type="button"
       >
@@ -258,7 +258,7 @@ export function NotificationBell({
         ? createPortal(
             <div
               ref={dropdownRef}
-              className="overflow-hidden rounded-[12px] border border-border-subtle bg-surface text-text-primary shadow-overlay origin-top-right animate-in fade-in zoom-in-95 duration-150"
+              className="overflow-hidden rounded-[12px] border border-border-subtle bg-surface-raised text-text-strong shadow-overlay origin-top-right animate-in fade-in zoom-in-95 duration-150"
               role="dialog"
               aria-label="Notifications"
               style={dropdownStyle}
@@ -332,7 +332,7 @@ export function NotificationDropdown({
           </Button>
           <button
             aria-label="Refresh notifications"
-            className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary cursor-pointer"
+            className="inline-flex size-8 items-center justify-center rounded-md border border-border-subtle bg-surface-raised text-text-body transition-colors hover:bg-bg-base hover:text-text-strong cursor-pointer"
             disabled={isRefreshing}
             onClick={() => void onRefresh()}
             type="button"
@@ -375,11 +375,11 @@ export function NotificationList({
   if (notifications.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-surface-muted mb-4">
+        <div className="flex size-12 items-center justify-center rounded-full bg-neutral-soft mb-4">
           <Inbox className="size-6 text-text-muted" aria-hidden="true" />
         </div>
         <p className="text-[15px] font-semibold text-text-strong">You&apos;re all caught up.</p>
-        <p className="mt-1 text-[13px] text-text-secondary">Check back later for updates.</p>
+        <p className="mt-1 text-[13px] text-text-body">Check back later for updates.</p>
       </div>
     );
   }
@@ -423,10 +423,10 @@ function NotificationListItem({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-text-primary">{notification.title}</p>
+            <p className="text-sm font-semibold text-text-strong">{notification.title}</p>
             <NotificationReadState readAt={notification.readAt} />
           </div>
-          <p className="mt-1 text-sm leading-5 text-text-secondary">{notification.message}</p>
+          <p className="mt-1 text-sm leading-5 text-text-body">{notification.message}</p>
         </div>
         {linkHref ? (
           <ExternalLink className="mt-1 size-4 shrink-0 text-text-muted" aria-hidden="true" />
@@ -487,6 +487,6 @@ function notificationItemClasses(unread: boolean) {
     "border-b border-border-subtle px-4 py-3 text-left transition-colors last:border-0 hover:bg-neutral-soft",
     unread
       ? "bg-primary-soft border-l-[3px] border-l-primary"
-      : "bg-surface border-l-[3px] border-l-transparent",
+      : "bg-surface-raised border-l-[3px] border-l-transparent",
   );
 }

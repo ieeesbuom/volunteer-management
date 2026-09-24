@@ -11,6 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  alertDangerClasses,
+  modalOverlayClasses,
+  modalPanelClasses,
+} from "@/components/ui/field";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
 import {
   isGeneralCommittee,
@@ -276,10 +281,10 @@ export function CommitteeManagement({
       </CardHeader>
       <CardContent className="space-y-6">
         {canManage ? (
-          <form className="space-y-3 rounded-md border border-border-subtle p-4" onSubmit={handleCreateCommittee}>
-            <h3 className="text-sm font-semibold text-text-primary">Create Committee</h3>
+          <form className="space-y-3 rounded-xl border border-border-subtle bg-bg-base/40 p-4" onSubmit={handleCreateCommittee}>
+            <h3 className="text-sm font-semibold text-text-strong">Create Committee</h3>
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="block text-sm font-medium text-text-secondary" htmlFor="committee_name">
+              <label className="block text-sm font-medium text-text-body" htmlFor="committee_name">
                 Name
                 <input
                   className={cn(eventInputClasses, "mt-1")}
@@ -289,7 +294,7 @@ export function CommitteeManagement({
                   value={name}
                 />
               </label>
-              <label className="block text-sm font-medium text-text-secondary" htmlFor="committee_description">
+              <label className="block text-sm font-medium text-text-body" htmlFor="committee_description">
                 Description
                 <input
                   className={cn(eventInputClasses, "mt-1")}
@@ -307,16 +312,16 @@ export function CommitteeManagement({
         ) : null}
 
         {displayCommittees.length === 0 ? (
-          <p className="text-sm text-text-secondary">No committees have been created for this event.</p>
+          <p className="text-sm text-text-body">No committees have been created for this event.</p>
         ) : (
           <div className="space-y-4">
             {displayCommittees.map((committee) => (
-              <div className="rounded-md border border-border-subtle p-4" key={committee.$id}>
+              <div className="rounded-xl border border-border-subtle p-4" key={committee.$id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-medium text-text-primary">{committee.name}</h3>
+                    <h3 className="font-medium text-text-strong">{committee.name}</h3>
                     {committee.description ? (
-                      <p className="mt-1 text-sm text-text-secondary">{committee.description}</p>
+                      <p className="mt-1 text-sm text-text-body">{committee.description}</p>
                     ) : null}
                   </div>
                   {canManage && !isGeneralCommittee(committee.name) ? (
@@ -335,7 +340,7 @@ export function CommitteeManagement({
 
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-sm font-medium text-text-secondary">Members</h4>
+                    <h4 className="text-sm font-medium text-text-body">Members</h4>
                     {canManage && editingCommitteeId !== committee.$id ? (
                       <Button
                         onClick={() => startEditingMembers(committee)}
@@ -351,8 +356,8 @@ export function CommitteeManagement({
                   {editingCommitteeId === committee.$id ? (
                     <div className="mt-2 rounded-lg border border-primary/20 bg-primary-soft/5 p-4 space-y-4">
                       <div className="flex items-center justify-between gap-3">
-                        <h4 className="text-sm font-semibold text-text-primary">Manage Committee Members</h4>
-                        <span className="text-xs text-text-secondary font-medium">
+                        <h4 className="text-sm font-semibold text-text-strong">Manage Committee Members</h4>
+                        <span className="text-xs text-text-body font-medium">
                           Selected: {selectedUserIds.size} volunteers
                         </span>
                       </div>
@@ -365,7 +370,7 @@ export function CommitteeManagement({
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
 
-                      <div className="max-h-60 overflow-y-auto rounded-md border border-border-subtle bg-surface divide-y divide-border-subtle">
+                      <div className="max-h-60 overflow-y-auto rounded-xl border border-border-subtle bg-surface-raised divide-y divide-border-subtle">
                         {sortedVolunteers().length > 0 ? (
                           sortedVolunteers().map((volunteer) => {
                             const isSelected = selectedUserIds.has(volunteer.userId);
@@ -393,8 +398,8 @@ export function CommitteeManagement({
                                   }}
                                 />
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-medium text-text-primary truncate">{volunteer.name || "Volunteer"}</p>
-                                  <p className="text-xs text-text-secondary truncate">{volunteer.uomEmail || volunteer.googleEmail}</p>
+                                  <p className="font-medium text-text-strong truncate">{volunteer.name || "Volunteer"}</p>
+                                  <p className="text-xs text-text-body truncate">{volunteer.uomEmail || volunteer.googleEmail}</p>
                                 </div>
                               </div>
                             );
@@ -495,7 +500,7 @@ export function CommitteeManagement({
         )}
 
         {error ? (
-          <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
+          <p className={alertDangerClasses}>
             {error}
           </p>
         ) : null}
@@ -550,18 +555,18 @@ function ConfirmationDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className={modalOverlayClasses}
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border-subtle bg-surface shadow-xl">
+      <div className={modalPanelClasses}>
         <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-warning/25 bg-warning-soft text-warning">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+              <h3 className="text-base font-semibold text-text-strong">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-text-body">{description}</p>
             </div>
           </div>
         </div>

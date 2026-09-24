@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { modalOverlayClasses, modalPanelClasses } from "@/components/ui/field";
 import {
   Card,
   CardContent,
@@ -409,7 +410,7 @@ export function EventFormConnections({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="border-b border-border bg-surface-subtle/50 py-4">
+      <CardHeader className="border-b border-border-subtle bg-surface-subtle/50 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg font-bold">
@@ -448,7 +449,7 @@ export function EventFormConnections({
         {/* Forms Grid — active + closed */}
         {visibleConnections.length > 0 ? (
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Event Links</h3>
+            <h3 className="text-xs font-semibold text-text-body uppercase tracking-wider">Event Links</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               {visibleConnections.map((connection) => {
                 const isClosed = connection.status === "disabled";
@@ -462,14 +463,14 @@ export function EventFormConnections({
                     className={cn(
                       "group relative flex flex-col justify-between rounded-xl border p-5 shadow-sm transition-all duration-300",
                       isClosed
-                        ? "border-border/60 bg-surface-subtle/60 opacity-75"
-                        : "border-border bg-surface hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md",
+                        ? "border-border-subtle/60 bg-surface-subtle/60 opacity-75"
+                        : "border-border-subtle bg-surface-raised hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md",
                     )}
                   >
                     {editingConnectionId === connection.id ? (
                       /* ─── Inline Edit Form ─── */
                       <div className="space-y-3">
-                        <label className="block text-xs font-semibold text-text-secondary">
+                        <label className="block text-xs font-semibold text-text-body">
                           Title
                           <input
                             className={cn(eventInputClasses, "mt-1 text-sm font-normal py-1.5")}
@@ -479,7 +480,7 @@ export function EventFormConnections({
                             required
                           />
                         </label>
-                        <label className="block text-xs font-semibold text-text-secondary">
+                        <label className="block text-xs font-semibold text-text-body">
                           Purpose
                           <select
                             className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5 cursor-pointer")}
@@ -494,7 +495,7 @@ export function EventFormConnections({
                           </select>
                         </label>
                         {isLava ? null : (
-                          <label className="block text-xs font-semibold text-text-secondary">
+                          <label className="block text-xs font-semibold text-text-body">
                             URL
                             <input
                               className={cn(eventInputClasses, "mt-1 text-sm font-normal py-1.5")}
@@ -507,7 +508,7 @@ export function EventFormConnections({
                           </label>
                         )}
                         <div className="grid grid-cols-2 gap-2">
-                          <label className="block text-xs font-semibold text-text-secondary">
+                          <label className="block text-xs font-semibold text-text-body">
                             Opens at
                             <input
                               className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5")}
@@ -516,7 +517,7 @@ export function EventFormConnections({
                               onChange={(e) => setEditOpenAt(e.target.value)}
                             />
                           </label>
-                          <label className="block text-xs font-semibold text-text-secondary">
+                          <label className="block text-xs font-semibold text-text-body">
                             Closes at
                             <input
                               className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5")}
@@ -527,7 +528,7 @@ export function EventFormConnections({
                           </label>
                         </div>
                         <div className="grid grid-cols-2 gap-2 pt-1">
-                          <label className="block text-xs font-semibold text-text-secondary">
+                          <label className="block text-xs font-semibold text-text-body">
                             Target Audience
                             <select
                               className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5 cursor-pointer")}
@@ -541,7 +542,7 @@ export function EventFormConnections({
                             </select>
                           </label>
                           {editAudience === "event_team_only" && committees.length > 0 ? (
-                            <label className="block text-xs font-semibold text-text-secondary">
+                            <label className="block text-xs font-semibold text-text-body">
                               Specific Committee
                               <select
                                 className={cn(eventInputClasses, "mt-1 text-xs font-normal py-1.5 cursor-pointer")}
@@ -664,7 +665,7 @@ export function EventFormConnections({
                             </div>
                           </div>
 
-                          <h4 className="font-bold text-text-primary text-base line-clamp-1 group-hover:text-primary transition-colors">
+                          <h4 className="font-bold text-text-strong text-base line-clamp-1 group-hover:text-primary transition-colors">
                             {connection.title}
                           </h4>
 
@@ -715,10 +716,10 @@ export function EventFormConnections({
                                 type="button"
                                 disabled={isClosed}
                                 className={cn(
-                                  "inline-flex items-center justify-center rounded-lg border bg-surface-subtle p-2.5 text-text-secondary transition",
+                                  "inline-flex items-center justify-center rounded-lg border bg-surface-subtle p-2.5 text-text-body transition",
                                   isClosed
-                                    ? "border-border/50 opacity-40 cursor-not-allowed"
-                                    : "border-border hover:bg-surface hover:text-primary cursor-pointer",
+                                    ? "border-border-subtle/50 opacity-40 cursor-not-allowed"
+                                    : "border-border-subtle hover:bg-surface-raised hover:text-primary cursor-pointer",
                                 )}
                                 title="Copy form link"
                               >
@@ -732,14 +733,14 @@ export function EventFormConnections({
                             {canManage ? (
                               <div className="flex gap-2">
                                 <AppLink
-                                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface hover:text-primary"
+                                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface-raised hover:text-primary"
                                   href={editPath}
                                 >
                                   <FilePenLine className="size-3.5" aria-hidden="true" />
                                   Edit form
                                 </AppLink>
                                 <AppLink
-                                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface hover:text-primary"
+                                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface-raised hover:text-primary"
                                   href={`${editPath}#responses`}
                                 >
                                   <ListChecks className="size-3.5" aria-hidden="true" />
@@ -775,10 +776,10 @@ export function EventFormConnections({
                               type="button"
                               disabled={isClosed}
                               className={cn(
-                                "inline-flex items-center justify-center rounded-lg border bg-surface-subtle p-2.5 text-text-secondary transition",
+                                "inline-flex items-center justify-center rounded-lg border bg-surface-subtle p-2.5 text-text-body transition",
                                 isClosed
-                                  ? "border-border/50 opacity-40 cursor-not-allowed"
-                                  : "border-border hover:bg-surface hover:text-primary cursor-pointer",
+                                  ? "border-border-subtle/50 opacity-40 cursor-not-allowed"
+                                  : "border-border-subtle hover:bg-surface-raised hover:text-primary cursor-pointer",
                               )}
                               title="Copy form link"
                             >
@@ -790,7 +791,7 @@ export function EventFormConnections({
                             </button>
                           </div>
                         ) : (
-                          <div className="mt-4 text-center text-xs text-text-muted py-2 bg-surface-muted/50 rounded-lg">
+                          <div className="mt-4 text-center text-xs text-text-muted py-2 bg-neutral-soft/50 rounded-lg">
                             No form link provided.
                           </div>
                         )}
@@ -803,12 +804,12 @@ export function EventFormConnections({
           </div>
         ) : !showForm ? (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border py-10 px-4 text-center">
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-subtle py-10 px-4 text-center">
             <div className="rounded-full bg-surface-subtle p-4 mb-4">
               <Link2 className="size-8 text-text-muted" aria-hidden="true" />
             </div>
-            <h4 className="font-semibold text-text-primary text-base mb-1">No forms yet</h4>
-            <p className="text-sm text-text-secondary max-w-sm mb-4">
+            <h4 className="font-semibold text-text-strong text-base mb-1">No forms yet</h4>
+            <p className="text-sm text-text-body max-w-sm mb-4">
               Volunteers will see Google Form links or in-app custom forms once a chair or admin adds them.
             </p>
             {canManage ? (
@@ -829,14 +830,14 @@ export function EventFormConnections({
 
         {/* Add Form Panel */}
         {showForm ? (
-          <div className="rounded-xl border border-border bg-surface-subtle/30 p-5 shadow-inner">
-            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">
+          <div className="rounded-xl border border-border-subtle bg-surface-subtle/30 p-5 shadow-inner">
+            <h3 className="text-sm font-semibold text-text-body uppercase tracking-wider mb-4">
               {addMode === "custom" ? "Build custom form" : addMode === "google" ? "Add Google Form link" : "Add form"}
             </h3>
             {addMode === "choose" ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
-                  className="rounded-xl border border-border bg-surface p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
+                  className="rounded-xl border border-border-subtle bg-surface-raised p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
                   onClick={() => setAddMode("google")}
                   type="button"
                 >
@@ -847,7 +848,7 @@ export function EventFormConnections({
                   </p>
                 </button>
                 <button
-                  className="rounded-xl border border-border bg-surface p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
+                  className="rounded-xl border border-border-subtle bg-surface-raised p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
                   onClick={() => setAddMode("custom")}
                   type="button"
                 >
@@ -861,7 +862,7 @@ export function EventFormConnections({
             ) : (
             <form className="space-y-4" onSubmit={addMode === "custom" ? submitCustomForm : submitConnection}>
               <div className={cn("grid gap-4", addMode === "google" && "sm:grid-cols-2")}>
-                <label className="block text-sm font-semibold text-text-secondary">
+                <label className="block text-sm font-semibold text-text-body">
                   Form Title
                   <input
                     className={cn(eventInputClasses, "mt-1.5 font-normal")}
@@ -873,7 +874,7 @@ export function EventFormConnections({
                   />
                 </label>
                 {addMode === "google" ? (
-                  <label className="block text-sm font-semibold text-text-secondary">
+                  <label className="block text-sm font-semibold text-text-body">
                     Form URL
                     <input
                       className={cn(eventInputClasses, "mt-1.5 font-normal")}
@@ -889,7 +890,7 @@ export function EventFormConnections({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-semibold text-text-secondary">
+                <label className="block text-sm font-semibold text-text-body">
                   Purpose
                   <select
                     className={cn(eventInputClasses, "mt-1.5 font-normal cursor-pointer")}
@@ -911,7 +912,7 @@ export function EventFormConnections({
                   </span>
                 </label>
                 {addMode === "custom" ? (
-                  <label className="flex items-start gap-3 rounded-lg border border-border bg-surface p-3 text-sm text-text-secondary">
+                  <label className="flex items-start gap-3 rounded-lg border border-border-subtle bg-surface-raised p-3 text-sm text-text-body">
                     <input
                       checked={addGroupAnswers}
                       className="mt-1 size-4 accent-(--primary)"
@@ -932,7 +933,7 @@ export function EventFormConnections({
 
               {/* Schedule */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-semibold text-text-secondary">
+                <label className="block text-sm font-semibold text-text-body">
                   Open Date & Time <span className="font-normal text-text-muted">(optional)</span>
                   <input
                     className={cn(eventInputClasses, "mt-1.5 font-normal")}
@@ -941,7 +942,7 @@ export function EventFormConnections({
                     onChange={(e) => setAddOpenAt(e.target.value)}
                   />
                 </label>
-                <label className="block text-sm font-semibold text-text-secondary">
+                <label className="block text-sm font-semibold text-text-body">
                   Close Date & Time <span className="font-normal text-text-muted">(optional)</span>
                   <input
                     className={cn(eventInputClasses, "mt-1.5 font-normal")}
@@ -953,8 +954,8 @@ export function EventFormConnections({
               </div>
 
               {/* Audience Scope */}
-              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-border/60">
-                <label className="block text-sm font-semibold text-text-secondary">
+              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-border-subtle/60">
+                <label className="block text-sm font-semibold text-text-body">
                   Target Audience
                   <select
                     className={cn(eventInputClasses, "mt-1.5 font-normal cursor-pointer")}
@@ -968,7 +969,7 @@ export function EventFormConnections({
                   </select>
                 </label>
                 {addAudience === "event_team_only" && committees.length > 0 ? (
-                  <label className="block text-sm font-semibold text-text-secondary">
+                  <label className="block text-sm font-semibold text-text-body">
                     Specific Committee <span className="font-normal text-text-muted">(optional)</span>
                     <select
                       className={cn(eventInputClasses, "mt-1.5 font-normal cursor-pointer")}
@@ -1096,11 +1097,11 @@ function ConfirmationDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className={modalOverlayClasses}
       role="dialog"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface shadow-xl">
-        <div className="border-b border-border px-5 py-4">
+      <div className={modalPanelClasses}>
+        <div className="border-b border-border-subtle px-5 py-4">
           <div className="flex items-start gap-3">
             <span
               className={cn(
@@ -1113,12 +1114,12 @@ function ConfirmationDialog({
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
-              <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
+              <h3 className="text-base font-semibold text-text-strong">{title}</h3>
+              <p className="mt-1 text-sm leading-6 text-text-body">{description}</p>
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border-subtle px-5 py-4">
           <Button disabled={isBusy} onClick={onCancel} type="button" variant="ghost" className="cursor-pointer">
             Cancel
           </Button>

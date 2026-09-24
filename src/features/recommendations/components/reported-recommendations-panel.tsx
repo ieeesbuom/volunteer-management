@@ -77,10 +77,10 @@ export function ReportedRecommendationsPanel({
     <div className="space-y-4">
       {recommendations.length > 0 ? (
         recommendations.map((recommendation) => (
-          <article className="rounded-md border border-border p-4" key={recommendation.$id}>
+          <article className="rounded-md border border-border-subtle p-4" key={recommendation.$id}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-text-primary">
+                <p className="text-sm font-medium text-text-strong">
                   Reported recommendation
                 </p>
                 <p className="mt-1 text-xs text-text-muted">
@@ -90,15 +90,15 @@ export function ReportedRecommendationsPanel({
               </div>
               <Badge tone="warning">REPORTED</Badge>
             </div>
-            <p className="mt-3 text-sm leading-6 text-text-primary">{recommendation.text}</p>
-            <div className="mt-3 grid gap-2 text-sm text-text-secondary md:grid-cols-2">
+            <p className="mt-3 text-sm leading-6 text-text-strong">{recommendation.text}</p>
+            <div className="mt-3 grid gap-2 text-sm text-text-body md:grid-cols-2">
               <Info label="Report reason" value={recommendation.reportReason ?? "No reason provided"} />
               <Info label="Reported by" value={recommendation.reportedBy ?? "Unknown"} />
             </div>
             <label className="mt-4 block space-y-2">
-              <span className="text-sm font-medium text-text-secondary">Hide reason</span>
+              <span className="text-sm font-medium text-text-body">Hide reason</span>
               <textarea
-                className="min-h-20 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary"
+                className="min-h-20 w-full resize-y rounded-md border border-border-subtle bg-surface-raised px-3 py-2 text-sm text-text-strong outline-none transition-colors placeholder:text-text-muted focus:border-primary"
                 maxLength={500}
                 onChange={(event) =>
                   setHideReasons((current) => ({
@@ -132,9 +132,9 @@ export function ReportedRecommendationsPanel({
           </article>
         ))
       ) : (
-        <p className="text-sm text-text-secondary">No reported recommendations need review.</p>
+        <p className="text-sm text-text-body">No reported recommendations need review.</p>
       )}
-      {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
+      {message ? <p className="text-sm text-text-body">{message}</p> : null}
     </div>
   );
 }
@@ -142,7 +142,7 @@ export function ReportedRecommendationsPanel({
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="font-medium text-text-primary">{label}</p>
+      <p className="font-medium text-text-strong">{label}</p>
       <p className="break-words">{value}</p>
     </div>
   );

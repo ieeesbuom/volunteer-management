@@ -67,27 +67,27 @@ export function ConclusionsPageContent({
             <CardDescription>Existing conclusion reports stored in Appwrite.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto rounded-md border border-border">
-              <table className="min-w-[760px] divide-y divide-border text-left text-sm">
-                <thead className="bg-surface-muted text-text-secondary">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Event</th>
-                    <th className="px-4 py-3 font-semibold">Submitted by</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Updated</th>
+            <div className="overflow-x-auto rounded-xl border border-border-subtle">
+              <table className="min-w-[760px] text-left text-[13px] text-text-body">
+                <thead>
+                  <tr className="border-b border-border-default bg-bg-base">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Event</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Submitted by</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Updated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border bg-surface">
+                <tbody>
                   {reports.map((report) => (
-                    <tr key={report.$id}>
-                      <td className="px-4 py-3 font-medium text-text-primary">
+                    <tr className="border-b border-border-subtle last:border-b-0 transition-colors hover:bg-primary-soft" key={report.$id}>
+                      <td className="px-4 py-3 font-medium text-text-strong">
                         {report.eventTitle}
                       </td>
-                      <td className="px-4 py-3 text-text-secondary">{report.submittedByName}</td>
+                      <td className="px-4 py-3 text-text-body">{report.submittedByName}</td>
                       <td className="px-4 py-3">
                         <Badge tone={reportStatusTone(report.status)}>{report.status}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-text-secondary">
+                      <td className="px-4 py-3 text-text-body">
                         {new Date(report.updatedAt).toLocaleDateString()}
                       </td>
                     </tr>

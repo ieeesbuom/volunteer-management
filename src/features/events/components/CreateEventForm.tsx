@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { alertDangerClasses } from "@/components/ui/field";
 import {
   dateInputToIso,
   eventInputClasses,
@@ -126,7 +127,7 @@ export function CreateEventForm() {
         />
       </div>
 
-      <label className="block text-sm font-medium text-text-secondary" htmlFor="description">
+      <label className="block text-sm font-medium text-text-body" htmlFor="description">
         Description
         <textarea
           className={cn(eventTextareaClasses, "mt-1")}
@@ -173,7 +174,7 @@ export function CreateEventForm() {
       </div>
 
       {error ? (
-        <p className="rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <p className={alertDangerClasses}>
           {error}
         </p>
       ) : null}
@@ -208,7 +209,7 @@ function Field({
   value: string;
 }) {
   return (
-    <label className="block text-sm font-medium text-text-secondary" htmlFor={id}>
+    <label className="block text-sm font-medium text-text-body" htmlFor={id}>
       {label}
       <input
         className={cn(eventInputClasses, "mt-1")}

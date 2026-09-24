@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { alertDangerClasses, alertSuccessClasses, fieldInputClasses } from "@/components/ui/field";
 import { isUomEmail, UOM_EMAIL_DOMAIN } from "@/lib/config";
 import { formatUserFacingError } from "@/lib/utils";
 
@@ -95,20 +96,20 @@ export function VerificationPanel() {
     <div className="space-y-6">
       <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-2">
-          <div className="flex size-10 items-center justify-center rounded-md border border-border bg-surface-subtle text-primary">
+          <div className="flex size-10 items-center justify-center rounded-xl border border-border-subtle bg-bg-base text-primary">
             <Mail className="size-5" aria-hidden="true" />
           </div>
-          <h3 className="text-sm font-semibold text-text-primary">Request code</h3>
-          <p className="text-sm leading-6 text-text-secondary">
+          <h3 className="text-sm font-semibold text-text-strong">Request code</h3>
+          <p className="text-sm leading-6 text-text-body">
             Enter your University of Moratuwa email ending with @{UOM_EMAIL_DOMAIN}.
           </p>
         </div>
         <form className="space-y-3" onSubmit={requestCode}>
-          <label className="block text-sm font-medium text-text-secondary" htmlFor="uom-email">
+          <label className="block text-sm font-medium text-text-body" htmlFor="uom-email">
             UoM email
           </label>
           <input
-            className="h-11 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none transition-colors focus:border-primary"
+            className={fieldInputClasses}
             id="uom-email"
             onChange={(event) => setUomEmail(event.target.value)}
             pattern={`^[^\\s@]+@${UOM_EMAIL_DOMAIN.replace(".", "\\.")}$`}
@@ -125,7 +126,7 @@ export function VerificationPanel() {
       </section>
 
       {requestResult ? (
-        <div className="rounded-md border border-success/25 bg-success-soft p-4 text-sm text-success">
+        <div className={`${alertSuccessClasses} p-4`}>
           <p className="font-semibold">Verification email sent</p>
           <p className="mt-1">
             Sent to {requestResult.deliveredTo}. The code expires at{" "}
@@ -134,22 +135,22 @@ export function VerificationPanel() {
         </div>
       ) : null}
 
-      <section className="grid gap-5 border-t border-border pt-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="grid gap-5 border-t border-border-subtle pt-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-2">
-          <div className="flex size-10 items-center justify-center rounded-md border border-border bg-surface-subtle text-primary">
+          <div className="flex size-10 items-center justify-center rounded-xl border border-border-subtle bg-bg-base text-primary">
             <KeyRound className="size-5" aria-hidden="true" />
           </div>
-          <h3 className="text-sm font-semibold text-text-primary">Confirm code</h3>
-          <p className="text-sm leading-6 text-text-secondary">
+          <h3 className="text-sm font-semibold text-text-strong">Confirm code</h3>
+          <p className="text-sm leading-6 text-text-body">
             Enter the code from webmail to complete verification.
           </p>
         </div>
         <form className="space-y-3" onSubmit={confirmCode}>
-          <label className="block text-sm font-medium text-text-secondary" htmlFor="code">
+          <label className="block text-sm font-medium text-text-body" htmlFor="code">
             Verification code
           </label>
           <input
-            className="h-11 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none transition-colors focus:border-primary"
+            className={fieldInputClasses}
             id="code"
             inputMode="numeric"
             onChange={(event) => setCode(event.target.value)}
@@ -168,8 +169,8 @@ export function VerificationPanel() {
         <p
           className={
             status === "error"
-              ? "rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
-              : "text-sm text-text-secondary"
+              ? alertDangerClasses
+              : "text-sm text-text-body"
           }
         >
           {message}

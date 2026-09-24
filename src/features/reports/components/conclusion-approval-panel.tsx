@@ -14,9 +14,16 @@ import {
 } from "@/features/reports/lib/api-client";
 import type { ConclusionReport } from "@/features/reports/types";
 import { conclusionReportAttachmentPath } from "@/features/reports/lib/conclusion-attachment";
+import {
+  alertDangerClasses,
+  alertSuccessClasses,
+  fieldTextareaClasses,
+  tableBodyRowClasses,
+  tableHeadCellClasses,
+  tableHeadRowClasses,
+} from "@/components/ui/field";
 
-const inputClasses =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-primary";
+const inputClasses = fieldTextareaClasses;
 
 type ConclusionApprovalPanelProps = {
   initialReports: ConclusionReport[];
@@ -100,28 +107,28 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
         />
       </section>
 
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="min-w-[920px] divide-y divide-border text-left text-sm">
-          <thead className="bg-surface-muted text-text-secondary">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Event</th>
-              <th className="px-4 py-3 font-semibold">Submitted by</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Updated</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
+      <div className="overflow-x-auto rounded-xl border border-border-subtle">
+        <table className="min-w-[920px] text-left text-[13px] text-text-body">
+          <thead>
+            <tr className={tableHeadRowClasses}>
+              <th className={tableHeadCellClasses}>Event</th>
+              <th className={tableHeadCellClasses}>Submitted by</th>
+              <th className={tableHeadCellClasses}>Status</th>
+              <th className={tableHeadCellClasses}>Updated</th>
+              <th className={tableHeadCellClasses}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border bg-surface">
+          <tbody>
             {reports.map((report) => (
-              <tr key={report.$id}>
+              <tr className={tableBodyRowClasses} key={report.$id}>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-text-primary">{report.eventTitle}</p>
+                  <p className="font-medium text-text-strong">{report.eventTitle}</p>
                 </td>
-                <td className="px-4 py-3 text-text-secondary">{report.submittedByName}</td>
+                <td className="px-4 py-3 text-text-body">{report.submittedByName}</td>
                 <td className="px-4 py-3">
                   <Badge tone={reportStatusTone(report.status)}>{report.status}</Badge>
                 </td>
-                <td className="px-4 py-3 text-text-secondary">
+                <td className="px-4 py-3 text-text-body">
                   {new Date(report.updatedAt).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3">
@@ -136,10 +143,10 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
       </div>
 
       {selectedReport ? (
-        <section className="rounded-md border border-border bg-surface-subtle p-4">
+        <section className="rounded-xl border border-border-subtle bg-bg-base/40 p-4">
           <div>
-            <p className="text-sm font-medium text-text-secondary">Selected report</p>
-            <h3 className="mt-1 text-lg font-semibold text-text-primary">
+            <p className="text-sm font-medium text-text-body">Selected report</p>
+            <h3 className="mt-1 text-lg font-semibold text-text-strong">
               {selectedReport.eventTitle}
             </h3>
           </div>
@@ -166,7 +173,7 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
           {canApproveReport(selectedReport) ? (
             <div className="mt-4 space-y-3">
               <label className="block space-y-1 text-sm">
-                <span className="font-medium text-text-secondary">Review note</span>
+                <span className="font-medium text-text-body">Review note</span>
                 <textarea
                   className={inputClasses}
                   onChange={(event) => setReviewNote(event.target.value)}
@@ -206,9 +213,7 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
       {message ? (
         <p
           className={
-            status === "error"
-              ? "rounded-md border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger"
-              : "rounded-md border border-success/25 bg-success-soft px-3 py-2 text-sm text-success"
+            status === "error" ? alertDangerClasses : alertSuccessClasses
           }
         >
           {message}
@@ -220,18 +225,18 @@ export function ConclusionApprovalPanel({ initialReports }: ConclusionApprovalPa
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-surface-subtle px-4 py-3">
-      <p className="text-sm font-medium text-text-secondary">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-text-primary">{value}</p>
+    <div className="rounded-xl border border-border-subtle bg-bg-base/40 px-4 py-3">
+      <p className="text-sm font-medium text-text-body">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-text-strong">{value}</p>
     </div>
   );
 }
 
 function ReviewBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-border bg-surface p-3">
-      <p className="text-sm font-medium text-text-secondary">{label}</p>
-      <p className="mt-2 text-sm leading-6 text-text-primary">{value || "Not provided."}</p>
+    <div className="rounded-xl border border-border-subtle bg-surface-raised p-3">
+      <p className="text-sm font-medium text-text-body">{label}</p>
+      <p className="mt-2 text-sm leading-6 text-text-strong">{value || "Not provided."}</p>
     </div>
   );
 }

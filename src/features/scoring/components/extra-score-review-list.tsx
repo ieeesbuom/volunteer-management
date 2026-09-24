@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { volunteerInitials } from "@/components/leaderboard/leaderboard-table-ui";
 import { Button } from "@/components/ui/button";
+import { fieldInputClasses } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import type { GradeRequest } from "../types";
 type DashboardRole = "Admin" | "Chairperson" | "Committee Lead" | "Member";
@@ -106,7 +107,7 @@ export function ExtraScoreReviewList({
                   req.gradeValue !== undefined && req.gradeValue !== null ? req.gradeValue : ""
                 }
                 required
-                className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm tabular-nums"
+                className={cn(fieldInputClasses, "tabular-nums")}
               />
             </div>
             <Button type="submit" variant="secondary" className="cursor-pointer">

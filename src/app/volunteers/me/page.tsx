@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { CheckCircle2, Eye, MailCheck, UserRound } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -51,10 +51,10 @@ export default async function MyVolunteerProfilePage() {
             canManageVolunteerProfile ? (
               <div className="flex items-center gap-2">
                 <ExportActions userId={user.authUser.id} />
-                <Link className={buttonClasses()} href={`/volunteers/${user.authUser.id}`}>
+                <AppLink className={buttonClasses()} href={`/volunteers/${user.authUser.id}`}>
                   <Eye className="size-4" aria-hidden="true" />
                   View Profile
-                </Link>
+                </AppLink>
               </div>
             ) : null
           }

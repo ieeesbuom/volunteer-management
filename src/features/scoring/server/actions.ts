@@ -7,6 +7,10 @@ import { APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getAppwriteAdminServices } from "@/server/appwrite";
 import { writeAuditLog } from "@/server/audit";
 import { requireAuth, requireAdmin } from "@/features/access-control/server/current-user";
+import {
+  isVolunteerPreviewActive,
+  resolveEffectiveIsAdmin,
+} from "@/features/access-control/server/view-mode";
 import { listProfiles } from "@/features/access-control/server/profiles";
 import { getActiveEventRoleAssignments } from "@/features/access-control/server/roles";
 import {
@@ -85,6 +89,33 @@ type ScoringRole = keyof typeof ROLE_BASE_POINTS;
 
 function profileDisplayName(profile?: Profile) {
   return profile?.name || profile?.uomEmail || profile?.googleEmail || "Unknown Volunteer";
+}
+
+async function requireEffectiveAuth() {
+  const user = await requireAuth();
+  return {
+    ...user,
+    isAdmin: await resolveEffectiveIsAdmin(user.isAdmin),
+  };
+}
+
+async function requireCanManageExtraScores() {
+  const user = await requireAuth();
+  if (await isVolunteerPreviewActive(user.isAdmin)) {
+    throw new Error("Extra scores are not available in volunteer preview.");
+  }
+  return {
+    ...user,
+    isAdmin: await resolveEffectiveIsAdmin(user.isAdmin),
+  };
+}
+
+async function requireEffectiveAdmin() {
+  const user = await requireAdmin();
+  if (!(await resolveEffectiveIsAdmin(user.isAdmin))) {
+    throw new Error("Admin access required.");
+  }
+  return { ...user, isAdmin: true };
 }
 
 function resolveScoringRole(role?: string | null): ScoringRole | null {
@@ -374,7 +405,7 @@ export async function createGradeRequest(data: {
 }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const user = await requireCanManageExtraScores();
   const graderId = user.authUser.id;
 
   const validated = GradeRequestSchema.parse(data);
@@ -492,7 +523,14 @@ export async function createGradeRequest(data: {
 export async function listGradeRequests(params?: { limit?: number; offset?: number }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const rawUser = await requireAuth();
+  if (await isVolunteerPreviewActive(rawUser.isAdmin)) {
+    return [];
+  }
+  const user = {
+    ...rawUser,
+    isAdmin: await resolveEffectiveIsAdmin(rawUser.isAdmin),
+  };
 
   const limit = params?.limit !== undefined ? z.number().int().min(1).max(500).parse(params.limit) : 500;
   const offset = params?.offset !== undefined ? z.number().int().min(0).parse(params.offset) : 0;
@@ -554,7 +592,7 @@ export async function listGradeRequests(params?: { limit?: number; offset?: numb
 export async function submitGradeReview(gradeRequestId: string, gradeValue: number) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const user = await requireCanManageExtraScores();
   const graderId = user.authUser.id;
 
   z.string().min(1).parse(gradeRequestId);
@@ -676,7 +714,7 @@ async function recalculateLedgerEntries(
 export async function finalizeGrade(gradeRequestId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const user = await requireCanManageExtraScores();
   const graderId = user.authUser.id;
 
   z.string().min(1).parse(gradeRequestId);
@@ -794,7 +832,7 @@ async function syncRoleLedgerEntry({
 export async function finalizeEventRolePoints(eventId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAdmin();
+  const user = await requireEffectiveAdmin();
   const validatedEventId = z.string().min(1).parse(eventId);
   const databaseId = env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
   const conclusionApprovalDate = await getApprovedConclusionApprovalDate(
@@ -862,7 +900,7 @@ export async function adminOverrideGrade(
 ) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAdmin();
+  const user = await requireEffectiveAdmin();
   const changerId = user.authUser.id;
 
   const validated = AdminGradeOverrideSchema.parse({
@@ -999,7 +1037,7 @@ export async function adminOverrideGrade(
 export async function getVolunteerPoints(userId: string, params?: { limit?: number; offset?: number }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const user = await requireEffectiveAuth();
 
   z.string().min(1).parse(userId);
   const limit = params?.limit !== undefined ? z.number().int().min(1).max(500).parse(params.limit) : 500;
@@ -1049,7 +1087,7 @@ export async function toggleTopBoardExclusion(data: {
 }) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAdmin();
+  const user = await requireEffectiveAdmin();
   const changerId = user.authUser.id;
 
   const validated = z.object({
@@ -1194,7 +1232,7 @@ export async function getLeaderboard(params: {
 export async function listVolunteers(eventId?: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const user = await requireEffectiveAuth();
   assertCanListEventVolunteers(user, eventId);
 
   if (eventId) {
@@ -1243,7 +1281,7 @@ export async function listVolunteers(eventId?: string) {
 export async function getVolunteerActiveEventRole(userId: string, eventId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  const user = await requireAuth();
+  const user = await requireEffectiveAuth();
   assertCanInspectVolunteerEventRole(user, userId, eventId);
 
   const result = await tables.listRows(
@@ -1266,7 +1304,7 @@ export async function getVolunteerActiveEventRole(userId: string, eventId: strin
 export async function listDetailedReviews() {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  await requireAdmin();
+  await requireEffectiveAdmin();
 
   const [reviewsResult, requestsResult, profilesResult, events] = await Promise.all([
     tables.listRows(
@@ -1323,7 +1361,7 @@ export async function listDetailedReviews() {
 export async function deleteGradeRequest(gradeRequestId: string) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
-  await requireAdmin();
+  await requireEffectiveAdmin();
   const databaseId = env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
 
   z.string().min(1).parse(gradeRequestId);
@@ -1366,7 +1404,7 @@ export async function deleteGradeRequest(gradeRequestId: string) {
 }
 
 export async function listAllActiveEvents() {
-  const user = await requireAuth();
+  const user = await requireEffectiveAuth();
   const assignments = await getActiveEventRoleAssignments(user.authUser.id);
   const scopedAssignments = user.isAdmin
     ? assignments

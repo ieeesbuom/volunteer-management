@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, BellPlus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -47,10 +47,10 @@ export default async function AdminNotificationsPage() {
           title="Send Notification"
           description="Create notifications while respecting recipient delivery preferences."
           actions={
-            <Link className={buttonClasses()} href="/dashboard">
+            <AppLink className={buttonClasses()} href="/dashboard">
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to Overview
-            </Link>
+            </AppLink>
           }
         />
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { Loader2, Search, Users } from "lucide-react";
 import type { VolunteerDirectoryItem } from "@/features/volunteers/types";
 
@@ -133,7 +133,7 @@ export function VolunteerSearchWidget() {
           <ul className="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border-subtle bg-bg-base/40">
             {items.map((volunteer) => (
               <li key={volunteer.userId}>
-                <Link
+                <AppLink
                   href={`/volunteers/${volunteer.userId}`}
                   className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-primary-soft/40"
                 >
@@ -151,7 +151,7 @@ export function VolunteerSearchWidget() {
                       {volunteer.headline || volunteer.skills || "Verified volunteer"}
                     </span>
                   </span>
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>
@@ -160,12 +160,12 @@ export function VolunteerSearchWidget() {
 
       {!loading && total > items.length ? (
         <div className="mt-3 shrink-0 border-t border-border-subtle pt-3">
-          <Link
+          <AppLink
             href="/volunteers"
             className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
           >
             View all {total} volunteers
-          </Link>
+          </AppLink>
         </div>
       ) : null}
     </div>

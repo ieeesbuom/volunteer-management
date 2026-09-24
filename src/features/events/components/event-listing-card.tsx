@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { CalendarDays, ClipboardList, MapPin } from "lucide-react";
 import { badgeToneClassName } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -216,9 +216,9 @@ export function EventListingCard({
 
   if (isOpenable && href) {
     return (
-      <Link href={href} className="group block h-full outline-none cursor-pointer">
+      <AppLink href={href} className="group block h-full outline-none cursor-pointer">
         {cardBody}
-      </Link>
+      </AppLink>
     );
   }
 

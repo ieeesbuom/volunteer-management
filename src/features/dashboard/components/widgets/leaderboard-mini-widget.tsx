@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { ArrowRight, Trophy } from "lucide-react";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
 import {
@@ -36,12 +36,12 @@ export function LeaderboardMiniWidget({
             <p className="mt-0.5 text-[11px] text-text-muted">Current term standings</p>
           </div>
         </div>
-        <Link
+        <AppLink
           href="/scoring"
           className="shrink-0 text-[12px] font-semibold text-primary hover:underline"
         >
           View all
-        </Link>
+        </AppLink>
       </div>
 
       {entries.length === 0 ? (
@@ -50,17 +50,17 @@ export function LeaderboardMiniWidget({
           <p className="mt-1 text-[12px] text-text-muted">
             Points will appear here once scoring is underway.
           </p>
-          <Link
+          <AppLink
             href="/scoring"
             className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
           >
             Open leaderboard <ArrowRight className="size-3.5" aria-hidden />
-          </Link>
+          </AppLink>
         </div>
       ) : (
         <div className="space-y-3">
           {leader ? (
-            <Link
+            <AppLink
               href={`/volunteers/${leader.userId}`}
               aria-label={`${leader.name}, rank 1, ${leader.points} points`}
               className={cn(
@@ -84,7 +84,7 @@ export function LeaderboardMiniWidget({
                 </p>
                 <p className="mt-1 text-[11px] font-medium text-text-muted">pts</p>
               </div>
-            </Link>
+            </AppLink>
           ) : null}
 
           {rest.length > 0 ? (
@@ -100,7 +100,7 @@ export function LeaderboardMiniWidget({
                       isSelf && "bg-primary-soft/50",
                     )}
                   >
-                    <Link
+                    <AppLink
                       href={`/volunteers/${entry.userId}`}
                       aria-label={`${entry.name}, rank ${rank}, ${entry.points} points`}
                       className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-primary-soft/40"
@@ -122,7 +122,7 @@ export function LeaderboardMiniWidget({
                         {entry.points}
                         <span className="ml-0.5 font-normal text-text-muted">pts</span>
                       </span>
-                    </Link>
+                    </AppLink>
                   </li>
                 );
               })}

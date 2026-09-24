@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { useDashboardData } from "@/features/dashboard/components/dashboard-data-context";
 
@@ -22,13 +22,13 @@ export function VerifyUomBanner() {
           </p>
         </div>
       </div>
-      <Link
+      <AppLink
         href="/verify-uom"
         className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-warning px-3.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
       >
         Verify now
         <ArrowRight className="size-3.5" aria-hidden />
-      </Link>
+      </AppLink>
     </div>
   );
 }

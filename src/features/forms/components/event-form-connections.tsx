@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -698,12 +698,12 @@ export function EventFormConnections({
                                   Fill form
                                 </button>
                               ) : (
-                                <Link
+                                <AppLink
                                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover"
                                   href={fillPath}
                                 >
                                   Fill form
-                                </Link>
+                                </AppLink>
                               )}
                               <button
                                 onClick={() =>
@@ -731,20 +731,20 @@ export function EventFormConnections({
                             </div>
                             {canManage ? (
                               <div className="flex gap-2">
-                                <Link
+                                <AppLink
                                   className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface hover:text-primary"
                                   href={editPath}
                                 >
                                   <FilePenLine className="size-3.5" aria-hidden="true" />
                                   Edit form
-                                </Link>
-                                <Link
+                                </AppLink>
+                                <AppLink
                                   className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-xs font-semibold text-text-body transition hover:bg-surface hover:text-primary"
                                   href={`${editPath}#responses`}
                                 >
                                   <ListChecks className="size-3.5" aria-hidden="true" />
                                   Responses
-                                </Link>
+                                </AppLink>
                               </div>
                             ) : null}
                           </div>

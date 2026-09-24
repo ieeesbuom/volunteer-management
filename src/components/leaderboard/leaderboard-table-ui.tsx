@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { cn } from "@/lib/utils";
 
 export function volunteerInitials(name: string) {
@@ -124,12 +124,12 @@ export function VolunteerLeaderboardCell({
   isSelf?: boolean;
 }) {
   const nameContent = link ? (
-    <Link
+    <AppLink
       href={`/volunteers/${userId}`}
       className="truncate font-semibold text-text-strong transition-colors hover:text-primary cursor-pointer"
     >
       {name}
-    </Link>
+    </AppLink>
   ) : (
     <span className="truncate font-semibold text-text-strong">{name}</span>
   );

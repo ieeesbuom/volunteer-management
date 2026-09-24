@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, startTransition, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Trophy,
   Award,
@@ -12,6 +12,10 @@ import {
   Plus,
   RefreshCw,
 } from "lucide-react";
+import {
+  useProgressRouter,
+  withNavigationProgress,
+} from "@/components/layout/navigation-progress";
 import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +24,7 @@ import { HallOfFameTable } from "@/features/reports/components/hall-of-fame-tabl
 import { LeaderboardStandingsTable } from "@/features/scoring/components/leaderboard-standings-table";
 import { ExtraScoreAuditTable } from "@/features/scoring/components/extra-score-audit-table";
 import { ExtraScoreReviewList } from "@/features/scoring/components/extra-score-review-list";
+import { useViewMode } from "@/features/access-control/components/view-mode-context";
 import { eventIdMatchesStoredAssignment } from "@/features/access-control/lib/rules";
 import type { EventRole, EventRoleAssignment, SessionUser } from "@/features/access-control/types";
 import {
@@ -201,8 +206,10 @@ export function ScoringDashboard({
   hallOfFame?: { userId: string; name: string; term: { label: string }; pointsEarned: number; rank: number }[];
   volunteerOfTheMonth?: { name: string; highlight: string; pointsEarned: number } | null;
 }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const searchParams = useSearchParams();
+  const { isVolunteerPreview } = useViewMode();
+  const effectiveIsAdmin = user.isAdmin && !isVolunteerPreview;
   const qEventId = searchParams.get("eventId");
   const [activeTab, setActiveTab] = useState<string>("leaderboard");
 
@@ -227,7 +234,7 @@ export function ScoringDashboard({
   const [allEvents, setAllEvents] = useState<EventOption[]>(initialEvents);
 
   useEffect(() => {
-    if (user.isAdmin && allEvents.length === 0) {
+    if (effectiveIsAdmin && allEvents.length === 0) {
       async function fetchEvents() {
         try {
           const events = await listAllActiveEvents();
@@ -236,7 +243,7 @@ export function ScoringDashboard({
       }
       fetchEvents();
     }
-  }, [allEvents.length, user.isAdmin]);
+  }, [allEvents.length, effectiveIsAdmin]);
   const [gradeRequests, setGradeRequests] = useState<GradeRequest[]>([]);
 
 
@@ -253,7 +260,8 @@ export function ScoringDashboard({
     [chairEventAssignments],
   );
 
-  const canManageExtraScores = user.isAdmin || chairEventIds.length > 0;
+  const canManageExtraScores =
+    !isVolunteerPreview && (effectiveIsAdmin || chairEventIds.length > 0);
 
   const activeEventAssignments = useMemo(
     () =>
@@ -271,7 +279,7 @@ export function ScoringDashboard({
   );
 
   const selectedEventAssignment = useMemo(() => {
-    if (user.isAdmin) {
+    if (effectiveIsAdmin) {
       return null;
     }
 
@@ -288,12 +296,12 @@ export function ScoringDashboard({
       : undefined;
 
     return requestedAssignment ?? activeEventAssignments[0] ?? null;
-  }, [activeEventAssignments, chairEventAssignments, qEventId, user.isAdmin]);
+  }, [activeEventAssignments, chairEventAssignments, qEventId, effectiveIsAdmin]);
 
-  const effectiveEventId = user.isAdmin
+  const effectiveEventId = effectiveIsAdmin
     ? qEventId ?? ""
     : selectedEventAssignment?.eventId ?? "";
-  const derivedRole = user.isAdmin
+  const derivedRole = effectiveIsAdmin
     ? "Admin"
     : dashboardRoleFromAssignment(selectedEventAssignment);
 
@@ -303,7 +311,7 @@ export function ScoringDashboard({
     setActiveTab("leaderboard");
   }
 
-  // Dynamic tab list — Extra Scores only for Admin and Chairs (their events).
+  // Extra Scores is a chair/admin tool — hide it in Volunteer Preview.
   const tabs = (() => {
     const base = [
       { id: "leaderboard", label: "Leaderboard", icon: Trophy },
@@ -355,7 +363,7 @@ export function ScoringDashboard({
   const [reqTargetUserId, setReqTargetUserId] = useState("");
   const [reqGradeValue, setReqGradeValue] = useState(5);
   const selectedRequestEventId = (() => {
-    if (user.isAdmin) {
+    if (effectiveIsAdmin) {
       return reqEventId || effectiveEventId || allEvents[0]?.eventId || "";
     }
 
@@ -426,7 +434,7 @@ export function ScoringDashboard({
       return;
     }
 
-    if (!user.isAdmin && !effectiveEventId) {
+    if (!effectiveIsAdmin && !effectiveEventId) {
       return;
     }
 
@@ -444,7 +452,7 @@ export function ScoringDashboard({
       }
     }
     loadVolunteers();
-  }, [effectiveEventId, user.isAdmin, volunteersLoadedFor]);
+  }, [effectiveEventId, effectiveIsAdmin, volunteersLoadedFor]);
 
   // Fetch volunteers specifically for the selected extra score event
   useEffect(() => {
@@ -553,19 +561,21 @@ export function ScoringDashboard({
 
   useEffect(() => {
     const loadData = async () => {
-      if (currentTab === "leaderboard") {
-        await fetchLeaderboard();
-      } else if (currentTab === "point-ledger") {
-        const targetId = derivedRole === "Admin" ? selectedVolPointsId || user.authUser.id : user.authUser.id;
-        await fetchPointsForUser(targetId);
-      } else if (currentTab === "grade-requests") {
-        await fetchGradeRequests();
-        if (derivedRole === "Admin") {
+      await withNavigationProgress(async () => {
+        if (currentTab === "leaderboard") {
+          await fetchLeaderboard();
+        } else if (currentTab === "point-ledger") {
+          const targetId = derivedRole === "Admin" ? selectedVolPointsId || user.authUser.id : user.authUser.id;
+          await fetchPointsForUser(targetId);
+        } else if (currentTab === "grade-requests") {
+          await fetchGradeRequests();
+          if (derivedRole === "Admin") {
+            await fetchDetailedReviews();
+          }
+        } else if (currentTab === "admin-tools") {
           await fetchDetailedReviews();
         }
-      } else if (currentTab === "admin-tools") {
-        await fetchDetailedReviews();
-      }
+      });
     };
     const timer = setTimeout(() => {
       loadData();
@@ -805,7 +815,10 @@ export function ScoringDashboard({
                     <option value="11">November</option>
                     <option value="12">December</option>
                   </select>
-                  <Button onClick={fetchLeaderboard} className="flex items-center gap-1">
+                  <Button
+                    onClick={() => void withNavigationProgress(fetchLeaderboard)}
+                    className="flex items-center gap-1"
+                  >
                     <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
                     Refresh
                   </Button>
@@ -813,9 +826,7 @@ export function ScoringDashboard({
               </div>
             </CardHeader>
             <CardContent className="min-w-0">
-              {loading ? (
-                <div className="py-10 text-center text-[13px] text-text-muted">Loading leaderboard…</div>
-              ) : paginatedLeaderboard.length > 0 ? (
+              {paginatedLeaderboard.length > 0 ? (
                 <div className="space-y-4">
                   <LeaderboardStandingsTable
                     currentUserId={user.authUser.id}
@@ -956,9 +967,7 @@ export function ScoringDashboard({
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="text-center py-6 text-text-secondary">Loading ledger...</div>
-            ) : ledger.length > 0 ? (
+            {ledger.length > 0 ? (
               <div className="min-w-0 w-full overflow-x-auto">
                 <table className="min-w-full divide-y divide-border text-left text-sm">
                   <thead className="text-text-secondary">
@@ -1059,7 +1068,7 @@ export function ScoringDashboard({
                     <label className="mb-1.5 block text-label font-semibold uppercase tracking-wide text-text-muted">
                       Event
                     </label>
-                    {user.isAdmin && allEvents.length > 0 ? (
+                    {effectiveIsAdmin && allEvents.length > 0 ? (
                       <select
                         required
                         value={selectedRequestEventId}
@@ -1156,7 +1165,7 @@ export function ScoringDashboard({
               <div className="space-y-1.5">
                 <CardTitle>Submitted extra scores</CardTitle>
                 <CardDescription>
-                  {user.isAdmin
+                  {effectiveIsAdmin
                     ? "Review pending submissions and finalize points after approval."
                     : "Scores you submitted for your events. An admin must approve them before points are awarded."}
                 </CardDescription>
@@ -1167,13 +1176,13 @@ export function ScoringDashboard({
                 </label>
                 <select
                   value={
-                    user.isAdmin
+                    effectiveIsAdmin
                       ? effectiveEventId
                       : reqEventId
                   }
                   onChange={(e) => {
                     const next = e.target.value;
-                    if (user.isAdmin) {
+                    if (effectiveIsAdmin) {
                       handleEventContextChange(next);
                       return;
                     }
@@ -1183,9 +1192,9 @@ export function ScoringDashboard({
                   className="h-[38px] w-full rounded-md border border-border bg-surface px-3 text-sm"
                 >
                   <option value="">
-                    {user.isAdmin ? "All actionable events" : "All my chair events"}
+                    {effectiveIsAdmin ? "All actionable events" : "All my chair events"}
                   </option>
-                  {user.isAdmin
+                  {effectiveIsAdmin
                     ? allEvents.map((ev) => (
                         <option key={ev.eventId} value={ev.eventId}>
                           {ev.eventTitle}
@@ -1203,8 +1212,8 @@ export function ScoringDashboard({
               <ExtraScoreReviewList
                 authUserId={user.authUser.id}
                 chairEventIds={chairEventIds}
-                derivedRole={user.isAdmin ? "Admin" : "Chairperson"}
-                isAdmin={user.isAdmin}
+                derivedRole={effectiveIsAdmin ? "Admin" : "Chairperson"}
+                isAdmin={effectiveIsAdmin}
                 onApprove={setRequestToApprove}
                 onReject={setRequestToReject}
                 onScoreSaved={fetchGradeRequests}
@@ -1217,7 +1226,7 @@ export function ScoringDashboard({
                   setSuccess(message);
                 }}
                 requests={
-                  user.isAdmin
+                  effectiveIsAdmin
                     ? effectiveEventId
                       ? gradeRequests.filter((req) => req.eventId === effectiveEventId)
                       : gradeRequests

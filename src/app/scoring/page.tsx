@@ -1,4 +1,5 @@
 import { requireAuth } from "@/features/access-control/server/current-user";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppPage } from "@/components/layout/app-page";
 import { PageHeader } from "@/components/layout/page-header";
@@ -21,10 +22,11 @@ export default async function ScoringPage({ searchParams }: ScoringPageProps) {
   const user = await requireAuth();
   const params = await searchParams;
   const selectedEventId = params?.eventId;
-  
+  const effectiveIsAdmin = await resolveEffectiveIsAdmin(user.isAdmin);
+
   const [initialEvents, initialVolunteers, recognitionData] = await Promise.all([
-    user.isAdmin ? listAllActiveEvents().catch(() => []) : Promise.resolve([]),
-    user.isAdmin || selectedEventId
+    effectiveIsAdmin ? listAllActiveEvents().catch(() => []) : Promise.resolve([]),
+    effectiveIsAdmin || selectedEventId
       ? listVolunteers(selectedEventId).catch(() => [])
       : Promise.resolve([]),
     getReportsPageData(user, {

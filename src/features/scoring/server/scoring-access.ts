@@ -3,8 +3,12 @@ import "server-only";
 import type { SessionUser } from "@/features/access-control/types";
 import { hasEventRole } from "@/features/access-control/lib/rules";
 
-export function assertCanListEventVolunteers(user: SessionUser, eventId?: string) {
-  if (user.isAdmin) {
+export function assertCanListEventVolunteers(
+  user: SessionUser,
+  eventId?: string,
+  { isAdmin = user.isAdmin }: { isAdmin?: boolean } = {},
+) {
+  if (isAdmin) {
     return;
   }
 
@@ -14,7 +18,7 @@ export function assertCanListEventVolunteers(user: SessionUser, eventId?: string
     throw new Error("Event context is required to list volunteers.");
   }
 
-  if (hasEventRole(user, normalizedEventId, ["Chair"])) {
+  if (hasEventRole({ ...user, isAdmin }, normalizedEventId, ["Chair"])) {
     return;
   }
 
@@ -25,12 +29,13 @@ export function assertCanInspectVolunteerEventRole(
   user: SessionUser,
   targetUserId: string,
   eventId: string,
+  { isAdmin = user.isAdmin }: { isAdmin?: boolean } = {},
 ) {
-  if (user.isAdmin || user.authUser.id === targetUserId) {
+  if (isAdmin || user.authUser.id === targetUserId) {
     return;
   }
 
-  if (hasEventRole(user, eventId, ["Chair"])) {
+  if (hasEventRole({ ...user, isAdmin }, eventId, ["Chair"])) {
     return;
   }
 

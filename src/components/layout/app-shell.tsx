@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import Image from "next/image";
 import { Suspense, useRef, useState } from "react";
 import {
@@ -122,7 +122,7 @@ function AppShellInner({
   const renderSidebarContent = () => (
     <>
       <div className="flex h-16 shrink-0 items-center border-b border-border-subtle px-5">
-        <Link
+        <AppLink
           href="/dashboard"
           aria-label="University of Moratuwa IEEE Student Branch"
           className="inline-flex min-w-0 items-center transition-opacity hover:opacity-90"
@@ -135,7 +135,7 @@ function AppShellInner({
             className="h-10 w-auto max-w-full object-contain object-left"
             priority
           />
-        </Link>
+        </AppLink>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
@@ -144,7 +144,7 @@ function AppShellInner({
             const Icon = item.icon;
             const isActive = item.id === active;
             return (
-              <Link
+              <AppLink
                 key={item.id}
                 href={item.href}
                 prefetch={true}
@@ -163,7 +163,7 @@ function AppShellInner({
                   aria-hidden="true"
                 />
                 {item.label}
-              </Link>
+              </AppLink>
             );
           })}
 
@@ -177,7 +177,7 @@ function AppShellInner({
                   const Icon = item.icon;
                   const isActive = item.id === active;
                   return (
-                    <Link
+                    <AppLink
                       key={item.id}
                       href={item.href}
                       prefetch={true}
@@ -196,7 +196,7 @@ function AppShellInner({
                         aria-hidden="true"
                       />
                       {item.label}
-                    </Link>
+                    </AppLink>
                   );
                 })}
               </div>

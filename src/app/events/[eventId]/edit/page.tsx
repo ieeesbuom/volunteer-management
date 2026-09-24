@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -64,10 +64,10 @@ export default async function EditEventPage({ params }: PageProps) {
           title="Edit Event"
           description={event.title}
           actions={
-            <Link className={buttonClasses()} href={`/events/${eventId}`}>
+            <AppLink className={buttonClasses()} href={`/events/${eventId}`}>
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to Event
-            </Link>
+            </AppLink>
           }
         />
         <Card>

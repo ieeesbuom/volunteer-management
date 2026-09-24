@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Flag } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -39,10 +39,10 @@ export default async function AdminRecommendationsPage() {
           title="Recommendation Moderation"
           description="Review reported recommendation text and hide content when needed."
           actions={
-            <Link className={buttonClasses()} href="/admin/users">
+            <AppLink className={buttonClasses()} href="/admin/users">
               <ArrowLeft className="size-4" aria-hidden="true" />
               Access Control
-            </Link>
+            </AppLink>
           }
         />
         <Card>

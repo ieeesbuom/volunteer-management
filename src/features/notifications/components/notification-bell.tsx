@@ -10,7 +10,7 @@ import {
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { Bell, CheckCheck, ExternalLink, Inbox, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -438,14 +438,14 @@ function NotificationListItem({
   return (
     <div className={notificationItemClasses(!notification.readAt)}>
       {linkHref ? (
-        <Link
+        <AppLink
           href={linkHref}
           onClick={() => {
             void handleActivate();
           }}
         >
           {mainContent}
-        </Link>
+        </AppLink>
       ) : (
         <button
           type="button"

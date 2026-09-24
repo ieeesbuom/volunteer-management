@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -229,10 +229,10 @@ export function EventDetail({
             : `${event.term} · ${event.year}`
         }
         actions={
-          <Link className={buttonClasses()} href="/events">
+          <AppLink className={buttonClasses()} href="/events">
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to Events
-          </Link>
+          </AppLink>
         }
       />
 
@@ -267,10 +267,10 @@ export function EventDetail({
 
           <div className="flex flex-wrap gap-2">
             {permissions.canEdit ? (
-              <Link className={buttonClasses()} href={`/events/${event.$id}/edit`}>
+              <AppLink className={buttonClasses()} href={`/events/${event.$id}/edit`}>
                 <Pencil className="size-4" aria-hidden="true" />
                 Edit
-              </Link>
+              </AppLink>
             ) : null}
             {permissions.canDelete ? (
               <Button onClick={() => setShowDeleteConfirm(true)} type="button" variant="ghost">
@@ -424,18 +424,18 @@ export function EventDetail({
 
             <div className="flex flex-wrap gap-2">
               {canOpenConclusionReport ? (
-                <Link
+                <AppLink
                   className={buttonClasses({ variant: "primary" })}
                   href={`/reports/conclusions?eventId=${event.$id}`}
                 >
                   Open Report Form
-                </Link>
+                </AppLink>
               ) : null}
 
               {canReviewConclusionReport ? (
-                <Link className={buttonClasses()} href="/reports/conclusions">
+                <AppLink className={buttonClasses()} href="/reports/conclusions">
                   Review Report
-                </Link>
+                </AppLink>
               ) : null}
             </div>
           </CardContent>

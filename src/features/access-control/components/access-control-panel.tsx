@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -451,12 +451,12 @@ function BranchRoleTable({
                             )}
                           </span>
                           <div className="min-w-0">
-                            <Link
+                            <AppLink
                               href={`/volunteers/${user.authUserId}`}
                               className="block truncate text-[13px] font-semibold text-text-strong transition-colors hover:text-primary cursor-pointer"
                             >
                               {displayName}
-                            </Link>
+                            </AppLink>
                             <p className="truncate text-[12px] text-text-muted">{email}</p>
                           </div>
                         </div>

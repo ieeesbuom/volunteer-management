@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VolunteerDirectoryItem } from "@/features/volunteers/types";
@@ -170,7 +170,7 @@ export function VolunteersDirectory({
         <ul className="divide-y divide-border-subtle overflow-hidden rounded-xl border border-border-subtle bg-surface-raised">
           {items.map((volunteer) => (
             <li key={volunteer.userId}>
-              <Link
+              <AppLink
                 href={`/volunteers/${volunteer.userId}`}
                 className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-bg-base"
               >
@@ -196,7 +196,7 @@ export function VolunteersDirectory({
                     event{volunteer.eventCount === 1 ? "" : "s"}
                   </span>
                 </span>
-              </Link>
+              </AppLink>
             </li>
           ))}
         </ul>

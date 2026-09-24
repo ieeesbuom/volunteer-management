@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { AppLink } from "@/components/layout/app-link";
 import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RecommendationWithRespondent } from "@/features/recommendations/types";
@@ -68,12 +68,12 @@ export function RecommendationList({
                 From{" "}
                 <span className="normal-case font-normal tracking-normal text-text-secondary">
                   {recommendation.respondent ? (
-                    <Link
+                    <AppLink
                       href={`/volunteers/${recommendation.respondentId}`}
                       className="hover:underline hover:text-primary transition-colors cursor-pointer"
                     >
                       {displayRespondent(recommendation)}
-                    </Link>
+                    </AppLink>
                   ) : (
                     "Unknown volunteer"
                   )}

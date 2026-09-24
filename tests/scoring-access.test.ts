@@ -34,6 +34,20 @@ describe("scoring access helpers", () => {
     expect(() => assertCanListEventVolunteers(fakeUser({ isAdmin: true }), undefined)).not.toThrow();
   });
 
+  it("treats previewing admins as non-admins when isAdmin is overridden", () => {
+    expect(() =>
+      assertCanListEventVolunteers(fakeUser({ isAdmin: true }), undefined, { isAdmin: false }),
+    ).toThrow("Event context is required");
+    expect(() =>
+      assertCanInspectVolunteerEventRole(
+        fakeUser({ isAdmin: true }),
+        "other-user",
+        "event-1",
+        { isAdmin: false },
+      ),
+    ).toThrow("permission to inspect");
+  });
+
   it("allows event chairs to inspect volunteer roles for their event", () => {
     const user = fakeUser({
       eventRoles: [

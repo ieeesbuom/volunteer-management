@@ -12,6 +12,7 @@ import {
   listActiveEventRoleAssignments,
 } from "@/features/access-control/server/roles";
 import { getProfile, listProfiles } from "@/features/access-control/server/profiles";
+import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
 import {
   canShowVolunteerProfile,
   canViewPrivateVolunteerProfile,
@@ -146,7 +147,9 @@ export async function getVolunteerProfileSummary(
 
   const isPrivateView = canViewPrivateVolunteerProfile({
     profileUserId: profile.authUserId,
-    viewer,
+    viewer: viewer
+      ? { ...viewer, isAdmin: await resolveEffectiveIsAdmin(viewer.isAdmin) }
+      : viewer,
   });
   const [details, sbRoles, eventRoles] = await Promise.all([
     getVolunteerProfileDetails(userId),

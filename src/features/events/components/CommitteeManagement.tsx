@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -17,10 +17,6 @@ import {
   modalPanelClasses,
 } from "@/components/ui/field";
 import { eventInputClasses } from "@/features/events/lib/event-ui";
-import {
-  isGeneralCommittee,
-  sortCommitteesGeneralFirst,
-} from "@/features/events/lib/general-committee";
 import type { Committee, CommitteeMember } from "@/features/events/types";
 import { cn, formatUserFacingError } from "@/lib/utils";
 import { volunteerInitials } from "@/components/leaderboard/leaderboard-table-ui";
@@ -36,29 +32,19 @@ type CommitteeVolunteerOption = {
   userId: string;
 };
 
-export type CommitteeManagementHandle = {
-  refresh: () => Promise<void>;
-};
-
-export const CommitteeManagement = forwardRef<
-  CommitteeManagementHandle,
-  Readonly<{
-    canManage: boolean;
-    eventId: string;
-    initialCommittees: CommitteeWithMembers[];
-    volunteerOptions: CommitteeVolunteerOption[];
-    onCommitteesChange?: (committees: CommitteeWithMembers[]) => void;
-  }>
->(function CommitteeManagement(
-  {
-    canManage,
-    eventId,
-    initialCommittees,
-    volunteerOptions,
-    onCommitteesChange,
-  },
-  ref,
-) {
+export function CommitteeManagement({
+  canManage,
+  eventId,
+  initialCommittees,
+  volunteerOptions,
+  onCommitteesChange,
+}: Readonly<{
+  canManage: boolean;
+  eventId: string;
+  initialCommittees: CommitteeWithMembers[];
+  volunteerOptions: CommitteeVolunteerOption[];
+  onCommitteesChange?: (committees: CommitteeWithMembers[]) => void;
+}>) {
   const [committees, setCommittees] = useState<CommitteeWithMembers[]>(initialCommittees);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -104,10 +90,8 @@ export const CommitteeManagement = forwardRef<
     onCommitteesChange?.(nextCommittees);
   }, [eventId, onCommitteesChange]);
 
-  useImperativeHandle(ref, () => ({ refresh: refreshCommittees }), [refreshCommittees]);
-
   const displayCommittees = useMemo(
-    () => sortCommitteesGeneralFirst(committees),
+    () => [...committees].sort((left, right) => left.name.localeCompare(right.name)),
     [committees],
   );
 
@@ -216,14 +200,6 @@ export const CommitteeManagement = forwardRef<
   }
 
   async function handleDeleteCommittee(committeeId: string) {
-    const committee = committees.find((item) => item.$id === committeeId);
-
-    if (committee && isGeneralCommittee(committee.name)) {
-      setError("The General committee cannot be deleted.");
-      setCommitteeToDelete(null);
-      return;
-    }
-
     setPendingAction(committeeId);
     setError("");
 
@@ -326,7 +302,7 @@ export const CommitteeManagement = forwardRef<
                       <p className="mt-1 text-sm text-text-body">{committee.description}</p>
                     ) : null}
                   </div>
-                  {canManage && !isGeneralCommittee(committee.name) ? (
+                  {canManage ? (
                     <Button
                       disabled={pendingAction === committee.$id}
                       onClick={() => setCommitteeToDelete(committee)}
@@ -537,7 +513,7 @@ export const CommitteeManagement = forwardRef<
       ) : null}
     </Card>
   );
-});
+}
 
 function ConfirmationDialog({
   confirmLabel,

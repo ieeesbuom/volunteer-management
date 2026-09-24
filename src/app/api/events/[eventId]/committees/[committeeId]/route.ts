@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/features/access-control/server/current-user";
 import { canManageStructuralCommittees } from "@/features/events/lib/committee-permissions";
-import { isGeneralCommittee } from "@/features/events/lib/general-committee";
 import { requireVerifiedVolunteer, requireVisibleEvent } from "@/features/events/server/event-route-helpers";
 import {
   deleteCommittee,
@@ -29,10 +28,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     if (!committee || committee.event_id !== eventId) {
       return jsonError("Committee was not found.", 404);
-    }
-
-    if (isGeneralCommittee(committee.name)) {
-      return jsonError("The General committee cannot be deleted.", 400);
     }
 
     if (

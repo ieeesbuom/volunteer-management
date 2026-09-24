@@ -43,8 +43,8 @@ vi.mock("@/features/events/server/event-audit", () => ({
 
 vi.mock("@/features/events/server/committees.server", () => ({
   createCommittee: vi.fn().mockResolvedValue({
-    $id: "committee-general",
-    name: "General",
+    $id: "committee-finance",
+    name: "Finance Committee",
   }),
   deleteCommittee: vi.fn(),
   listCommitteesForEvent: vi.fn().mockResolvedValue([]),

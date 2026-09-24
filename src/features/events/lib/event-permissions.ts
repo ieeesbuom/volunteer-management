@@ -3,6 +3,7 @@ import type { Event, EventPermissions, EventStatus } from "@/features/events/typ
 
 const EDITABLE_STATUSES: EventStatus[] = ["draft", "planning"];
 const EARLY_CREATOR_STATUSES: EventStatus[] = ["draft", "planning"];
+export const DELETABLE_STATUSES: EventStatus[] = ["draft", "planning"];
 /** Shown in All Events for every verified volunteer; detail page stays members-only. */
 export const LISTABLE_PUBLIC_STATUSES: EventStatus[] = [
   "published",
@@ -90,7 +91,10 @@ export function getEventPermissions(
   userEventRole?: EventRole | null,
 ): EventPermissions {
   if (isAdmin) {
-    return ADMIN_PERMISSIONS;
+    return {
+      ...ADMIN_PERMISSIONS,
+      canDelete: DELETABLE_STATUSES.includes(event.status),
+    };
   }
 
   if (

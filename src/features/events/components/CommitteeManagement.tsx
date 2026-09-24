@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -36,21 +36,29 @@ type CommitteeVolunteerOption = {
   userId: string;
 };
 
-export function CommitteeManagement({
-  canManage,
-  eventId,
-  initialCommittees,
-  refreshNonce = 0,
-  volunteerOptions,
-  onCommitteesChange,
-}: Readonly<{
-  canManage: boolean;
-  eventId: string;
-  initialCommittees: CommitteeWithMembers[];
-  refreshNonce?: number;
-  volunteerOptions: CommitteeVolunteerOption[];
-  onCommitteesChange?: (committees: CommitteeWithMembers[]) => void;
-}>) {
+export type CommitteeManagementHandle = {
+  refresh: () => Promise<void>;
+};
+
+export const CommitteeManagement = forwardRef<
+  CommitteeManagementHandle,
+  Readonly<{
+    canManage: boolean;
+    eventId: string;
+    initialCommittees: CommitteeWithMembers[];
+    volunteerOptions: CommitteeVolunteerOption[];
+    onCommitteesChange?: (committees: CommitteeWithMembers[]) => void;
+  }>
+>(function CommitteeManagement(
+  {
+    canManage,
+    eventId,
+    initialCommittees,
+    volunteerOptions,
+    onCommitteesChange,
+  },
+  ref,
+) {
   const [committees, setCommittees] = useState<CommitteeWithMembers[]>(initialCommittees);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -96,13 +104,7 @@ export function CommitteeManagement({
     onCommitteesChange?.(nextCommittees);
   }, [eventId, onCommitteesChange]);
 
-  useEffect(() => {
-    if (refreshNonce === 0) {
-      return;
-    }
-
-    void refreshCommittees();
-  }, [refreshCommittees, refreshNonce]);
+  useImperativeHandle(ref, () => ({ refresh: refreshCommittees }), [refreshCommittees]);
 
   const displayCommittees = useMemo(
     () => sortCommitteesGeneralFirst(committees),
@@ -535,7 +537,7 @@ export function CommitteeManagement({
       ) : null}
     </Card>
   );
-}
+});
 
 function ConfirmationDialog({
   confirmLabel,

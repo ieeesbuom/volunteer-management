@@ -63,13 +63,7 @@ export function MyEvents({
                       ]
                     : [formatRoleLabel(role).toUpperCase()]
                 }
-                tagLabels={[
-                  formatRoleLabel(role),
-                  event.term,
-                  String(event.year),
-                  ...(showLifecycle ? [formatEventStatus(event.status)] : []),
-                  ...(role.committeeName ? [role.committeeName] : []),
-                ]}
+                tagLabels={role.committeeName ? [role.committeeName] : []}
                 showLifecycle={showLifecycle}
                 showConclusionInInfo={false}
               />

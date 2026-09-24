@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadBase64Pdf } from "@/features/reports/lib/download";
@@ -17,6 +17,19 @@ export function ExportActions({ disabled, disabledReason, userId }: ExportAction
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<"idle" | "error" | "success">("idle");
 
+  useEffect(() => {
+    if (status !== "success") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setMessage("");
+      setStatus("idle");
+    }, 4000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [status]);
+
   async function handleExport() {
     if (disabled) {
       return;
@@ -24,7 +37,7 @@ export function ExportActions({ disabled, disabledReason, userId }: ExportAction
 
     setPending(true);
     setStatus("idle");
-    setMessage("Generating PDF...");
+    setMessage("");
 
     try {
       const result = await exportVolunteerProfilePdfAction(userId);
@@ -40,22 +53,27 @@ export function ExportActions({ disabled, disabledReason, userId }: ExportAction
   }
 
   return (
-    <div className="space-y-2">
-      <Button disabled={pending || disabled} onClick={handleExport} type="button" variant="secondary">
+    <div className="relative">
+      <Button
+        disabled={pending || disabled}
+        onClick={handleExport}
+        title={disabled && disabledReason ? disabledReason : undefined}
+        type="button"
+        variant="secondary"
+      >
         <Download className="size-4" aria-hidden="true" />
         {pending ? "Exporting..." : "Export PDF"}
       </Button>
-      {disabled && disabledReason ? (
-        <p className="text-xs text-text-muted">{disabledReason}</p>
-      ) : null}
+      {disabled && disabledReason ? <p className="sr-only">{disabledReason}</p> : null}
       {message ? (
         <p
+          aria-live="polite"
           className={
             status === "error"
-              ? "text-xs text-danger"
+              ? "pointer-events-none absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-xs text-danger"
               : status === "success"
-                ? "text-xs text-success"
-                : "text-xs text-text-body"
+                ? "pointer-events-none absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-xs text-success"
+                : "pointer-events-none absolute left-0 top-full z-10 mt-1 whitespace-nowrap text-xs text-text-body"
           }
         >
           {message}

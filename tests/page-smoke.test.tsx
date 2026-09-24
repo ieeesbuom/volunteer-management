@@ -274,7 +274,24 @@ describe("volunteer profile page smoke tests", () => {
     expect(html).toContain("Chair");
     expect(html).toContain("Tech Week");
     expect(html).toContain("Thoughtful and reliable.");
+    expect(html).not.toContain("Back to my account");
     expect(listVisibleMock).toHaveBeenCalledWith("user-2");
+  });
+
+  it("renders a back link to my account on the owner's public profile", async () => {
+    getCurrentUserMock.mockResolvedValue(makeSessionUser());
+    getSummaryMock.mockResolvedValue(
+      profileSummary({
+        isPrivateView: true,
+        userId: "user-1",
+      }),
+    );
+    listVisibleMock.mockResolvedValue([recommendation()]);
+
+    const html = await htmlFrom(VolunteerProfilePage(routeParams("user-1")));
+
+    expect(html).toContain("Back to my account");
+    expect(html).toContain('href="/volunteers/me"');
   });
 
   it("shows the public not-found state without redirecting anonymous viewers", async () => {

@@ -1,9 +1,11 @@
-import { MessageSquareQuote, UserRound } from "lucide-react";
+import { ArrowLeft, MessageSquareQuote, UserRound } from "lucide-react";
+import { AppLink } from "@/components/layout/app-link";
 import { AppShell } from "@/components/layout/app-shell";
 import { AppPage } from "@/components/layout/app-page";
 import { AppPageNavProvider } from "@/components/layout/app-page-nav-context";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonClasses } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -61,10 +63,12 @@ export default async function VolunteerProfilePage({
   const recommendations = profile.isPrivateView
     ? await listVisibleRecommendationsForVolunteer(userId)
     : [];
+  const isOwnProfile = user?.authUser.id === profile.userId;
   const content = (
     <VolunteerProfileContent
       canReportRecommendations={canReportRecommendations}
       canRequestRecommendation={canRequestRecommendation}
+      isOwnProfile={isOwnProfile}
       profile={profile}
       profileDisplayName={profileDisplayName}
       recommendations={recommendations}
@@ -78,7 +82,7 @@ export default async function VolunteerProfilePage({
   }
 
   return (
-    <AppShell active="directory" user={user}>
+    <AppShell active={isOwnProfile ? "profile" : "directory"} user={user}>
       {content}
     </AppShell>
   );
@@ -87,6 +91,7 @@ export default async function VolunteerProfilePage({
 function VolunteerProfileContent({
   canReportRecommendations,
   canRequestRecommendation,
+  isOwnProfile,
   profile,
   profileDisplayName,
   recommendations,
@@ -95,6 +100,7 @@ function VolunteerProfileContent({
 }: {
   canReportRecommendations: boolean;
   canRequestRecommendation: boolean;
+  isOwnProfile: boolean;
   profile: NonNullable<Awaited<ReturnType<typeof getVolunteerProfileSummary>>>;
   profileDisplayName: string;
   recommendations: Awaited<ReturnType<typeof listVisibleRecommendationsForVolunteer>>;
@@ -112,6 +118,12 @@ function VolunteerProfileContent({
         description={profile.details?.headline ?? "Volunteer profile"}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {isOwnProfile ? (
+              <AppLink className={buttonClasses()} href="/volunteers/me">
+                <ArrowLeft className="size-4" aria-hidden="true" />
+                Back to my account
+              </AppLink>
+            ) : null}
             <Badge tone="success">Verified volunteer</Badge>
             <CopyProfileLinkButton path={profilePath} />
           </div>

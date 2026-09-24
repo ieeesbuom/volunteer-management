@@ -11,10 +11,7 @@ import {
   canViewEventLifecycle,
   isEventVisibleToUser,
 } from "@/features/events/lib/event-permissions";
-import {
-  formatConclusionStatus,
-  formatEventStatus,
-} from "@/features/events/lib/event-ui";
+import { formatEventStatus } from "@/features/events/lib/event-ui";
 import type { Event } from "@/features/events/types";
 
 import { useSearchParams } from "next/navigation";
@@ -47,30 +44,8 @@ function getUserEventRole(user: SessionUser | undefined, event: Event) {
   return assignment?.role ?? null;
 }
 
-function buildAllEventsTags(event: Event, showLifecycle: boolean) {
-  return [
-    event.term,
-    String(event.year),
-    ...(showLifecycle ? [formatConclusionStatus(event.conclusion_status)] : []),
-    event.reference,
-  ].filter(Boolean);
-}
-
-function buildMyEventsTags(
-  event: Event,
-  role: EventRoleAssignment,
-  showLifecycle: boolean,
-) {
-  const tags = [
-    formatRoleLabel(role),
-    event.term,
-    String(event.year),
-    ...(showLifecycle ? [formatEventStatus(event.status)] : []),
-  ];
-  if (role.committeeName) {
-    tags.push(role.committeeName);
-  }
-  return tags;
+function uniqueCommitteeTags(role: EventRoleAssignment) {
+  return role.committeeName ? [role.committeeName] : [];
 }
 
 export function EventList({
@@ -206,9 +181,7 @@ export function EventList({
                 }
                 showLifecycle={showLifecycle}
                 showConclusionInInfo={showLifecycle}
-                tagLabels={buildAllEventsTags(event, showLifecycle).filter(
-                  (tag) => tag !== event.reference,
-                )}
+                tagLabels={[]}
               />
             );
           })}
@@ -241,7 +214,7 @@ export function EventList({
                       ]
                     : [formatRoleLabel(role).toUpperCase()]
                 }
-                tagLabels={buildMyEventsTags(event, role, showLifecycle)}
+                tagLabels={uniqueCommitteeTags(role)}
                 showLifecycle={showLifecycle}
                 showConclusionInInfo={false}
               />

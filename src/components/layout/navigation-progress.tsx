@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-const SHOW_DELAY_MS = 150;
+const SHOW_DELAY_MS = 50;
 
 type ProgressListeners = Set<() => void>;
 
@@ -141,7 +141,7 @@ export function NavigationProgress() {
       <div
         aria-live="polite"
         aria-busy="true"
-        className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-bg-base/60"
+        className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-bg-base/60 backdrop-blur-xs"
       >
         <div className="flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-raised px-4 py-2.5 shadow-md">
           <Loader2 className="size-4 animate-spin text-primary" aria-hidden />

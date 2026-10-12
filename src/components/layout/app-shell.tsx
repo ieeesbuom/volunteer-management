@@ -119,9 +119,9 @@ function AppShellInner({
       ] as const)
     : [];
 
-  const renderSidebarContent = () => (
+  const renderSidebarContent = (isMobile = false) => (
     <>
-      <div className="flex h-16 shrink-0 items-center border-b border-border-subtle px-5">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border-subtle px-5">
         <AppLink
           href="/dashboard"
           aria-label="University of Moratuwa IEEE Student Branch"
@@ -136,6 +136,16 @@ function AppShellInner({
             priority
           />
         </AppLink>
+        {isMobile && (
+          <button
+            type="button"
+            className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-base hover:text-text-strong lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
@@ -281,25 +291,15 @@ function AppShellInner({
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-65 flex transform flex-col border-r border-border-subtle bg-surface-raised transition-transform duration-300 ease-in-out lg:hidden",
-          mobileMenuOpen ? "translate-x-0 flex" : "-translate-x-full flex"
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full invisible pointer-events-none"
         )}
       >
-        <div className="absolute right-0 top-0 -mr-12 pt-4">
-          <button
-            type="button"
-            className="flex size-10 items-center justify-center rounded-full bg-black/50 text-white focus:outline-none cursor-pointer"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="sr-only">Close sidebar</span>
-            <X className="size-6" aria-hidden="true" />
-          </button>
-        </div>
-        {renderSidebarContent()}
+        {renderSidebarContent(true)}
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-border-subtle lg:bg-surface-raised">
-        {renderSidebarContent()}
+        {renderSidebarContent(false)}
       </div>
 
       {/* Main content area */}

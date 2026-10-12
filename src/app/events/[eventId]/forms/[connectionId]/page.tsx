@@ -1,4 +1,3 @@
-import { AppLink } from "@/components/layout/app-link";
 import { redirect } from "next/navigation";
 import { getLavaFormAvailability } from "@/features/forms/lib/lava-availability";
 import { ArrowLeft } from "lucide-react";
@@ -84,10 +83,10 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
           }
           title={form.title}
           actions={
-            <AppLink className={buttonClasses()} href={`/events/${eventId}`}>
+            <a className={buttonClasses()} href={`/events/${eventId}`}>
               <ArrowLeft className="size-4" aria-hidden="true" />
               Back to event
-            </AppLink>
+            </a>
           }
         />
         <LavaFormRendererClient

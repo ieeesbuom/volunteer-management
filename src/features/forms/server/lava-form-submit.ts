@@ -4,7 +4,10 @@ import type {
   FieldDefinition,
   FormWithFields,
   LavaFormStore,
+  SubmissionAnswers,
+  SubmissionAnswerValue,
   SubmitFormState,
+  UniqueReserveEntry,
 } from "@knurdz/lava-form-builder";
 import { getLavaFormAvailability } from "@/features/forms/lib/lava-availability";
 
@@ -74,7 +77,7 @@ function formDataToFieldsRecord(formData: FormData): Record<string, string | str
   return fields;
 }
 
-function coerceFieldValue(field: FieldDefinition, raw: unknown): unknown {
+function coerceFieldValue(field: FieldDefinition, raw: unknown): SubmissionAnswerValue {
   if (field.type === "page_break") {
     return null;
   }
@@ -177,6 +180,9 @@ function validateFieldValue(field: FieldDefinition, value: unknown): string | nu
     }
     return validatePattern(field, value);
   }
+  if (typeof value !== "string") {
+    return `${field.label} has an invalid value.`;
+  }
   if (field.type === "date" && !parseDateParts(value)) {
     return `${field.label} must use the yyyy/mm/dd format.`;
   }
@@ -205,7 +211,7 @@ function validateFieldValue(field: FieldDefinition, value: unknown): string | nu
   return validatePattern(field, value);
 }
 
-function computeUploadSize(records: Array<Record<string, unknown>>): number {
+function computeUploadSize(records: Array<SubmissionAnswers>): number {
   let total = 0;
   for (const rec of records) {
     for (const val of Object.values(rec)) {
@@ -219,7 +225,7 @@ function computeUploadSize(records: Array<Record<string, unknown>>): number {
 
 async function uploadAnswerFiles(
   store: LavaFormStore,
-  answers: Record<string, unknown>,
+  answers: SubmissionAnswers,
   uploaded: string[],
 ) {
   for (const [key, value] of Object.entries(answers)) {
@@ -286,8 +292,8 @@ export async function executeFormSubmission(
   const memberFields = form.fields.filter(
     (f) => f.scope === "member" && f.type !== "page_break",
   );
-  const answers: Record<string, unknown> = {};
-  const uniqueReservations: Array<{ errorKey: string; field: FieldDefinition; value: unknown }> = [];
+  const answers: SubmissionAnswers = {};
+  const uniqueReservations: UniqueReserveEntry[] = [];
 
   for (const field of submissionFields) {
     const key = `submission__${field.key}`;
@@ -303,7 +309,7 @@ export async function executeFormSubmission(
     }
   }
 
-  const memberAnswers: Array<Record<string, unknown>> = [];
+  const memberAnswers: SubmissionAnswers[] = [];
   if (memberFields.length > 0) {
     const rawMemberCount = formData.get("memberCount");
     const memberCount = Number(typeof rawMemberCount === "string" ? rawMemberCount.trim() : "");
@@ -316,7 +322,7 @@ export async function executeFormSubmission(
     } else {
       const extraMembers = Math.max(0, memberCount - 1);
       for (let p = 0; p < extraMembers; p += 1) {
-        const memberAnswer: Record<string, unknown> = {};
+        const memberAnswer: SubmissionAnswers = {};
         for (const field of memberFields) {
           const key = `member__${p}__${field.key}`;
           const rawValue = field.type === "checkbox" ? formData.getAll(key) : formData.get(key);

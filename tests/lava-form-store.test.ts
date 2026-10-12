@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppwriteException } from "node-appwrite";
-import { UniqueFieldConflictError } from "@knurdz/lava-form-builder";
+import { UniqueFieldConflictError } from "../src/features/forms/server/lava-form-submit";
 
 vi.mock("server-only", () => ({}));
 

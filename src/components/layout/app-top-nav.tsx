@@ -64,7 +64,7 @@ export function AppTopNav({ user }: Readonly<{ user: SessionUser }>) {
     <>
       <div
         ref={navRef}
-        className="fixed top-16 right-0 z-30 border-b border-border-subtle bg-bg-base/95 backdrop-blur-sm lg:top-0 lg:left-60"
+        className="fixed top-16 inset-x-0 z-30 border-b border-border-subtle bg-bg-base/95 backdrop-blur-sm lg:top-0 lg:left-60 lg:right-0"
       >
         <VolunteerPreviewBanner />
         <div className="px-4 pb-4 pt-3 sm:px-6">

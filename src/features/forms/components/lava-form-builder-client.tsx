@@ -13,7 +13,7 @@ import {
   type ActionResult,
 } from "@knurdz/lava-form-builder";
 import { useRouter } from "next/navigation";
-import { useProgressRouter } from "@/components/layout/navigation-progress";
+import { useProgressRouter, withNavigationProgress } from "@/components/layout/navigation-progress";
 import { LavaFormSurface } from "@/features/forms/components/lava-form-surface";
 import {
   getFormPurposeDescription,
@@ -100,11 +100,13 @@ export function LavaFormBuilderClient({
 
   const handleBulkSaveFields = useCallback(
     async (formId: string, fields: FieldDefinition[]) => {
-      const result = await actions.bulkSaveFields(formId, fields);
-      if (result.status === "success") {
-        router.refresh();
-      }
-      return result;
+      return await withNavigationProgress(async () => {
+        const result = await actions.bulkSaveFields(formId, fields);
+        if (result.status === "success") {
+          router.refresh();
+        }
+        return result;
+      });
     },
     [actions, router],
   );

@@ -218,7 +218,7 @@ export function EventDetail({
       : [],
   );
   const canChangeStatus =
-    (isAdmin || userEventRole === "Chair") && statusTransitions.length > 0;
+    isAdmin && statusTransitions.length > 0;
   const currentStatusIndex = EVENT_STATUSES.indexOf(event.status);
   const canOpenConclusionReport =
     permissions.canSubmitConclusion &&

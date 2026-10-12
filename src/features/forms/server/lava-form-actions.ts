@@ -31,6 +31,7 @@ import {
   createLavaFormStore,
   diffIncomingFields,
 } from "@/features/forms/server/lava-form-store";
+import { executeFormSubmission } from "@/features/forms/server/lava-form-submit";
 import type { FormConnectionPurpose } from "@/features/forms/types";
 import { getEventNotificationContext } from "@/features/notifications/server/workflow-recipients";
 import {
@@ -530,8 +531,7 @@ export async function lavaSubmitFormAction(
       throw new NotFoundError("Custom form was not found.");
     }
 
-    const { submitForm } = await import("@knurdz/lava-form-builder");
-    const result = await submitForm(store, form, formData);
+    const result = await executeFormSubmission(store, form, formData);
     if (result.status === "success") {
       revalidateFormPaths(eventId, connectionId);
     }

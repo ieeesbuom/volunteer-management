@@ -9,6 +9,10 @@ import type {
   SubmissionFilters,
   SubmissionPage,
 } from "@knurdz/lava-form-builder";
+import {
+  FormSubmissionNotAllowedError,
+  UniqueFieldConflictError,
+} from "@/features/forms/server/lava-form-submit";
 import { canVolunteer } from "@/features/access-control/lib/rules";
 import type { SessionUser } from "@/features/access-control/types";
 import { resolveEffectiveIsAdmin } from "@/features/access-control/server/view-mode";
@@ -180,7 +184,6 @@ export function createLavaFormStore(deps: LavaFormStoreDeps): LavaFormStore {
     const connection = await getConnectionForForm(row);
 
     if (!connection || connection.status !== "active") {
-      const { FormSubmissionNotAllowedError } = await import("@knurdz/lava-form-builder");
       throw new FormSubmissionNotAllowedError("This form is not accepting responses.", formId);
     }
 
@@ -598,7 +601,6 @@ export function createLavaFormStore(deps: LavaFormStoreDeps): LavaFormStore {
             created.push(row.$id);
           } catch (error) {
             if (isAppwriteConflict(error)) {
-              const { UniqueFieldConflictError } = await import("@knurdz/lava-form-builder");
               throw new UniqueFieldConflictError({
                 [entry.errorKey]: "This value is already taken.",
               });

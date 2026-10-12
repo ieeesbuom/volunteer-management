@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import {
   FormBuilder,
   FormSubmissions,
@@ -22,6 +22,8 @@ import {
 import { lavaEditPath, lavaFillPath } from "@/features/forms/lib/lava-paths";
 import { lavaSetGroupAnswersAction } from "@/features/forms/server/lava-form-actions";
 import type { FormConnectionPurpose } from "@/features/forms/types";
+
+const EMPTY_SLUGS: string[] = [];
 
 export function LavaFormBuilderClient({
   actions,
@@ -71,31 +73,46 @@ export function LavaFormBuilderClient({
   }
   const fillPath = lavaFillPath(eventId, connectionId);
   const editPath = lavaEditPath(eventId, connectionId);
-  const builderForm: FormWithFields = {
-    ...form,
-    confirmationEmailSelectedFieldIds: form.confirmationEmailSelectedFieldIds ?? [],
-    fields: (form.fields ?? []).map((field) => ({
-      ...field,
-      options: field.options ?? [],
-    })),
-    googleSheetsSelectedFieldIds: form.googleSheetsSelectedFieldIds ?? [],
-  };
+  const builderForm: FormWithFields = useMemo(
+    () => ({
+      ...form,
+      confirmationEmailSelectedFieldIds: form.confirmationEmailSelectedFieldIds ?? [],
+      fields: (form.fields ?? []).map((field) => ({
+        ...field,
+        options: field.options ?? [],
+      })),
+      googleSheetsSelectedFieldIds: form.googleSheetsSelectedFieldIds ?? [],
+    }),
+    [form],
+  );
+  const formsWithFields = useMemo(() => [builderForm], [builderForm]);
 
-  function handleNavigate(url: string) {
-    if (url.startsWith("/admin")) {
-      return;
-    }
+  const handleNavigate = useCallback(
+    (url: string) => {
+      if (url.startsWith("/admin")) {
+        return;
+      }
 
-    progressRouter.push(url);
-  }
+      progressRouter.push(url);
+    },
+    [progressRouter],
+  );
 
-  async function bulkSaveFields(formId: string, fields: FieldDefinition[]) {
-    const result = await actions.bulkSaveFields(formId, fields);
-    if (result.status === "success") {
-      router.refresh();
-    }
-    return result;
-  }
+  const handleBulkSaveFields = useCallback(
+    async (formId: string, fields: FieldDefinition[]) => {
+      const result = await actions.bulkSaveFields(formId, fields);
+      if (result.status === "success") {
+        router.refresh();
+      }
+      return result;
+    },
+    [actions, router],
+  );
+
+  const builderActions = useMemo(
+    () => ({ ...actions, bulkSaveFields: handleBulkSaveFields }),
+    [actions, handleBulkSaveFields],
+  );
 
   function toggleGroupAnswers(next: boolean) {
     setToggleError("");
@@ -166,9 +183,9 @@ export function LavaFormBuilderClient({
         variant="builder"
       >
         <FormBuilder
-          actions={{ ...actions, bulkSaveFields }}
+          actions={builderActions}
           bannerUrl={bannerUrl}
-          forms={[builderForm]}
+          forms={formsWithFields}
           googleSheetsConnection={null}
           googleSheetsOAuthConfigured={false}
           googleSheetsSettingsHref={editPath}
@@ -189,9 +206,11 @@ export function LavaFormBuilderClient({
         </div>
         <LavaFormSurface connectionId={connectionId} eventId={eventId} fillPath={fillPath}>
           <FormSubmissions
+            commonFieldKey=""
+            commonFormSlugs={EMPTY_SLUGS}
             form={builderForm}
             forms={forms}
-            formsWithFields={[builderForm]}
+            formsWithFields={formsWithFields}
             from={from}
             onDeleteSubmission={deleteSubmission}
             onNavigate={handleNavigate}

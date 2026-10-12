@@ -3,7 +3,6 @@ import "server-only";
 import { ID, Query, TablesDB } from "node-appwrite";
 import type {
   FieldDefinition,
-  FieldWrite,
   FormWithFields,
   LavaFormStore,
   SubmissionFilters,
@@ -22,7 +21,6 @@ import {
   diffFieldsForBulkSave,
   fieldWriteToRow,
   fitLavaString,
-  isValidAppwriteId,
   LAVA_FORM_LIMITS,
   matchesSubmissionSearch,
   normalizeUniqueValue,
@@ -81,10 +79,6 @@ export type LavaFormStoreDeps = {
 };
 
 const LIST_PAGE_SIZE = 100;
-
-function rowId(id: string) {
-  return isValidAppwriteId(id) ? ID.custom(id) : ID.unique();
-}
 
 export function createLavaFormStore(deps: LavaFormStoreDeps): LavaFormStore {
   const user = deps.user;
@@ -471,11 +465,10 @@ export function createLavaFormStore(deps: LavaFormStoreDeps): LavaFormStore {
       }
 
       for (const field of input.creates) {
-        const withId = field as FieldWrite & { id?: string };
         await tables.createRow(
           databaseId,
           APPWRITE_TABLES.lavaFormFields,
-          withId.id && isValidAppwriteId(withId.id) ? rowId(withId.id) : ID.unique(),
+          ID.unique(),
           fieldWriteToRow(input.formId, field),
         );
       }

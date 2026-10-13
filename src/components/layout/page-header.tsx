@@ -43,14 +43,19 @@ export function PageHeader({
           <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
         ) : null}
         {showTitle ? (
-          <h1
-            className={cn(
-              "text-[17px] font-bold tracking-tight text-text-strong sm:text-[18px]",
-              eyebrow ? "mt-2" : undefined,
-            )}
-          >
-            {title}
-          </h1>
+          <div>
+            <h1
+              className={cn(
+                "text-[17px] font-bold tracking-tight text-text-strong sm:text-[18px]",
+                eyebrow ? "mt-2" : undefined,
+              )}
+            >
+              {title}
+            </h1>
+            {description ? (
+              <p className="mt-0.5 text-[13px] text-text-muted">{description}</p>
+            ) : null}
+          </div>
         ) : null}
       </div>
       {actions ? <div className="flex min-w-0 flex-wrap gap-2">{actions}</div> : null}

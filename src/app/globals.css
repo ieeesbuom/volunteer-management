@@ -239,3 +239,25 @@ button * {
 .nav-progress-indeterminate {
   animation: nav-progress-slide 1s ease-in-out infinite;
 }
+
+/* Lava form builder toast notification repositioning — avoids overlapping top nav controls */
+[role="status"].fixed.top-4 {
+  top: 5rem !important;
+  right: 1.5rem !important;
+  z-index: 50 !important;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+/* AppShell desktop sidebar guaranteed display (immune to 3rd-party late style injections) */
+@media (min-width: 64rem) {
+  aside[data-app-sidebar="desktop"] {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 63.99rem) {
+  aside[data-app-sidebar="desktop"] {
+    display: none !important;
+  }
+}
+

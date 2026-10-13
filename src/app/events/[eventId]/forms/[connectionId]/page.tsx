@@ -83,6 +83,7 @@ export default async function EventLavaFormFillPage({ params }: PageProps) {
               : event.title
           }
           title={form.title}
+          showTitle={true}
           actions={
             <AppLink className={buttonClasses()} href={`/events/${eventId}`}>
               <ArrowLeft className="size-4" aria-hidden="true" />

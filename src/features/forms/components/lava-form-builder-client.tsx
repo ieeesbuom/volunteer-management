@@ -111,9 +111,40 @@ export function LavaFormBuilderClient({
     [actions, router],
   );
 
+  const handleUploadBanner = useCallback(
+    async (state: ActionResult, formData: FormData) => {
+      return await withNavigationProgress(async () => {
+        const result = await actions.uploadBanner(state, formData);
+        if (result.status === "success") {
+          router.refresh();
+        }
+        return result;
+      });
+    },
+    [actions, router],
+  );
+
+  const handleDeleteBanner = useCallback(
+    async (state: ActionResult, formData: FormData) => {
+      return await withNavigationProgress(async () => {
+        const result = await actions.deleteBanner(state, formData);
+        if (result.status === "success") {
+          router.refresh();
+        }
+        return result;
+      });
+    },
+    [actions, router],
+  );
+
   const builderActions = useMemo(
-    () => ({ ...actions, bulkSaveFields: handleBulkSaveFields }),
-    [actions, handleBulkSaveFields],
+    () => ({
+      ...actions,
+      bulkSaveFields: handleBulkSaveFields,
+      deleteBanner: handleDeleteBanner,
+      uploadBanner: handleUploadBanner,
+    }),
+    [actions, handleBulkSaveFields, handleDeleteBanner, handleUploadBanner],
   );
 
   function toggleGroupAnswers(next: boolean) {

@@ -120,6 +120,7 @@ export default async function EventLavaFormEditPage({ params, searchParams }: Pa
         <PageHeader
           description={`Build questions and review responses for ${event.title}.`}
           title={form.title}
+          showTitle={true}
           actions={
             <AppLink className={buttonClasses()} href={`/events/${eventId}`}>
               <ArrowLeft className="size-4" aria-hidden="true" />

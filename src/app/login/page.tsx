@@ -144,7 +144,7 @@ export default async function LoginPage({
         </footer>
       </section>
 
-      <section className="relative hidden min-h-screen flex-col bg-surface-raised lg:flex">
+      <section className="relative flex min-h-screen flex-col bg-surface-raised max-lg:hidden">
         <div className="flex flex-1 flex-col items-center justify-center px-10 py-16 xl:px-14">
           <LoginPromoSlider appName={APP_NAME} className="max-w-lg" />
         </div>

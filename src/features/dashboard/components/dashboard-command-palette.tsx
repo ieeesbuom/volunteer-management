@@ -423,7 +423,7 @@ export function DashboardCommandPalette({
             autoCorrect="off"
             spellCheck={false}
           />
-          <kbd className="hidden sm:inline-flex shrink-0 items-center rounded-md border border-border-subtle bg-bg-base px-2 py-0.5 text-[11px] text-text-placeholder">
+          <kbd className="max-sm:hidden inline-flex shrink-0 items-center rounded-md border border-border-subtle bg-bg-base px-2 py-0.5 text-[11px] text-text-placeholder">
             esc
           </kbd>
         </div>

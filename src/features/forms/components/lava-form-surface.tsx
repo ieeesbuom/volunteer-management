@@ -106,6 +106,60 @@ export function LavaFormSurface({
     return () => observer.disconnect();
   }, [groupAnswersEnabled, variant]);
 
+  useEffect(() => {
+    const dismissTimers = new Map<Element, ReturnType<typeof setTimeout>>();
+
+    const checkToasts = () => {
+      const toasts = document.querySelectorAll<HTMLElement>('[role="status"]');
+      toasts.forEach((toast) => {
+        if (!dismissTimers.has(toast)) {
+          const timer = setTimeout(() => {
+            const closeBtn = toast.querySelector<HTMLButtonElement>(
+              'button[aria-label="Close notification"]'
+            );
+            if (closeBtn) {
+              closeBtn.click();
+            } else {
+              toast.remove();
+            }
+            dismissTimers.delete(toast);
+          }, 3500);
+          dismissTimers.set(toast, timer);
+        }
+      });
+    };
+
+    checkToasts();
+    const observer = new MutationObserver(() => checkToasts());
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      dismissTimers.forEach((timer) => clearTimeout(timer));
+      dismissTimers.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Enable lava form builder styles while on form surfaces
+    const styleEl = document.getElementById(
+      "lava-form-builder-styles"
+    ) as HTMLStyleElement | null;
+    if (styleEl) {
+      styleEl.disabled = false;
+    }
+
+    return () => {
+      // Disable injected lava form styles when navigating away to protect global cascade
+      const activeStyle = document.getElementById(
+        "lava-form-builder-styles"
+      ) as HTMLStyleElement | null;
+      if (activeStyle) {
+        activeStyle.disabled = true;
+      }
+    };
+  }, []);
+
   function handleClickCapture(event: MouseEvent<HTMLDivElement>) {
     const anchor = (event.target as HTMLElement | null)?.closest("a");
     if (!anchor) {

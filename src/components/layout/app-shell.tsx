@@ -298,9 +298,12 @@ function AppShellInner({
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-border-subtle lg:bg-surface-raised">
+      <aside
+        data-app-sidebar="desktop"
+        className="fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r border-border-subtle bg-surface-raised max-lg:hidden"
+      >
         {renderSidebarContent(false)}
-      </div>
+      </aside>
 
       {/* Main content area */}
       <AppPageNavProvider defaultTitle={pageTitle ?? ACTIVE_PAGE_TITLES[active]}>

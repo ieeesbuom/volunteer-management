@@ -947,7 +947,7 @@ export function ScoringDashboard({
                 <CardDescription>
                   {derivedRole === "Admin"
                     ? "Inspect any volunteer's accumulated points ledger."
-                    : "Your total accumulated points on the volunteer management platform."}
+                    : "Your total accumulated points on the VoluntIEEE platform."}
                 </CardDescription>
               </div>
               

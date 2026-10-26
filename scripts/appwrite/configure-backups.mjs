@@ -17,7 +17,7 @@ const { Backups } = await import("node-appwrite");
 const policyId = "vm_daily_tables_backup";
 const desired = {
   policyId,
-  name: "Volunteer Management daily tables backup",
+  name: "VoluntIEEE daily tables backup",
   services: ["tablesdb"],
   resourceId: databaseId,
   retention: 30,

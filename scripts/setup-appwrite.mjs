@@ -754,7 +754,7 @@ async function ensureDatabase() {
       throw error;
     }
 
-    await databases.create(databaseId, "Volunteer Management");
+    await databases.create(databaseId, "VoluntIEEE");
     console.log(`created database ${databaseId}`);
   }
 }

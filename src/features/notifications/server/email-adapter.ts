@@ -77,7 +77,7 @@ export function createNotificationEmailAdapter(): NotificationEmailAdapter {
       const result = await transporter.sendMail({
         from: {
           address: fromEmail,
-          name: env.SMTP_FROM_NAME || "IEEE SB UoM Volunteer Management",
+          name: env.SMTP_FROM_NAME || "VoluntIEEE",
         },
         headers: message.idempotencyKey
           ? { "X-Notification-Idempotency-Key": message.idempotencyKey }

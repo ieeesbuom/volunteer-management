@@ -29,12 +29,12 @@ export async function sendUomVerificationCode({
 
   const subject = "Verify your UoM email";
   const text = [
-    `Your IEEE SB UoM Volunteer Management verification code is ${code}.`,
+    `Your VoluntIEEE verification code is ${code}.`,
     "This code expires in 15 minutes.",
     "If you did not request this code, ignore this email.",
   ].join("\n\n");
   const html = [
-    "<p>Your IEEE SB UoM Volunteer Management verification code is:</p>",
+    "<p>Your VoluntIEEE verification code is:</p>",
     `<p><strong style="font-size:20px;letter-spacing:2px">${code}</strong></p>`,
     "<p>This code expires in 15 minutes.</p>",
     "<p>If you did not request this code, ignore this email.</p>",
@@ -80,7 +80,7 @@ function getSmtpConfig(): SmtpConfig {
 
   return {
     fromEmail,
-    fromName: env.SMTP_FROM_NAME || "IEEE SB UoM Volunteer Management",
+    fromName: env.SMTP_FROM_NAME || "VoluntIEEE",
     host,
     password: env.SMTP_PASSWORD,
     port: env.SMTP_PORT ?? 587,

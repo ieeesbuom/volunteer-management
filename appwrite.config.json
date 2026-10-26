@@ -1,7 +1,7 @@
 {
     "organizationId": "69c5f444843b58bcecc6",
     "projectId": "6a1d73e4003b8c63214e",
-    "projectName": "volunteer-management",
+    "projectName": "voluntieee",
     "endpoint": "https://nyc.cloud.appwrite.io/v1",
     "settings": {
         "services": {
@@ -48,7 +48,7 @@
     "tablesDB": [
         {
             "$id": "volunteer_management",
-            "name": "Volunteer Management",
+            "name": "VoluntIEEE",
             "enabled": true
         }
     ],
@@ -3227,7 +3227,7 @@
             "$id": "vm_files",
             "$permissions": [],
             "fileSecurity": true,
-            "name": "Volunteer Management Files (disabled)",
+            "name": "VoluntIEEE Files (disabled)",
             "enabled": false,
             "maximumFileSize": 5000000,
             "allowedFileExtensions": [

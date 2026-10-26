@@ -36,8 +36,8 @@ export function isSafeInternalPath(value: string) {
   }
 
   try {
-    const parsed = new URL(trimmed, "https://internal.volunteer-management.local");
-    return parsed.origin === "https://internal.volunteer-management.local";
+    const parsed = new URL(trimmed, "https://internal.voluntieee.local");
+    return parsed.origin === "https://internal.voluntieee.local";
   } catch {
     return false;
   }

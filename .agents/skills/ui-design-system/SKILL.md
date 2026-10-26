@@ -1,7 +1,7 @@
 ---
 name: ui-design-system
 description: >
-  UI/UX design system and revamp specification for the IEEE SB UoM Volunteer Management System.
+  UI/UX design system and revamp specification for VoluntIEEE (IEEE SB UoM).
   Triggers on any task involving UI changes, styling, component edits, CSS, layout, visual design,
   color, typography, navigation, forms, cards, buttons, badges, animations, or page structure.
   Contains the complete design philosophy, token system, component specs, and file-level implementation
@@ -9,7 +9,7 @@ description: >
   system stays visually consistent.
 ---
 
-# UI Design System — IEEE SB UoM Volunteer Management
+# UI Design System — VoluntIEEE
 
 > This skill contains the authoritative design context for all UI work on this project.
 > Read and follow it in full before making any UI change.

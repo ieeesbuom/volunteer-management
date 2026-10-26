@@ -1,7 +1,7 @@
-# Volunteer Management
+# VoluntIEEE
 
-Single-repo Next.js project for the IEEE Student Branch University of Moratuwa
-Volunteer Management System.
+Single-repo Next.js project for VoluntIEEE (IEEE Student Branch University of Moratuwa
+Volunteer Management System).
 
 ## Stack
 
@@ -12,7 +12,7 @@ Volunteer Management System.
 
 ## Product Scope
 
-The product scope is internal volunteer management for IEEE SB UoM:
+The product scope is VoluntIEEE (internal volunteer management for IEEE SB UoM):
 
 - Google login for accounts.
 - `@uom.lk` email verification before a user can volunteer.
@@ -73,7 +73,7 @@ SMTP_SECURE=false
 SMTP_USER=sender@example.com
 SMTP_PASSWORD=your_smtp_password_or_app_password
 SMTP_FROM_EMAIL=sender@example.com
-SMTP_FROM_NAME=IEEE SB UoM Volunteer Management
+SMTP_FROM_NAME=VoluntIEEE
 ```
 
 For production background jobs and trusted notification creation, set

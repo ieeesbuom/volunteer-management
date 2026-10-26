@@ -1,5 +1,5 @@
-export const APPWRITE_SESSION_COOKIE = "vm_appwrite_session";
-export const OAUTH_LOGIN_NONCE_COOKIE = "vm_oauth_login_nonce";
+export const APPWRITE_SESSION_COOKIE = "voluntieee_appwrite_session";
+export const OAUTH_LOGIN_NONCE_COOKIE = "voluntieee_oauth_login_nonce";
 
 export const PRODUCTION_APP_HOSTNAME = "ieeevm.knurdz.org";
 export const PRODUCTION_APP_ORIGIN = `https://${PRODUCTION_APP_HOSTNAME}`;

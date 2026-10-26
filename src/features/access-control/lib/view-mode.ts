@@ -1,4 +1,4 @@
-export const VIEW_MODE_COOKIE = "ieee_vm_view_mode";
+export const VIEW_MODE_COOKIE = "voluntieee_view_mode";
 
 export type ViewMode = "admin" | "volunteer";
 

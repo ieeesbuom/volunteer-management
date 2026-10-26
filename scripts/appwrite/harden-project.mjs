@@ -166,7 +166,7 @@ try {
     "--bucket-id",
     legacyBucketId,
     "--name",
-    "Volunteer Management Files (disabled)",
+    "VoluntIEEE Files (disabled)",
     "--file-security",
     "true",
     "--enabled",

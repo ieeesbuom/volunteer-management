@@ -1,0 +1,24 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Run every 3 days at 06:00 UTC to prevent Supabase Free Tier inactivity pause (7-day pause window)
+    - cron: "0 6 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping App & Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Application Endpoint
+        run: |
+          URL="${{ secrets.APP_URL || 'https://ieeevm.knurdz.org' }}"
+          echo "Pinging $URL to keep Supabase project active..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/login")
+          echo "Received HTTP status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "Keep-alive ping successful."
+          else
+            echo "Warning: Received unexpected status $STATUS"
+          fi

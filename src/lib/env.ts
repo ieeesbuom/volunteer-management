@@ -29,10 +29,13 @@ const optionalUrl = z.preprocess(
 );
 
 const serverEnvSchema = z.object({
-  NEXT_PUBLIC_APPWRITE_ENDPOINT: z.string().url(),
-  NEXT_PUBLIC_APPWRITE_PROJECT_ID: z.string().min(1),
-  NEXT_PUBLIC_APPWRITE_DATABASE_ID: z.string().min(1),
-  APPWRITE_API_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_URL: optionalUrl.default("https://placeholder.supabase.co"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalString.default("placeholder-anon-key"),
+  SUPABASE_SERVICE_ROLE_KEY: optionalString.default("placeholder-service-role-key"),
+  NEXT_PUBLIC_APPWRITE_ENDPOINT: optionalUrl.default("https://cloud.appwrite.io/v1"),
+  NEXT_PUBLIC_APPWRITE_PROJECT_ID: optionalString.default("placeholder"),
+  NEXT_PUBLIC_APPWRITE_DATABASE_ID: optionalString.default("placeholder"),
+  APPWRITE_API_KEY: optionalString.default("placeholder"),
   APPWRITE_SETUP_API_KEY: optionalString,
   ADMIN_EMAIL: z.string().email(),
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
@@ -51,9 +54,11 @@ const serverEnvSchema = z.object({
 });
 
 const publicEnvSchema = z.object({
-  NEXT_PUBLIC_APPWRITE_ENDPOINT: z.string().url(),
-  NEXT_PUBLIC_APPWRITE_PROJECT_ID: z.string().min(1),
-  NEXT_PUBLIC_APPWRITE_DATABASE_ID: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_URL: optionalUrl.default("https://placeholder.supabase.co"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalString.default("placeholder-anon-key"),
+  NEXT_PUBLIC_APPWRITE_ENDPOINT: optionalUrl.default("https://cloud.appwrite.io/v1"),
+  NEXT_PUBLIC_APPWRITE_PROJECT_ID: optionalString.default("placeholder"),
+  NEXT_PUBLIC_APPWRITE_DATABASE_ID: optionalString.default("placeholder"),
 });
 
 export function getServerEnv() {
@@ -62,6 +67,8 @@ export function getServerEnv() {
 
 export function getPublicEnv() {
   return publicEnvSchema.parse({
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_APPWRITE_ENDPOINT: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT,
     NEXT_PUBLIC_APPWRITE_PROJECT_ID: process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID,
     NEXT_PUBLIC_APPWRITE_DATABASE_ID: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,

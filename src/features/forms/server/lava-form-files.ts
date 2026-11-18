@@ -4,7 +4,7 @@ import { Storage } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { ID } from "node-appwrite";
 import { APPWRITE_BUCKETS } from "@/lib/appwrite/constants";
-import { getAppwriteAdminClient } from "@/server/appwrite";
+import { getAppwriteAdminServices } from "@/server/appwrite";
 import { isAppwriteNotFound, ValidationError } from "@/server/errors";
 
 export const LAVA_FORM_FILE_MAX_BYTES = 10 * 1024 * 1024;
@@ -29,7 +29,7 @@ export type LavaStorageClient = Pick<
 >;
 
 export function getLavaFormStorage(): LavaStorageClient {
-  return new Storage(getAppwriteAdminClient());
+  return getAppwriteAdminServices().storage as unknown as LavaStorageClient;
 }
 
 function extensionOf(filename: string) {

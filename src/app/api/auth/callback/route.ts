@@ -5,6 +5,7 @@ import { createSessionFromOAuthToken } from "@/features/access-control/server/oa
 import { bootstrapProfile } from "@/features/access-control/server/profiles";
 import { isAppwriteUnauthorized } from "@/server/errors";
 import { getPublicAppOrigin } from "@/server/public-origin";
+import { getSupabaseServerClient } from "@/server/supabase";
 import {
   applySessionSecretCookie,
   clearOAuthLoginNonceCookie,
@@ -16,6 +17,36 @@ import {
 export async function GET(request: Request) {
   const origin = getPublicAppOrigin(request);
   const url = new URL(request.url);
+
+  // 1. Supabase OAuth PKCE flow (code parameter)
+  const code = url.searchParams.get("code");
+  if (code) {
+    try {
+      const supabase = await getSupabaseServerClient();
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (error || !data.user) {
+        logAuthCallbackFailure(error ?? new Error("No user returned from code exchange"));
+        return NextResponse.redirect(new URL("/login?error=callback_failed", origin));
+      }
+
+      const user = data.user;
+      await bootstrapProfile({
+        $id: user.id,
+        email: user.email ?? "",
+        name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? "",
+        labels: Array.isArray(user.user_metadata?.labels) ? user.user_metadata.labels : [],
+        prefs: (user.user_metadata?.prefs ?? {}) as Record<string, unknown>,
+      } as unknown as Parameters<typeof bootstrapProfile>[0]);
+
+      return NextResponse.redirect(new URL("/dashboard", origin));
+    } catch (error) {
+      logAuthCallbackFailure(error);
+      return NextResponse.redirect(new URL("/login?error=callback_failed", origin));
+    }
+  }
+
+  // 2. Legacy / test token exchange fallback (userId + secret)
   const userId = url.searchParams.get("userId");
   const secret = url.searchParams.get("secret");
   let sessionSecret: string | null = null;
@@ -31,8 +62,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Exchange the OAuth token (secret + userId) for a real Appwrite session.
-    // The admin client is used so the response includes the session.secret field.
     const session = await createSessionFromOAuthToken({ secret, userId });
 
     if (!session.secret) {
@@ -79,11 +108,11 @@ function logAuthCallbackFailure(error: unknown) {
   const details =
     error instanceof Error
       ? {
-          message: error.message,
-          name: error.name,
-          status: "code" in error ? error.code : undefined,
-          type: "type" in error ? error.type : undefined,
-        }
+        message: error.message,
+        name: error.name,
+        status: "code" in error ? error.code : undefined,
+        type: "type" in error ? error.type : undefined,
+      }
       : { message: "Unknown callback failure" };
 
   console.error("[auth/callback] Google OAuth callback failed", details);

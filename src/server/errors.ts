@@ -42,11 +42,17 @@ export class TooManyRequestsError extends Error {
 }
 
 export function isAppwriteNotFound(error: unknown) {
-  return error instanceof AppwriteException && error.code === 404;
+  if (error instanceof AppwriteException && error.code === 404) return true;
+  const code = getErrorProperty(error, "code");
+  const type = getErrorProperty(error, "type");
+  return code === 404 || code === "PGRST116" || type === "row_not_found" || type === "storage_file_not_found";
 }
 
 export function isAppwriteConflict(error: unknown) {
-  return error instanceof AppwriteException && error.code === 409;
+  if (error instanceof AppwriteException && error.code === 409) return true;
+  const code = getErrorProperty(error, "code");
+  const type = getErrorProperty(error, "type");
+  return code === 409 || code === "23505" || type === "document_already_exists";
 }
 
 export function isAppwriteUnauthorized(error: unknown) {
@@ -54,7 +60,7 @@ export function isAppwriteUnauthorized(error: unknown) {
   const type = getErrorProperty(error, "type");
 
   return (
-    code === 401 &&
+    (code === 401 || code === "PGRST301") &&
     (type === "user_unauthorized"
       || type === "general_unauthorized_scope"
       || type === "general_unauthorized")

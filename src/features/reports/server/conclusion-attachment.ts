@@ -1,14 +1,13 @@
 import "server-only";
 
-import { Storage } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { APPWRITE_BUCKETS } from "@/lib/appwrite/constants";
-import { getAppwriteAdminClient } from "@/server/appwrite";
+import { getAppwriteAdminServices } from "@/server/appwrite";
 import { isAppwriteNotFound, ValidationError } from "@/server/errors";
 import { CONCLUSION_REPORT_PDF_MAX_BYTES } from "@/features/reports/lib/conclusion-attachment";
 
 function getAdminStorage() {
-  return new Storage(getAppwriteAdminClient());
+  return getAppwriteAdminServices().storage;
 }
 
 export function conclusionReportFileId(reportId: string) {

@@ -17,9 +17,9 @@ const nunitoSans = Nunito_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Volunteer Management | IEEE SB UoM",
+  title: "VoluntIEEE | IEEE SB UoM",
   description:
-    "Volunteer and event management system for IEEE Student Branch University of Moratuwa.",
+    "VoluntIEEE — volunteer and event management system for IEEE Student Branch University of Moratuwa.",
 };
 
 export default function RootLayout({

@@ -1,5 +1,5 @@
 {
-  "name": "volunteer-management",
+  "name": "voluntieee",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -29,6 +29,8 @@
   "dependencies": {
     "@knurdz/lava-form-builder": "^0.1.1",
     "@sentry/nextjs": "^10.70.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.1",
     "@teispace/next-themes": "^3.0.2",
     "@types/pdfkit": "^0.17.6",
     "appwrite": "^25.2.0",

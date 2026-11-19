@@ -63,6 +63,19 @@ export async function getProfile(userId: string) {
     return toProfile(row as AppRow);
   } catch (error) {
     if (isAppwriteNotFound(error)) {
+      try {
+        const { Query } = await import("node-appwrite");
+        const res = await tables.listRows<AppRow>(
+          env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+          APPWRITE_TABLES.profiles,
+          [Query.equal("authUserId", userId), Query.limit(1)],
+        );
+        if (res.rows.length > 0) {
+          return toProfile(res.rows[0]);
+        }
+      } catch {
+        // Ignore fallback failure
+      }
       return null;
     }
 
@@ -75,7 +88,23 @@ export async function bootstrapProfile(user: AppwriteUser) {
   const { tables } = getAppwriteAdminServices();
   const authUser = toAuthUser(user);
   const now = new Date().toISOString();
-  const existingProfile = await getProfile(authUser.id);
+  let existingProfile = await getProfile(authUser.id);
+
+  if (!existingProfile) {
+    try {
+      const { Query } = await import("node-appwrite");
+      const res = await tables.listRows<AppRow>(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.profiles,
+        [Query.equal("googleEmail", authUser.email), Query.limit(1)],
+      );
+      if (res.rows.length > 0) {
+        existingProfile = toProfile(res.rows[0]);
+      }
+    } catch {
+      // Ignore fallback failure
+    }
+  }
 
   if (!existingProfile) {
     const row = await tables.createRow<AppRow>(
@@ -92,11 +121,12 @@ export async function bootstrapProfile(user: AppwriteUser) {
   const row = await tables.updateRow<AppRow>(
     env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
     APPWRITE_TABLES.profiles,
-    authUser.id,
+    existingProfile.$id,
     {
+      authUserId: authUser.id,
       googleEmail: authUser.email,
       lastLoginAt: now,
-      name: authUser.name,
+      name: authUser.name || existingProfile.name,
     },
   );
   invalidateCatalog(CATALOG_TAGS.profiles);
@@ -108,7 +138,23 @@ export async function getOrCreateProfile(user: AppwriteUser) {
   const env = getServerEnv();
   const { tables } = getAppwriteAdminServices();
   const authUser = toAuthUser(user);
-  const existingProfile = await getProfile(authUser.id);
+  let existingProfile = await getProfile(authUser.id);
+
+  if (!existingProfile) {
+    try {
+      const { Query } = await import("node-appwrite");
+      const res = await tables.listRows<AppRow>(
+        env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        APPWRITE_TABLES.profiles,
+        [Query.equal("googleEmail", authUser.email), Query.limit(1)],
+      );
+      if (res.rows.length > 0) {
+        existingProfile = toProfile(res.rows[0]);
+      }
+    } catch {
+      // Ignore fallback failure
+    }
+  }
 
   if (existingProfile) {
     return existingProfile;

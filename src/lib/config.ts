@@ -1,4 +1,4 @@
-export const APP_NAME = "Volunteer Management";
+export const APP_NAME = "VoluntIEEE";
 export const ORGANIZATION_NAME = "IEEE Student Branch University of Moratuwa";
 export const UOM_EMAIL_DOMAIN = "uom.lk";
 

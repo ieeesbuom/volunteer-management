@@ -3,6 +3,7 @@ import { APPWRITE_SESSION_COOKIE } from "@/lib/appwrite/constants";
 import { getAppwriteSessionServices } from "@/server/appwrite";
 import { getPublicAppOrigin } from "@/server/public-origin";
 import { getSessionSecret } from "@/server/session";
+import { getSupabaseServerClient } from "@/server/supabase";
 
 const clearCookieOptions = {
   httpOnly: true,
@@ -17,6 +18,13 @@ export async function POST(request: Request) {
 }
 
 async function logout(request: Request) {
+  try {
+    const supabase = await getSupabaseServerClient();
+    await supabase.auth.signOut();
+  } catch {
+    // Non-fatal if session already invalidated
+  }
+
   const sessionSecret = await getSessionSecret();
 
   if (sessionSecret) {

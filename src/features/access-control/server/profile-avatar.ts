@@ -1,7 +1,7 @@
 import "server-only";
 
 import sharp from "sharp";
-import { Storage, type Models } from "node-appwrite";
+import type { Models } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import {
   customAvatarUrl,
@@ -15,7 +15,7 @@ import {
 } from "@/features/access-control/lib/avatar-image";
 import { APPWRITE_BUCKETS, APPWRITE_TABLES } from "@/lib/appwrite/constants";
 import { getServerEnv } from "@/lib/env";
-import { getAppwriteAdminClient, getAppwriteAdminServices } from "@/server/appwrite";
+import { getAppwriteAdminServices } from "@/server/appwrite";
 import { CATALOG_TAGS, invalidateCatalog } from "@/server/catalog-cache";
 import { isAppwriteNotFound, ValidationError } from "@/server/errors";
 import type { Profile } from "@/features/access-control/types";
@@ -30,7 +30,7 @@ type SanitizedAvatar = {
 };
 
 function getAdminStorage() {
-  return new Storage(getAppwriteAdminClient());
+  return getAppwriteAdminServices().storage;
 }
 
 /**

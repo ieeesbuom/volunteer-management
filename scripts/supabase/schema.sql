@@ -641,6 +641,39 @@ CREATE INDEX IF NOT EXISTS "lava_form_unique_keys_form_idx" ON public.lava_form_
 CREATE INDEX IF NOT EXISTS "lava_form_unique_keys_submission_idx" ON public.lava_form_unique_keys ("submissionId");
 
 -- ============================================================
+-- Row Level Security (RLS) Enablement
+-- ============================================================
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recommendation_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recommendations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.uom_verification_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sb_role_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_role_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ieee_terms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.top_board_exclusions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conclusion_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.report_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.participation_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.grade_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.grade_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.point_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recognition_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.term_scoring_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_committees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_committee_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.form_connections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lava_forms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lava_form_fields ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lava_form_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lava_form_unique_keys ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
 -- Supabase Storage Buckets
 -- ============================================================
 

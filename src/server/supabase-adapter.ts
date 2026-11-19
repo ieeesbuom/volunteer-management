@@ -3,6 +3,52 @@ import "server-only";
 
 import { getSupabaseAdminClient, getSupabaseServerClient } from "@/server/supabase";
 
+const TABLE_TIMESTAMP_COLUMNS: Record<string, { createdAt: string; updatedAt: string }> = {
+  profiles: { createdAt: "created_at", updatedAt: "updated_at" },
+  profile_details: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  recommendation_requests: { createdAt: "createdAt", updatedAt: "updated_at" },
+  recommendations: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  uom_verification_requests: { createdAt: "created_at", updatedAt: "updated_at" },
+  sb_role_assignments: { createdAt: "created_at", updatedAt: "updated_at" },
+  event_role_assignments: { createdAt: "created_at", updatedAt: "updated_at" },
+  ieee_terms: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  system_settings: { createdAt: "created_at", updatedAt: "updatedAt" },
+  top_board_exclusions: { createdAt: "createdAt", updatedAt: "updated_at" },
+  audit_logs: { createdAt: "createdAt", updatedAt: "updated_at" },
+  conclusion_reports: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  report_approvals: { createdAt: "created_at", updatedAt: "updated_at" },
+  participation_records: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  grade_requests: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  grade_reviews: { createdAt: "created_at", updatedAt: "updated_at" },
+  point_ledger: { createdAt: "createdAt", updatedAt: "updated_at" },
+  recognition_snapshots: { createdAt: "created_at", updatedAt: "updated_at" },
+  term_scoring_config: { createdAt: "created_at", updatedAt: "updated_at" },
+  events: { createdAt: "created_at", updatedAt: "updated_at" },
+  event_committees: { createdAt: "created_at", updatedAt: "updated_at" },
+  event_committee_members: { createdAt: "created_at", updatedAt: "updated_at" },
+  notifications: { createdAt: "createdAt", updatedAt: "updated_at" },
+  notification_preferences: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  form_connections: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  lava_forms: { createdAt: "createdAt", updatedAt: "updatedAt" },
+  lava_form_fields: { createdAt: "created_at", updatedAt: "updated_at" },
+  lava_form_submissions: { createdAt: "createdAt", updatedAt: "updated_at" },
+  lava_form_unique_keys: { createdAt: "created_at", updatedAt: "updated_at" },
+};
+
+function resolveColumnName(tableId: string, attr: string): string {
+  if (attr === "$id" || attr === "id") return "id";
+
+  const tableCfg = TABLE_TIMESTAMP_COLUMNS[tableId];
+  if (attr === "$createdAt" || attr === "createdAt" || attr === "created_at") {
+    return tableCfg ? tableCfg.createdAt : "created_at";
+  }
+  if (attr === "$updatedAt" || attr === "updatedAt" || attr === "updated_at") {
+    return tableCfg ? tableCfg.updatedAt : "updated_at";
+  }
+
+  return attr;
+}
+
 function formatRow<T extends Record<string, any>>(row: T): T & { $id: string; $createdAt: string; $updatedAt: string } {
   if (!row || typeof row !== "object") return row as any;
   const id = row.id ?? row.$id ?? "";
@@ -68,6 +114,9 @@ export class SupabaseTablesDB {
 
     let limit = 100;
     let offset = 0;
+    let cursorId: string | null = null;
+    let orderColumn: string | null = null;
+    let orderAscending = false;
 
     for (const q of queries) {
       if (!q) continue;
@@ -81,7 +130,7 @@ export class SupabaseTablesDB {
       }
 
       const { method, attribute, values } = parsed;
-      const attr = attribute === "$id" ? "id" : attribute;
+      const attr = attribute ? resolveColumnName(tableId, attribute) : "";
 
       if (method === "equal") {
         if (Array.isArray(values) && values.length > 1) {
@@ -102,21 +151,47 @@ export class SupabaseTablesDB {
       } else if (method === "greaterThanEqual") {
         builder = builder.gte(attr, values[0]);
       } else if (method === "orderDesc") {
-        const col = attr === "$createdAt" ? "created_at" : attr === "$updatedAt" ? "updated_at" : attr;
-        builder = builder.order(col, { ascending: false });
+        orderColumn = attr;
+        orderAscending = false;
+        builder = builder.order(attr, { ascending: false });
       } else if (method === "orderAsc") {
-        const col = attr === "$createdAt" ? "created_at" : attr === "$updatedAt" ? "updated_at" : attr;
-        builder = builder.order(col, { ascending: true });
+        orderColumn = attr;
+        orderAscending = true;
+        builder = builder.order(attr, { ascending: true });
       } else if (method === "limit") {
         limit = Number(values[0]);
       } else if (method === "offset") {
         offset = Number(values[0]);
+      } else if (method === "cursorAfter") {
+        cursorId = String(Array.isArray(values) ? values[0] : values);
+      } else if (method === "startsWith") {
+        builder = builder.like(attr, `${values[0]}%`);
       } else if (method === "isNull") {
         builder = builder.is(attr, null);
       } else if (method === "isNotNull") {
         builder = builder.not(attr, "is", null);
       } else if (method === "contains") {
         builder = builder.ilike(attr, `%${values[0]}%`);
+      }
+    }
+
+    if (cursorId) {
+      const { data: cursorRow } = await supabase
+        .from(tableId)
+        .select("*")
+        .eq("id", cursorId)
+        .maybeSingle();
+
+      if (cursorRow) {
+        const targetCol = orderColumn ?? (TABLE_TIMESTAMP_COLUMNS[tableId]?.createdAt ?? "created_at");
+        const cursorVal = cursorRow[targetCol];
+        if (cursorVal !== undefined && cursorVal !== null) {
+          if (orderAscending) {
+            builder = builder.gt(targetCol, cursorVal);
+          } else {
+            builder = builder.lt(targetCol, cursorVal);
+          }
+        }
       }
     }
 
@@ -227,8 +302,23 @@ export class SupabaseStorage {
     const supabase = getSupabaseAdminClient();
     const { bucketId, fileId, file } = params;
 
-    const buffer = Buffer.isBuffer(file) ? file : file?.buffer ?? file;
-    const contentType = file?.mimeType ?? "application/octet-stream";
+    const buffer = Buffer.isBuffer(file)
+      ? file
+      : file?.source?.data
+        ? Buffer.from(file.source.data)
+        : file?.buffer
+          ? (Buffer.isBuffer(file.buffer) ? file.buffer : Buffer.from(file.buffer))
+          : Buffer.from(file);
+
+    let contentType = file?.mimeType;
+    if (!contentType || contentType === "application/octet-stream") {
+      const filename = file?.filename || fileId;
+      if (filename.endsWith(".pdf")) contentType = "application/pdf";
+      else if (filename.endsWith(".webp")) contentType = "image/webp";
+      else if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) contentType = "image/jpeg";
+      else if (filename.endsWith(".png")) contentType = "image/png";
+      else contentType = "application/octet-stream";
+    }
 
     const { error } = await supabase.storage
       .from(bucketId)
@@ -320,12 +410,21 @@ export class SupabaseUsers {
       .maybeSingle();
 
     if (profile) {
+      let labels: string[] = [];
+      let prefs: Record<string, any> = {};
+      if (profile.authUserId) {
+        const { data: userRecord } = await supabase.auth.admin.getUserById(profile.authUserId);
+        if (userRecord?.user) {
+          labels = Array.isArray(userRecord.user.user_metadata?.labels) ? userRecord.user.user_metadata.labels : [];
+          prefs = userRecord.user.user_metadata?.prefs ?? {};
+        }
+      }
       return {
         $id: profile.id,
         email: profile.googleEmail ?? "",
         name: profile.name ?? "",
-        labels: [],
-        prefs: {},
+        labels,
+        prefs,
       };
     }
 
@@ -364,9 +463,18 @@ export class SupabaseUsers {
   async updateLabels(params: { userId: string; labels: string[] }) {
     const supabase = getSupabaseAdminClient();
     const { userId, labels } = params;
-    const { data: user } = await supabase.auth.admin.getUserById(userId);
+    let authId = userId;
+    let { data: user } = await supabase.auth.admin.getUserById(authId);
+    if (!user?.user) {
+      const { data: profile } = await supabase.from("profiles").select('"authUserId"').eq("id", userId).maybeSingle();
+      if (profile?.authUserId) {
+        authId = profile.authUserId;
+        const res = await supabase.auth.admin.getUserById(authId);
+        user = res.data;
+      }
+    }
     if (user?.user) {
-      await supabase.auth.admin.updateUserById(userId, {
+      await supabase.auth.admin.updateUserById(authId, {
         user_metadata: { ...user.user.user_metadata, labels },
       });
     }
@@ -376,9 +484,18 @@ export class SupabaseUsers {
   async updatePrefs(params: { userId: string; prefs: Record<string, any> }) {
     const supabase = getSupabaseAdminClient();
     const { userId, prefs } = params;
-    const { data: user } = await supabase.auth.admin.getUserById(userId);
+    let authId = userId;
+    let { data: user } = await supabase.auth.admin.getUserById(authId);
+    if (!user?.user) {
+      const { data: profile } = await supabase.from("profiles").select('"authUserId"').eq("id", userId).maybeSingle();
+      if (profile?.authUserId) {
+        authId = profile.authUserId;
+        const res = await supabase.auth.admin.getUserById(authId);
+        user = res.data;
+      }
+    }
     if (user?.user) {
-      await supabase.auth.admin.updateUserById(userId, {
+      await supabase.auth.admin.updateUserById(authId, {
         user_metadata: { ...user.user.user_metadata, prefs },
       });
     }
@@ -387,7 +504,11 @@ export class SupabaseUsers {
 }
 
 export class SupabaseAccount {
-  constructor(private sessionUser: any = null) {}
+  private sessionUser: any;
+
+  constructor(sessionUser: any = null) {
+    this.sessionUser = sessionUser;
+  }
 
   async get() {
     if (this.sessionUser) {

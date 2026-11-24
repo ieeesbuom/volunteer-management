@@ -33,10 +33,20 @@ describe("login error messages", () => {
     expect(getLoginErrorMessage("oauth_state_missing")?.title).toBe("Login session expired");
   });
 
-  it("explains oauth start failures", () => {
+  it("explains oauth start failures with reason", () => {
+    expect(
+      getLoginErrorMessage("oauth_start_failed", "Invalid server environment variables: ADMIN_EMAIL is Required"),
+    ).toEqual({
+      details:
+        "Unable to start Google login: Invalid server environment variables: ADMIN_EMAIL is Required. Check your server and provider configuration.",
+      title: "Unable to start Google login",
+    });
+  });
+
+  it("explains oauth start failures without reason", () => {
     expect(getLoginErrorMessage("oauth_start_failed")).toEqual({
       details:
-        "Unable to start Google login. Verify that voluntieee.knurdz.org is added to your Supabase redirect URLs and Google OAuth credentials in Supabase Dashboard.",
+        "Unable to start Google login. Check your server logs and Google authentication configuration in Supabase Dashboard.",
       title: "Unable to start Google login",
     });
   });

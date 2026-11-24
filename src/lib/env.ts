@@ -23,10 +23,14 @@ const optionalBooleanString = z.preprocess(
     .transform((option) => option === "true"),
 );
 
-const optionalUrl = z.preprocess(
-  (value) => (value === "" ? undefined : value),
-  z.string().url().optional(),
-);
+const optionalUrl = z.preprocess((value) => {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}, z.string().url().optional());
 
 const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl.default("https://placeholder.supabase.co"),
@@ -37,7 +41,7 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_APPWRITE_DATABASE_ID: optionalString.default("placeholder"),
   APPWRITE_API_KEY: optionalString.default("placeholder"),
   APPWRITE_SETUP_API_KEY: optionalString,
-  ADMIN_EMAIL: z.string().email(),
+  ADMIN_EMAIL: z.string().email().default("admin@ieeesbuom.org"),
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
   SMTP_HOST: optionalString,

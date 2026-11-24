@@ -14,7 +14,7 @@ const fallbackError: LoginErrorMessage = {
   title: "Login failed",
 };
 
-export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | null {
+export function getLoginErrorMessage(rawError?: string, reason?: string): LoginErrorMessage | null {
   if (!rawError) {
     return null;
   }
@@ -35,8 +35,9 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
 
   if (rawError === "oauth_start_failed") {
     return {
-      details:
-        "Unable to start Google login. Verify that voluntieee.knurdz.org is added to your Supabase redirect URLs and Google OAuth credentials in Supabase Dashboard.",
+      details: reason
+        ? `Unable to start Google login: ${reason}. Check your server and provider configuration.`
+        : "Unable to start Google login. Check your server logs and Google authentication configuration in Supabase Dashboard.",
       title: "Unable to start Google login",
     };
   }

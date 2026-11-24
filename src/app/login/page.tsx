@@ -29,7 +29,7 @@ function GoogleIcon({ size = 22 }: { size?: number }) {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reason?: string }>;
 }) {
   const user = await getCurrentUser();
 
@@ -38,7 +38,7 @@ export default async function LoginPage({
   }
 
   const params = await searchParams;
-  const errorMessage = getLoginErrorMessage(params.error);
+  const errorMessage = getLoginErrorMessage(params.error, params.reason);
 
   return (
     <main className="relative min-h-screen bg-surface-raised lg:grid lg:grid-cols-2">

@@ -72,8 +72,8 @@ function isTrustedHost(host: string): boolean {
   const configured = parseOrigin(process.env.APP_URL);
   if (configured && new URL(configured).hostname.toLowerCase() === hostname) return true;
 
-  const appwriteHost = process.env.APPWRITE_PRODUCTION_HOSTNAME?.trim().toLowerCase();
-  if (appwriteHost && appwriteHost === hostname) return true;
+  const customProdHost = (process.env.PRODUCTION_HOSTNAME || process.env.APPWRITE_PRODUCTION_HOSTNAME)?.trim().toLowerCase();
+  if (customProdHost && customProdHost === hostname) return true;
 
   const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim().toLowerCase();
   if (vercelProd && vercelProd === hostname) return true;
@@ -83,6 +83,7 @@ function isTrustedHost(host: string): boolean {
 
 function getProductionPublicOrigin() {
   const candidates = [
+    hostToHttpsOrigin(process.env.PRODUCTION_HOSTNAME),
     hostToHttpsOrigin(process.env.APPWRITE_PRODUCTION_HOSTNAME),
     hostToHttpsOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL),
   ];

@@ -64,7 +64,7 @@ export function ConclusionsPageContent({
         <Card>
           <CardHeader>
             <CardTitle>All conclusion reports</CardTitle>
-            <CardDescription>Existing conclusion reports stored in Appwrite.</CardDescription>
+            <CardDescription>Existing conclusion reports and documented events.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-xl border border-border-subtle">

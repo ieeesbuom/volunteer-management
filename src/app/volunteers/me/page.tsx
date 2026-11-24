@@ -122,7 +122,7 @@ export default async function MyVolunteerProfilePage() {
           <CardHeader>
             <CardTitle>Profile Details</CardTitle>
             <CardDescription>
-              These fields are separate from your Appwrite login identity.
+              These fields are separate from your Google login identity.
             </CardDescription>
           </CardHeader>
           <CardContent>

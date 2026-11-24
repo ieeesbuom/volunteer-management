@@ -16,10 +16,9 @@ jobs:
     timeout-minutes: 15
     env:
       ADMIN_EMAIL: admin@example.com
-      APPWRITE_API_KEY: ci-placeholder
-      NEXT_PUBLIC_APPWRITE_DATABASE_ID: volunteer_management
-      NEXT_PUBLIC_APPWRITE_ENDPOINT: https://cloud.appwrite.io/v1
-      NEXT_PUBLIC_APPWRITE_PROJECT_ID: ci-project
+      NEXT_PUBLIC_SUPABASE_URL: https://qhrdoyispexjtcldtltr.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
 
     steps:
       - name: Checkout

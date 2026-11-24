@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { AlertCircle } from "lucide-react";
@@ -105,14 +104,14 @@ export default async function LoginPage({
               <span className="h-px flex-1 bg-border-subtle" />
             </div>
 
-            <Link
+            <a
               href="/api/auth/google"
               className="mt-8 inline-flex h-[3.25rem] w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-white px-6 text-[15px] font-semibold text-[hsl(220,26%,14%)] shadow-md transition-[transform,box-shadow,background-color] duration-200 hover:bg-neutral-100 hover:shadow-lg active:scale-[0.99]"
               aria-label="Continue with Google"
             >
               <GoogleIcon size={24} />
               Continue with Google
-            </Link>
+            </a>
 
             <div className="mt-8 rounded-lg border border-primary-mid bg-primary-soft px-4 py-3.5">
               <p className="text-[13px] leading-6 text-text-body">

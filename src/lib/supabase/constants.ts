@@ -1,7 +1,8 @@
 export const SUPABASE_SESSION_COOKIE = "sb-access-token";
 export const OAUTH_LOGIN_NONCE_COOKIE = "voluntieee_oauth_login_nonce";
 
-export const PRODUCTION_APP_HOSTNAME = "ieeevm.knurdz.org";
+export const PRODUCTION_APP_HOSTNAME = "voluntieee.knurdz.org";
+export const LEGACY_APP_HOSTNAME = "ieeevm.knurdz.org";
 export const PRODUCTION_APP_ORIGIN = `https://${PRODUCTION_APP_HOSTNAME}`;
 
 export const TABLES = {

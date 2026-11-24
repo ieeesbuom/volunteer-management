@@ -36,7 +36,7 @@ describe("login error messages", () => {
   it("explains oauth start failures", () => {
     expect(getLoginErrorMessage("oauth_start_failed")).toEqual({
       details:
-        "Appwrite rejected the login redirect URL. Register ieeevm.knurdz.org as a Web platform in Appwrite, set APP_URL=https://ieeevm.knurdz.org in Vercel production, and confirm Google OAuth credentials in Appwrite.",
+        "Unable to start Google login. Verify that voluntieee.knurdz.org is added to your Supabase redirect URLs and Google OAuth credentials in Supabase Dashboard.",
       title: "Unable to start Google login",
     });
   });

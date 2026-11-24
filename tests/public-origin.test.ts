@@ -124,6 +124,38 @@ describe("getPublicAppOrigin", () => {
 
     expect(origin).toBe("https://ieeevm.knurdz.org");
   });
+
+  it("prioritizes voluntieee.knurdz.org request host over legacy APP_URL", () => {
+    process.env.APP_URL = "https://ieeevm.knurdz.org";
+    delete process.env.APPWRITE_PRODUCTION_HOSTNAME;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
+    const origin = getPublicAppOrigin(
+      createRequest("http://127.0.0.1:3000/api/auth/google", {
+        host: "voluntieee.knurdz.org",
+        "x-forwarded-host": "voluntieee.knurdz.org",
+        "x-forwarded-proto": "https",
+      }),
+    );
+
+    expect(origin).toBe("https://voluntieee.knurdz.org");
+  });
+
+  it("rejects malicious untrusted host header injection", () => {
+    delete process.env.APP_URL;
+    delete process.env.APPWRITE_PRODUCTION_HOSTNAME;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
+    const origin = getPublicAppOrigin(
+      createRequest("http://127.0.0.1:3000/api/auth/google", {
+        host: "evil.com",
+        "x-forwarded-host": "attacker.com",
+        "x-forwarded-proto": "https",
+      }),
+    );
+
+    expect(origin).toBe("https://voluntieee.knurdz.org");
+  });
 });
 
 function restoreEnv(key: string, value: string | undefined) {

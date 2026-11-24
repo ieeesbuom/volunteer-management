@@ -18,6 +18,15 @@ export async function GET(request: Request) {
   const origin = getPublicAppOrigin(request);
   const url = new URL(request.url);
 
+  // Check for error parameters passed directly by the OAuth provider
+  const oauthError = url.searchParams.get("error");
+  if (oauthError) {
+    const errorDescription = url.searchParams.get("error_description");
+    console.error("[auth/callback] OAuth provider returned error:", oauthError, errorDescription);
+    const errorCode = oauthError === "access_denied" ? "oauth_failed" : "callback_failed";
+    return NextResponse.redirect(new URL(`/login?error=${errorCode}`, origin));
+  }
+
   // 1. Supabase OAuth PKCE flow (code parameter)
   const code = url.searchParams.get("code");
   if (code) {

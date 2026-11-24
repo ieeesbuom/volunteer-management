@@ -36,7 +36,7 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "oauth_start_failed") {
     return {
       details:
-        "Appwrite rejected the login redirect URL. Register ieeevm.knurdz.org as a Web platform in Appwrite, set APP_URL=https://ieeevm.knurdz.org in Vercel production, and confirm Google OAuth credentials in Appwrite.",
+        "Unable to start Google login. Verify that voluntieee.knurdz.org is added to your Supabase redirect URLs and Google OAuth credentials in Supabase Dashboard.",
       title: "Unable to start Google login",
     };
   }
@@ -44,7 +44,7 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "oauth_failed") {
     return {
       details:
-        "Appwrite could not complete Google OAuth. Check the Google provider credentials and callback URL in Appwrite.",
+        "Google login was cancelled or rejected. Check the Google provider credentials and callback URL in Supabase Dashboard.",
       title: "Google login was rejected",
     };
   }

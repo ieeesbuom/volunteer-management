@@ -1,4 +1,4 @@
-type AppwriteOAuthError = {
+type OAuthErrorPayload = {
   code?: number;
   message?: string;
   type?: string;
@@ -10,7 +10,7 @@ export type LoginErrorMessage = {
 };
 
 const fallbackError: LoginErrorMessage = {
-  details: "Try signing in again. If it repeats, check the Appwrite auth setup.",
+  details: "Try signing in again. If it repeats, check your Google authentication configuration.",
   title: "Login failed",
 };
 
@@ -19,7 +19,7 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
     return null;
   }
 
-  const parsed = parseAppwriteOAuthError(rawError);
+  const parsed = parseOAuthError(rawError);
   const message = parsed?.message ?? rawError;
 
   if (
@@ -28,7 +28,7 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   ) {
     return {
       details:
-        "Add the Google OAuth client secret to Appwrite, or set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in .env and run npm run setup:appwrite:oauth.",
+        "Ensure your Google OAuth client ID and client secret are properly configured in your Supabase Auth provider settings.",
       title: "Google OAuth client secret is missing",
     };
   }
@@ -52,8 +52,8 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "api_key_unauthorized") {
     return {
       details:
-        "APPWRITE_API_KEY is revoked or missing required scopes (sessions.write, users.read, rows.read, rows.write). Create a new key in the Appwrite Console, then update APPWRITE_API_KEY in .env locally or in Vercel production and redeploy.",
-      title: "Appwrite API key is unauthorized",
+        "Supabase Service Role Key or API configuration is invalid or missing required permissions. Check SUPABASE_SERVICE_ROLE_KEY in your environment configuration and redeploy.",
+      title: "Service authentication key is unauthorized",
     };
   }
 
@@ -68,14 +68,14 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "callback_failed") {
     return {
       details:
-        "The Google login returned to the app, but the local session/profile setup failed. Check the terminal for the sanitized auth callback log.",
+        "The Google login returned to the app, but the local session/profile setup failed. Check the server logs for callback details.",
       title: "Login callback failed",
     };
   }
 
   if (rawError === "missing_callback") {
     return {
-      details: "Google returned without the required Appwrite user token.",
+      details: "Google returned without the required authentication credentials or tokens.",
       title: "Login callback was incomplete",
     };
   }
@@ -83,17 +83,17 @@ export function getLoginErrorMessage(rawError?: string): LoginErrorMessage | nul
   if (rawError === "session_secret_missing") {
     return {
       details:
-        "Appwrite created a session without a usable secret. APPWRITE_API_KEY needs the sessions.write scope.",
-      title: "Appwrite session was incomplete",
+        "Authentication succeeded but an active session token could not be established. Check the server authentication logs.",
+      title: "Login session was incomplete",
     };
   }
 
   return parsed?.message ? { details: parsed.message, title: "Login failed" } : fallbackError;
 }
 
-function parseAppwriteOAuthError(rawError: string): AppwriteOAuthError | null {
+function parseOAuthError(rawError: string): OAuthErrorPayload | null {
   try {
-    const parsed = JSON.parse(rawError) as AppwriteOAuthError;
+    const parsed = JSON.parse(rawError) as OAuthErrorPayload;
 
     if (parsed && typeof parsed === "object") {
       return parsed;

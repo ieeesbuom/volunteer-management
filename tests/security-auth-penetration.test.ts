@@ -97,25 +97,28 @@ describe("Penetration & Security Testing: Auth & Origin", () => {
 
     const anonClient = createClient(url!, anonKey!);
 
+    const [auditRes, insertRes, settingsRes] = await Promise.all([
+      anonClient.from("audit_logs").select("*").limit(5),
+      anonClient.from("profiles").insert({
+        id: "hacker_test",
+        authUserId: "hacker_test",
+        googleEmail: "hacker@evil.com",
+        status: "ACTIVE",
+      }),
+      anonClient.from("system_settings").insert({
+        id: "hacker_setting",
+        key: "active_term_id",
+        value: "hacked",
+      }),
+    ]);
+
     // 1. Anonymous read on audit_logs must return empty or fail
-    const auditRes = await anonClient.from("audit_logs").select("*").limit(5);
     expect(auditRes.data?.length ?? 0).toBe(0);
 
     // 2. Anonymous write on profiles must be blocked by RLS
-    const insertRes = await anonClient.from("profiles").insert({
-      id: "hacker_test",
-      authUserId: "hacker_test",
-      googleEmail: "hacker@evil.com",
-      status: "ACTIVE",
-    });
     expect(insertRes.error).not.toBeNull();
 
     // 3. Anonymous write on system_settings must be blocked by RLS
-    const settingsRes = await anonClient.from("system_settings").insert({
-      id: "hacker_setting",
-      key: "active_term_id",
-      value: "hacked",
-    });
     expect(settingsRes.error).not.toBeNull();
-  });
+  }, 15000);
 });

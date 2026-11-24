@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { createGoogleOAuthUrl } from "@/features/access-control/server/oauth";
-import { assertAppwriteApiKeyAuthorized } from "@/server/appwrite";
-import { isAppwriteUnauthorized } from "@/server/errors";
 import { enforceRateLimit, getClientIp, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 import { getPublicAppOrigin } from "@/server/public-origin";
 import { applyOAuthLoginNonceCookie, createOAuthLoginNonce } from "@/server/session";
@@ -14,19 +12,11 @@ export async function GET(request: Request) {
       rateLimitKey("auth-google", getClientIp(request)),
       RATE_LIMITS.authGooglePerIp,
     );
-    await assertAppwriteApiKeyAuthorized();
     const authUrl = await createGoogleOAuthUrl(origin);
     const response = NextResponse.redirect(authUrl);
     applyOAuthLoginNonceCookie(response, createOAuthLoginNonce());
     return response;
   } catch (error) {
-    if (
-      (error instanceof Error && error.message === "APPWRITE_API_KEY_UNAUTHORIZED")
-      || isAppwriteUnauthorized(error)
-    ) {
-      return NextResponse.redirect(new URL("/login?error=api_key_unauthorized", origin));
-    }
-
     logAuthStartFailure(error);
     return NextResponse.redirect(new URL("/login?error=oauth_start_failed", origin));
   }

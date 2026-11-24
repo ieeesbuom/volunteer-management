@@ -12,7 +12,7 @@ describe("login error messages", () => {
 
     expect(getLoginErrorMessage(error)).toEqual({
       details:
-        "Add the Google OAuth client secret to Appwrite, or set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in .env and run npm run setup:appwrite:oauth.",
+        "Ensure your Google OAuth client ID and client secret are properly configured in your Supabase Auth provider settings.",
       title: "Google OAuth client secret is missing",
     });
   });
@@ -21,11 +21,11 @@ describe("login error messages", () => {
     expect(getLoginErrorMessage("callback_failed")?.title).toBe("Login callback failed");
   });
 
-  it("explains unauthorized Appwrite API keys", () => {
+  it("explains unauthorized service API keys", () => {
     expect(getLoginErrorMessage("api_key_unauthorized")).toEqual({
       details:
-        "APPWRITE_API_KEY is revoked or missing required scopes (sessions.write, users.read, rows.read, rows.write). Create a new key in the Appwrite Console, then update APPWRITE_API_KEY in .env locally or in Vercel production and redeploy.",
-      title: "Appwrite API key is unauthorized",
+        "Supabase Service Role Key or API configuration is invalid or missing required permissions. Check SUPABASE_SERVICE_ROLE_KEY in your environment configuration and redeploy.",
+      title: "Service authentication key is unauthorized",
     });
   });
 

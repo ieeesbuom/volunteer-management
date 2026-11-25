@@ -246,6 +246,65 @@ describe("system settings lifecycle persistence", () => {
     );
   });
 
+  it("rolls back term status and active setting when audit logging fails during closure", async () => {
+    const activeTerm = termRow({
+      active: true,
+      endDate: "2026-09-30",
+      id: "term-active-rollback",
+      label: "2025/26",
+      startDate: "2025-10-01",
+      status: "ACTIVE",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    mocks.listRows.mockResolvedValue({ rows: [activeTerm], total: 1 });
+    mocks.getRow.mockImplementation(async (_databaseId, _tableId, rowId) => {
+      if (rowId === activeTerm.$id) {
+        return activeTerm;
+      }
+
+      return {
+        $id: "active_term_id",
+        key: "active_term_id",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        updatedBy: "admin-1",
+        value: activeTerm.$id,
+      };
+    });
+    mocks.updateRow.mockImplementation(async (input) => ({
+      $id: input.rowId,
+      ...input.data,
+    }));
+    mocks.writeAuditLog.mockImplementation(async (input) => {
+      if (input.action === "IEEE_TERM_CLOSED") {
+        throw new Error("Audit storage down");
+      }
+      return {};
+    });
+
+    await expect(
+      updateIeeeTerm({
+        actorUserId: "admin-1",
+        endDate: activeTerm.endDate,
+        label: activeTerm.label,
+        notes: activeTerm.notes,
+        startDate: activeTerm.startDate,
+        status: "CLOSED",
+        termId: activeTerm.$id,
+      }),
+    ).rejects.toThrow("Audit storage down");
+
+    // Confirms compensating rollback restored the term row to ACTIVE
+    expect(mocks.updateRow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          active: true,
+          status: "ACTIVE",
+        }),
+        rowId: activeTerm.$id,
+      }),
+    );
+  });
+
   it("persists and audits contradictory active-state repairs", async () => {
     const contradictoryTerm = termRow({
       active: true,

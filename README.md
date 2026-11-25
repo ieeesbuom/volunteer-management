@@ -40,15 +40,30 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_EMAIL=admin@example.com
-APP_URL=https://voluntieee.knurdz.org
+APP_URL=http://localhost:3000
 ```
 
-Database schema migrations are located in `scripts/supabase/schema.sql`.
+> **Note**: For local development, set `APP_URL=http://localhost:3000` and ensure `http://localhost:3000/api/auth/callback` is allowed in your Supabase Redirect URLs. In production environments, set `APP_URL=https://voluntieee.knurdz.org`.
 
-For Google login, configure Google OAuth in your Supabase Dashboard:
-1. Go to **Authentication** → **Sign in / Providers** → **Google**.
-2. Enter your Google Client ID and Secret.
-3. In **URL Configuration**, set Site URL to `https://voluntieee.knurdz.org` (or `http://localhost:3000` for local dev) and ensure redirect URLs include `https://voluntieee.knurdz.org/api/auth/callback`.
+### Database Initialization
+
+Before starting the application on a new Supabase project, you must apply the database schema:
+1. Open the **SQL Editor** in your Supabase Dashboard.
+2. Copy and execute the contents of `scripts/supabase/schema.sql` to create all required tables (`profiles`, `profile_details`, `ieee_terms`, `system_settings`, `audit_logs`, etc.), indexes, and storage buckets.
+
+### Google OAuth Setup
+
+Configuring Google login requires setting up credentials in both Google Cloud Console and Supabase Dashboard:
+
+1. In **Google Cloud Console** (**APIs & Services** → **Credentials** → **OAuth 2.0 Client IDs**), add the Supabase Auth callback URL as an **Authorized redirect URI**:
+   ```txt
+   https://YOUR_SUPABASE_PROJECT_REF.supabase.co/auth/v1/callback
+   ```
+   *(Note: Entering client credentials in Supabase alone is insufficient; Google will reject the login if this redirect URI is not registered in Google Cloud Console).*
+2. In **Supabase Dashboard**, go to **Authentication** → **Sign in / Providers** → **Google**, enable Google, and enter your Google Client ID and Client Secret.
+3. In **Authentication** → **URL Configuration**:
+   - Set **Site URL** to `https://voluntieee.knurdz.org` (or `http://localhost:3000` for local dev).
+   - Add both `http://localhost:3000/api/auth/callback` (for local development) and `https://voluntieee.knurdz.org/api/auth/callback` (for production) under **Redirect URLs**.
 
 For UoM verification emails, configure SMTP in `.env`:
 
@@ -89,7 +104,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run typecheck` - TypeScript validation
 - `npm run check` - lint and typecheck
 - `npm run test` - unit tests
-- `npm run seed:supabase` - seed database from backup
+- `npm run seed:supabase` - seed initial administrative accounts, the active 2025/26 term, and default system settings into a fresh database (Warning: do not run on an existing database as it can overwrite settings or reactivate the 2025/26 term)
 
 ## Production auth checklist
 

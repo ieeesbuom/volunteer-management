@@ -292,54 +292,110 @@ export async function updateIeeeTerm({
     nextStatus === "CLOSED" ? await getActiveTermSetting() : null;
 
   const term = await runTablesTransaction(tables, async (transactionId) => {
-    const row = await tables.updateRow<AppRow>({
-      data: {
-        active: nextStatus === "ACTIVE",
-        endDate,
-        label: canonicalLabel,
-        notes: notes ?? "",
-        startDate,
-        status: nextStatus,
-        updatedAt: new Date().toISOString(),
-        updatedBy: actorUserId,
-      },
-      databaseId: env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-      rowId: termId,
-      tableId: APPWRITE_TABLES.ieeeTerms,
-      transactionId,
-    });
-    const updated = toIeeeTerm(row);
+    let termRowUpdated = false;
+    let settingCleared = false;
 
-    if (nextStatus === "CLOSED" && activeTermSetting?.value === termId) {
-      await upsertSystemSetting({
-        actorUserId,
-        key: ACTIVE_TERM_SETTING_KEY,
+    try {
+      if (nextStatus === "CLOSED" && activeTermSetting?.value === termId) {
+        await upsertSystemSetting({
+          actorUserId,
+          key: ACTIVE_TERM_SETTING_KEY,
+          transactionId,
+          value: "",
+        });
+        settingCleared = true;
+      }
+
+      const row = await tables.updateRow<AppRow>({
+        data: {
+          active: nextStatus === "ACTIVE",
+          endDate,
+          label: canonicalLabel,
+          notes: notes ?? "",
+          startDate,
+          status: nextStatus,
+          updatedAt: new Date().toISOString(),
+          updatedBy: actorUserId,
+        },
+        databaseId: env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+        rowId: termId,
+        tableId: APPWRITE_TABLES.ieeeTerms,
         transactionId,
-        value: "",
       });
+      termRowUpdated = true;
+      const updated = toIeeeTerm(row);
+
+      await writeAuditLog({
+        action:
+          nextStatus === "CLOSED" ? "IEEE_TERM_CLOSED" : "IEEE_TERM_UPDATED",
+        actorUserId,
+        metadata:
+          nextStatus === "CLOSED"
+            ? {
+                after: { active: false, status: "CLOSED" },
+                before: {
+                  active: currentTerm.active,
+                  status: currentTerm.status,
+                },
+                reason: "ADMIN_CLOSED",
+              }
+            : { endDate, label: canonicalLabel, startDate, status: nextStatus },
+        targetId: updated.$id,
+        targetType: "ieee_term",
+        transactionId,
+      });
+
+      return updated;
+    } catch (operationError) {
+      if (termRowUpdated && nextStatus === "CLOSED") {
+        try {
+          await tables.updateRow({
+            data: {
+              active: currentTerm.active,
+              endDate: currentTerm.endDate,
+              label: currentTerm.label,
+              notes: currentTerm.notes ?? "",
+              startDate: currentTerm.startDate,
+              status: currentTerm.status,
+              updatedAt: currentTerm.updatedAt,
+              updatedBy: currentTerm.updatedBy,
+            },
+            databaseId: env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+            rowId: termId,
+            tableId: APPWRITE_TABLES.ieeeTerms,
+          });
+          if (settingCleared && activeTermSetting?.value === termId) {
+            await upsertSystemSetting({
+              actorUserId,
+              key: ACTIVE_TERM_SETTING_KEY,
+              transactionId,
+              value: termId,
+            });
+          }
+        } catch (rollbackError) {
+          console.error(
+            "Failed to rollback term closure after operation failure",
+            rollbackError,
+          );
+        }
+      } else if (settingCleared && nextStatus === "CLOSED" && activeTermSetting?.value === termId) {
+        try {
+          await upsertSystemSetting({
+            actorUserId,
+            key: ACTIVE_TERM_SETTING_KEY,
+            transactionId,
+            value: termId,
+          });
+        } catch (rollbackError) {
+          console.error(
+            "Failed to restore active term setting after operation failure",
+            rollbackError,
+          );
+        }
+      }
+
+      throw operationError;
     }
-
-    await writeAuditLog({
-      action:
-        nextStatus === "CLOSED" ? "IEEE_TERM_CLOSED" : "IEEE_TERM_UPDATED",
-      actorUserId,
-      metadata:
-        nextStatus === "CLOSED"
-          ? {
-              after: { active: false, status: "CLOSED" },
-              before: {
-                active: currentTerm.active,
-                status: currentTerm.status,
-              },
-              reason: "ADMIN_CLOSED",
-            }
-          : { endDate, label: canonicalLabel, startDate, status: nextStatus },
-      targetId: updated.$id,
-      targetType: "ieee_term",
-      transactionId,
-    });
-
-    return updated;
   });
 
   invalidateCatalog(CATALOG_TAGS.scoringInputs);

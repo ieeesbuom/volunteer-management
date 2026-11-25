@@ -35,8 +35,7 @@ export const EXCOM_ROLES = [
   "Secretary",
   "Assistant Secretary",
   "Treasurer",
-  "Assistant Treasurer",
-  "Editor",
+  "Chapter & Affinity Group Coordinator",
   "Webmaster",
 ] as const;
 

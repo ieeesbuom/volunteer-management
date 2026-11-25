@@ -12,10 +12,30 @@ import { writeAuditLog } from "@/server/audit";
 import { jsonRouteError, ValidationError } from "@/server/errors";
 import { enforceRateLimit, rateLimitKey, RATE_LIMITS } from "@/server/rate-limit";
 import { getSessionSecret } from "@/server/session";
+import { getSupabaseServerClient } from "@/server/supabase";
 
 export const runtime = "nodejs";
 
 async function resolveGoogleFallback(userId: string): Promise<string | undefined> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && user.id === userId) {
+      const metadataAvatar =
+        typeof user.user_metadata?.avatar_url === "string" && user.user_metadata.avatar_url.startsWith("https://")
+          ? user.user_metadata.avatar_url
+          : typeof user.user_metadata?.picture === "string" && user.user_metadata.picture.startsWith("https://")
+            ? user.user_metadata.picture
+            : undefined;
+
+      if (metadataAvatar) {
+        return metadataAvatar;
+      }
+    }
+  } catch {
+    // Non-Supabase session fallback
+  }
+
   const sessionSecret = await getSessionSecret();
 
   if (!sessionSecret) {

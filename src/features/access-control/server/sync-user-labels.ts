@@ -3,7 +3,7 @@ import "server-only";
 import {
   buildSyncedLabels,
   resolveIsAdmin,
-} from "@/features/access-control/lib/appwrite-labels";
+} from "@/features/access-control/lib/auth-labels";
 import { getActiveSbRoles } from "@/features/access-control/server/roles";
 import { getServerEnv } from "@/lib/env";
 import { getAppwriteAdminServices } from "@/server/appwrite";

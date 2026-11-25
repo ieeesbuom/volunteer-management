@@ -40,12 +40,24 @@ export async function GET(request: Request) {
       }
 
       const user = data.user;
+      const googleAvatarUrl =
+        typeof user.user_metadata?.avatar_url === "string" && user.user_metadata.avatar_url.startsWith("https://")
+          ? user.user_metadata.avatar_url
+          : typeof user.user_metadata?.picture === "string" && user.user_metadata.picture.startsWith("https://")
+            ? user.user_metadata.picture
+            : undefined;
+
+      const userPrefs = {
+        ...((user.user_metadata?.prefs ?? {}) as Record<string, unknown>),
+        ...(googleAvatarUrl ? { avatarUrl: googleAvatarUrl } : {}),
+      };
+
       await bootstrapProfile({
         $id: user.id,
         email: user.email ?? "",
         name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? "",
         labels: Array.isArray(user.user_metadata?.labels) ? user.user_metadata.labels : [],
-        prefs: (user.user_metadata?.prefs ?? {}) as Record<string, unknown>,
+        prefs: userPrefs,
       } as unknown as Parameters<typeof bootstrapProfile>[0]);
 
       return NextResponse.redirect(new URL("/dashboard", origin));

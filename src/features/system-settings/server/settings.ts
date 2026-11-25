@@ -346,6 +346,25 @@ export async function updateIeeeTerm({
   return term;
 }
 
+export async function closeIeeeTerm({
+  actorUserId,
+  termId,
+}: {
+  actorUserId: string;
+  termId: string;
+}) {
+  const currentTerm = await getIeeeTerm(termId);
+  return updateIeeeTerm({
+    actorUserId,
+    endDate: currentTerm.endDate,
+    label: currentTerm.label,
+    notes: currentTerm.notes,
+    startDate: currentTerm.startDate,
+    status: "CLOSED",
+    termId,
+  });
+}
+
 export async function activateIeeeTerm({
   actorUserId,
   termId,

@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getServerEnv } from "@/lib/env";
-import { mergeSbRoles, resolveIsAdmin } from "@/features/access-control/lib/appwrite-labels";
+import { mergeSbRoles, resolveIsAdmin } from "@/features/access-control/lib/auth-labels";
 import { canVolunteer, hasEventRole, hasSbRole } from "@/features/access-control/lib/rules";
 import { getAppwriteSessionServices } from "@/server/appwrite";
 import { readAvatarUrlFromPrefs } from "@/features/access-control/server/google-avatar";
@@ -17,19 +17,34 @@ import type { EventRole, SbRole, SessionUser } from "@/features/access-control/t
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const env = getServerEnv();
-    let authUserRecord: { id: string; email: string; name: string; labels: string[]; prefs: Record<string, unknown> } | null = null;
+    let authUserRecord: {
+      id: string;
+      email: string;
+      name: string;
+      labels: string[];
+      prefs: Record<string, unknown>;
+      googleAvatarUrl?: string;
+    } | null = null;
 
     // 1. Try Supabase session
     try {
       const supabase = await getSupabaseServerClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        const metadataAvatar =
+          typeof user.user_metadata?.avatar_url === "string" && user.user_metadata.avatar_url.startsWith("https://")
+            ? user.user_metadata.avatar_url
+            : typeof user.user_metadata?.picture === "string" && user.user_metadata.picture.startsWith("https://")
+              ? user.user_metadata.picture
+              : undefined;
+
         authUserRecord = {
           id: user.id,
           email: user.email ?? "",
           name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? "",
           labels: Array.isArray(user.user_metadata?.labels) ? user.user_metadata.labels : [],
           prefs: (user.user_metadata?.prefs ?? {}) as Record<string, unknown>,
+          googleAvatarUrl: metadataAvatar ?? readAvatarUrlFromPrefs(user.user_metadata?.prefs as Record<string, unknown>),
         };
       }
     } catch {
@@ -49,6 +64,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
               name: appUser.name ?? "",
               labels: Array.isArray(appUser.labels) ? appUser.labels : [],
               prefs: appUser.prefs ?? {},
+              googleAvatarUrl: readAvatarUrlFromPrefs(appUser.prefs),
             };
           }
         }
@@ -59,13 +75,17 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
       }
 
       const labels = authUserRecord.labels;
-      const cachedAvatarUrl = readAvatarUrlFromPrefs(authUserRecord.prefs);
+      const cachedAvatarUrl =
+        authUserRecord.googleAvatarUrl ?? readAvatarUrlFromPrefs(authUserRecord.prefs);
       const mockAppwriteUser = {
         $id: authUserRecord.id,
         email: authUserRecord.email,
         name: authUserRecord.name,
         labels: authUserRecord.labels,
-        prefs: authUserRecord.prefs,
+        prefs: {
+          ...authUserRecord.prefs,
+          ...(cachedAvatarUrl ? { avatarUrl: cachedAvatarUrl } : {}),
+        },
       };
 
       const [profile, tableSbRoles, eventRoles] = await Promise.all([

@@ -8,13 +8,13 @@ Volunteer Management System).
 - Next.js App Router
 - TypeScript
 - Tailwind CSS
-- Appwrite Cloud: Auth, TablesDB, Storage, Realtime, Functions, Sites
+- Supabase: PostgreSQL Database, Supabase Auth, Storage
 
 ## Product Scope
 
 The product scope is VoluntIEEE (internal volunteer management for IEEE SB UoM):
 
-- Google login for accounts.
+- Google login for accounts via Supabase OAuth.
 - `@uom.lk` email verification before a user can volunteer.
 - One true Admin account that manages all other privileges.
 - Student Branch roles: ExCom, SB Lead, SB Member.
@@ -22,7 +22,6 @@ The product scope is VoluntIEEE (internal volunteer management for IEEE SB UoM):
 - No university index number validation.
 - Chairs may attach a Google Form link or build a custom in-app form
   (registration, grants, t-shirt orders, OC progress, team registration, and more).
-  After pulling purpose/schema changes for custom forms, run `npm run setup:appwrite`.
 - SMTP-based UoM verification email sender.
 - No public event discovery module.
 - Lifetime volunteer points, with monthly/yearly best selections based on points
@@ -32,39 +31,26 @@ The product scope is VoluntIEEE (internal volunteer management for IEEE SB UoM):
 
 ## Setup
 
-Use Node 22 or newer for local development. The npm scripts set
-`FORCE_NODE_FETCH=1` so the Appwrite server SDK works cleanly on Node 26.
+Use Node 22 or newer for local development.
 
-Copy `.env.example` to `.env.local` and fill the Appwrite project values before
-running the app. After pulling schema changes (including custom Lava forms and
-new form purposes), run `npm run setup:appwrite`.
+Copy `.env.example` to `.env.local` and configure your Supabase credentials:
 
-For Google login, create a Google OAuth Web Client and add this authorized
-redirect URI in Google Cloud (this is Appwrite's callback, not the app URL):
-
-```txt
-https://YOUR_APPWRITE_REGION.cloud.appwrite.io/v1/account/sessions/oauth2/callback/google/YOUR_APPWRITE_PROJECT_ID
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_EMAIL=admin@example.com
+APP_URL=https://voluntieee.knurdz.org
 ```
 
-Do **not** use `https://ieeevm.knurdz.org/api/auth/callback` as the Google
-redirect URI. That path is the app's return URL after Appwrite completes OAuth.
+Database schema migrations are located in `scripts/supabase/schema.sql`.
 
-Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, then run:
+For Google login, configure Google OAuth in your Supabase Dashboard:
+1. Go to **Authentication** → **Sign in / Providers** → **Google**.
+2. Enter your Google Client ID and Secret.
+3. In **URL Configuration**, set Site URL to `https://voluntieee.knurdz.org` (or `http://localhost:3000` for local dev) and ensure redirect URLs include `https://voluntieee.knurdz.org/api/auth/callback`.
 
-```bash
-npm run setup:appwrite:oauth
-```
-
-Production also needs:
-
-- `APP_URL=https://ieeevm.knurdz.org` so OAuth redirects use the public hostname
-  behind reverse proxies.
-- Appwrite project Overview → add a **Web platform** with hostname
-  `ieeevm.knurdz.org`, or set `APPWRITE_PRODUCTION_HOSTNAME=ieeevm.knurdz.org`
-  and run `npm run appwrite:harden`.
-
-For UoM verification emails, configure SMTP in `.env`. The app sends email
-directly from the Next.js server; no KNURDZ email API is required.
+For UoM verification emails, configure SMTP in `.env`:
 
 ```env
 SMTP_HOST=smtp.example.com
@@ -103,14 +89,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run typecheck` - TypeScript validation
 - `npm run check` - lint and typecheck
 - `npm run test` - unit tests
-- `npm run setup:appwrite` - create/reuse Appwrite tables (run after pull when schema changes, including Lava custom forms)
-- `npm run setup:appwrite:oauth` - configure Appwrite Google OAuth provider
-- `npm run appwrite:audit` - PII-safe Appwrite security audit (JSON)
-- `npm run appwrite:harden` - apply auth/session/service hardening (CLI)
-- `npm run appwrite:keys` / `appwrite:keys:sync-env` - rotate/sync API keys
+- `npm run seed:supabase` - seed database from backup
 
 ## Production auth checklist
 
-- Set `APP_URL=https://ieeevm.knurdz.org` in the production runtime env.
-- Register `ieeevm.knurdz.org` as an Appwrite Web platform (`APPWRITE_PRODUCTION_HOSTNAME` + `npm run appwrite:harden`, or Appwrite Console).
-- Confirm Google OAuth redirect URI points at Appwrite (`npm run setup:appwrite:oauth` prints the exact URL).
+- Set `APP_URL=https://voluntieee.knurdz.org` in production environment variables.
+- Add `https://voluntieee.knurdz.org` to Supabase **Site URL** and `https://voluntieee.knurdz.org/api/auth/callback` to **Redirect URLs**.
+- Enable Google OAuth provider in Supabase Dashboard with your Google Client ID and Client Secret.

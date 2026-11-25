@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   activateIeeeTerm: vi.fn(),
   addTopBoardExclusion: vi.fn(),
+  closeIeeeTerm: vi.fn(),
   createIeeeTerm: vi.fn(),
   getPermissionOverview: vi.fn(),
   listAuditLogs: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/features/access-control/server/current-user", () => ({
 }));
 vi.mock("@/features/system-settings/server/settings", () => ({
   activateIeeeTerm: mocks.activateIeeeTerm,
+  closeIeeeTerm: mocks.closeIeeeTerm,
   createIeeeTerm: mocks.createIeeeTerm,
   getPermissionOverview: mocks.getPermissionOverview,
   listAuditLogs: mocks.listAuditLogs,
@@ -42,6 +44,7 @@ import {
 } from "../src/app/api/admin/settings/terms/route";
 import { PATCH as updateTerm } from "../src/app/api/admin/settings/terms/[termId]/route";
 import { POST as activateTerm } from "../src/app/api/admin/settings/terms/[termId]/activate/route";
+import { POST as closeTerm } from "../src/app/api/admin/settings/terms/[termId]/close/route";
 import {
   GET as getExclusions,
   POST as addExclusion,
@@ -92,6 +95,14 @@ describe("system settings API authorization", () => {
       "POST activate term",
       () =>
         activateTerm(
+          new Request("http://localhost", { method: "POST" }),
+          { params: Promise.resolve({ termId: "term-1" }) },
+        ),
+    ],
+    [
+      "POST close term",
+      () =>
+        closeTerm(
           new Request("http://localhost", { method: "POST" }),
           { params: Promise.resolve({ termId: "term-1" }) },
         ),
@@ -183,6 +194,35 @@ describe("system settings API authorization", () => {
       auditLogs: [],
       nextCursor: "next-row",
       total: 125,
+    });
+  });
+
+  it("closes an IEEE term when authorized as admin", async () => {
+    mocks.requireAdmin.mockResolvedValue({
+      authUser: { id: "admin-1" },
+    });
+    mocks.closeIeeeTerm.mockResolvedValue({
+      $id: "term-1",
+      active: false,
+      status: "CLOSED",
+    });
+
+    const response = await closeTerm(
+      new Request("http://localhost", { method: "POST" }),
+      { params: Promise.resolve({ termId: "term-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.closeIeeeTerm).toHaveBeenCalledWith({
+      actorUserId: "admin-1",
+      termId: "term-1",
+    });
+    await expect(response.json()).resolves.toEqual({
+      term: {
+        $id: "term-1",
+        active: false,
+        status: "CLOSED",
+      },
     });
   });
 });

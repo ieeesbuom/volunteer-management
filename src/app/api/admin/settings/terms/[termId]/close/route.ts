@@ -1,0 +1,22 @@
+import { NextResponse } from "next/server";
+import { requireAdmin } from "@/features/access-control/server/current-user";
+import { closeIeeeTerm } from "@/features/system-settings/server/settings";
+import { jsonRouteError } from "@/server/errors";
+
+export async function POST(
+  _request: Request,
+  { params }: { params: Promise<{ termId: string }> },
+) {
+  try {
+    const admin = await requireAdmin();
+    const { termId } = await params;
+    const term = await closeIeeeTerm({
+      actorUserId: admin.authUser.id,
+      termId,
+    });
+
+    return NextResponse.json({ term });
+  } catch (error) {
+    return jsonRouteError(error, "Could not close IEEE term.");
+  }
+}

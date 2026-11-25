@@ -27,14 +27,21 @@ This project is built for the volunteers of the IEEE Student Branch, University 
    ```
 
 4. **Configure your environment.** This project uses [Supabase](https://supabase.com/) for features that require signing in, so you need a Supabase project and local credentials before starting the server:
-   - Create a Supabase project of your own (or ask the maintainers for access to a shared development project).
+   - Create a Supabase project of your own, or ask the maintainers for access to the shared development project. For a project of your own, open the Supabase SQL Editor and run [`scripts/supabase/schema.sql`](scripts/supabase/schema.sql) to create the app's tables and policies. This schema creates `profiles`, `system_settings`, and `ieee_terms`; do not create these tables manually. If using the shared project, ask the maintainers whether its schema is already set up.
    - Copy `.env.example` to `.env.local`:
 
      ```bash
      cp .env.example .env.local
      ```
 
-   - Fill in every variable listed in `.env.example` with the values from your Supabase project (found under **Project Settings → API**).
+   - For local development, remove `APP_URL` from `.env.local` or leave it blank so sign-in redirects use your local app URL.
+   - Set the environment values as follows:
+     - **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` come from **Supabase Dashboard → Project Settings → API**. Keep the service role key secret.
+     - **Application:** Set `ADMIN_EMAIL` to the administrator email address. `INTERNAL_JOB_TOKEN` and `VERIFICATION_PEPPER` are optional; generate unique random secrets for them if enabling internal jobs or verification features that need a pepper. `APP_URL` is optional and should be unset locally.
+     - **Google OAuth (optional):** Create an OAuth 2.0 Web client in Google Cloud Console, using the redirect URL shown in Supabase's Google provider settings. Configure its client ID and secret in **Supabase Dashboard → Authentication → Providers → Google** for Supabase sign-in. `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env.local` are only needed by the optional Appwrite OAuth setup script.
+     - **Email (optional):** Get `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASSWORD` from your SMTP provider, and use its `SMTP_PORT` and `SMTP_SECURE` settings. Set `SMTP_FROM_EMAIL` to a sender address authorized by the provider and `SMTP_FROM_NAME` to the desired sender name. SMTP is needed for verification and notification emails; leave `NOTIFICATION_EMAILS_ENABLED=false` unless you want notification emails.
+     - **Sentry (optional):** Get `NEXT_PUBLIC_SENTRY_DSN` from your Sentry project's client key/DSN settings. `SENTRY_AUTH_TOKEN` is a Sentry auth token used for source-map uploads during builds; `SENTRY_ORG` and `SENTRY_PROJECT` are the corresponding Sentry slugs. The example's slugs are project defaults and can be changed for your own Sentry project.
+   - If you want to load the repository's seed data, run `npm run seed:supabase` only after the schema has been applied. The seed requires the `profiles`, `system_settings`, and `ieee_terms` tables to exist; use it only in a project where that bootstrap data is intended.
    - Never commit `.env.local` or any real credentials.
 
 5. Run the server:
